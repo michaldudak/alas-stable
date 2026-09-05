@@ -1,0 +1,247 @@
+<canvas
+	id="game"
+	tabindex="0"
+	aria-label="Gra jeździecka 3D. Góra i dół zmieniają tempo, lewo i prawo skręcają, spacja to skok, C zmienia kamerę, Escape zatrzymuje grę."
+></canvas>
+<header>
+	<div class="brand">
+		<div class="brand-mark">
+			<i data-lucide="trees" aria-hidden="true"></i>
+		</div>
+		<div>
+			<h1>Końska Polana</h1>
+			<p>Mała wyprawa. Wielka przyjaźń.</p>
+		</div>
+	</div>
+	<div class="tools">
+		<button type="button" id="sound" title="Dźwięk" aria-label="Dźwięk">
+			<i data-lucide="volume-2" aria-hidden="true"></i
+			><span>Dźwięk</span></button
+		><button type="button" id="help" title="Pomoc" aria-label="Pomoc">
+			<i data-lucide="help-circle" aria-hidden="true"></i
+			><span>Pomoc</span></button
+		><button
+			type="button"
+			id="pause"
+			title="Pauza (Esc)"
+			aria-label="Pauza"
+		>
+			<i data-lucide="pause" aria-hidden="true"></i><span>Pauza</span
+			><kbd>Esc</kbd>
+		</button>
+	</div>
+</header>
+<div class="location">
+	<i data-lucide="trees" aria-hidden="true"></i
+	><span id="location">Przy stadninie</span><span class="dot"></span> Swobodna
+	jazda
+</div>
+<aside class="side-tools">
+	<button
+		type="button"
+		id="camera"
+		title="Zza konia (C)"
+		aria-label="Zza konia"
+	>
+		<i data-lucide="camera" aria-hidden="true"></i><span>Zza konia</span
+		><kbd>C</kbd></button
+	><button
+		type="button"
+		id="wardrobe"
+		title="Wygląd konia"
+		aria-label="Wygląd konia"
+	>
+		<i data-lucide="palette" aria-hidden="true"></i
+		><span>Wygląd konia</span></button
+	><button type="button" id="home" title="Do stajni" aria-label="Do stajni">
+		<i data-lucide="rotate-ccw" aria-hidden="true"></i
+		><span>Do stajni</span></button
+	><button
+		type="button"
+		id="fullscreen"
+		title="Pełny ekran"
+		aria-label="Pełny ekran"
+	>
+		<i data-lucide="maximize" aria-hidden="true"></i
+		><span>Pełny ekran</span>
+	</button>
+</aside>
+<div id="hint" class="hint">
+	<div class="hint-key">↑</div>
+	<div>
+		<strong>Ruszaj na małą wyprawę</strong>
+		<p>Naciśnij ↑ lub W. Koń sam utrzyma tempo.</p>
+	</div>
+</div>
+<footer>
+	<div class="gait">
+		<div class="gait-label">
+			<span>Tempo</span><strong id="gait">Postój</strong>
+		</div>
+		<div class="gait-steps" aria-hidden="true">
+			<b></b><b></b><b></b><b></b>
+		</div>
+		<div class="tempo-buttons">
+			<button
+				type="button"
+				id="slower"
+				title="Wolniej"
+				aria-label="Wolniej"
+			>
+				<i data-lucide="arrow-down" aria-hidden="true"></i
+				><span>Wolniej</span></button
+			><button
+				type="button"
+				id="faster"
+				title="Szybciej"
+				aria-label="Szybciej"
+			>
+				<i data-lucide="arrow-up" aria-hidden="true"></i
+				><span>Szybciej</span>
+			</button>
+		</div>
+	</div>
+	<div class="controls">
+		<div>
+			<div class="keys"><kbd>←</kbd><kbd>→</kbd></div>
+			<span>Skręcaj</span>
+		</div>
+		<div>
+			<div class="keys"><kbd>↑</kbd><kbd>↓</kbd></div>
+			<span>Zmieniaj tempo</span>
+		</div>
+		<button type="button" class="jump" id="jump">
+			<i data-lucide="corner-left-up" aria-hidden="true"></i
+			><span>Skok</span><kbd>Spacja</kbd>
+		</button>
+	</div>
+	<div class="map-wrap">
+		<canvas
+			id="map"
+			role="img"
+			width="180"
+			height="180"
+			aria-label="Mapa okolicy z pozycją konia"
+		></canvas
+		><span>Twoja okolica</span>
+	</div>
+</footer>
+<dialog id="pause-dialog">
+	<div class="dialog-top"><h2>Chwila odpoczynku</h2></div>
+	<p>Polana poczeka na Ciebie.</p>
+	<button type="button" id="resume" class="primary">
+		<i data-lucide="play" aria-hidden="true"></i> Wracamy do jazdy
+	</button>
+	<div class="mini-help">
+		<kbd>↑ ↓</kbd> tempo <kbd>← →</kbd> skręcanie <kbd>Spacja</kbd> skok
+	</div>
+</dialog>
+<dialog id="help-dialog">
+	<div class="dialog-top">
+		<h2>Wskakuj na siodło</h2>
+		<button
+			type="button"
+			id="close-help"
+			title="Zamknij"
+			aria-label="Zamknij"
+		>
+			<i data-lucide="x" aria-hidden="true"></i><span>Zamknij</span>
+		</button>
+	</div>
+	<div class="help-grid">
+		<div>
+			<kbd>↑</kbd><kbd>↓</kbd>
+			<h3>Wybierz tempo</h3>
+			<p>Naciśnij i puść. Od postoju do galopu.</p>
+		</div>
+		<div>
+			<kbd>←</kbd><kbd>→</kbd>
+			<h3>Skręcaj</h3>
+			<p>Przytrzymaj, żeby skręcić. Działa też WASD.</p>
+		</div>
+		<div>
+			<kbd>Spacja</kbd>
+			<h3>Przeskocz przeszkodę</h3>
+			<p>Skocz chwilę przed poprzeczką. Nie musisz trafić idealnie.</p>
+		</div>
+		<div>
+			<kbd>C</kbd>
+			<h3>Rozejrzyj się</h3>
+			<p>
+				Zmieniaj widok. Przeciągnij myszą po świecie, żeby się
+				rozglądać.
+			</p>
+		</div>
+	</div>
+	<button type="button" id="help-play" class="primary">
+		<i data-lucide="play" aria-hidden="true"></i> Jedziemy
+	</button>
+</dialog>
+<dialog id="dress-dialog">
+	<div class="dialog-top">
+		<h2>Twój koń</h2>
+		<button
+			type="button"
+			id="close-dress"
+			title="Zamknij"
+			aria-label="Zamknij"
+		>
+			<i data-lucide="x" aria-hidden="true"></i><span>Zamknij</span>
+		</button>
+	</div>
+	<p>Obejrzyj z każdej strony i wybierz kolory.</p>
+	<div class="dress-layout">
+		<div class="horse-preview">
+			<canvas
+				id="horse-preview"
+				tabindex="0"
+				aria-label="Podgląd konia 3D. Przeciągnij, aby obrócić, użyj kółka myszy, aby przybliżyć. Strzałki również obracają i przybliżają."
+			></canvas>
+			<div class="preview-tools">
+				<button
+					type="button"
+					id="preview-left"
+					title="Obróć w lewo"
+					aria-label="Obróć w lewo"
+				>
+					<i data-lucide="arrow-left" aria-hidden="true"></i
+					><span>Obróć w lewo</span></button
+				><button
+					type="button"
+					id="preview-right"
+					title="Obróć w prawo"
+					aria-label="Obróć w prawo"
+				>
+					<i data-lucide="arrow-right" aria-hidden="true"></i
+					><span>Obróć w prawo</span></button
+				><button type="button" id="preview-in" aria-label="Przybliż">
+					+</button
+				><button type="button" id="preview-out" aria-label="Oddal">
+					−</button
+				><button
+					type="button"
+					id="preview-reset"
+					title="Cały koń"
+					aria-label="Cały koń"
+				>
+					<i data-lucide="rotate-ccw" aria-hidden="true"></i
+					><span>Cały koń</span>
+				</button>
+			</div>
+			<p>Przeciągnij, żeby obrócić · Kółko myszy przybliża</p>
+			<button type="button" id="preview-rider" aria-pressed="false">
+				<i data-lucide="check" aria-hidden="true"></i> Pokaż jeźdźca
+			</button>
+		</div>
+		<div class="dress-options">
+			<div id="swatches"></div>
+			<button type="button" id="dress-play" class="primary">
+				<i data-lucide="play" aria-hidden="true"></i> Wracamy na polanę
+			</button>
+		</div>
+	</div>
+</dialog>
+<div id="error" hidden>
+	<h2>Nie udało się otworzyć świata 3D</h2>
+	<p>Spróbuj w aktualnej przeglądarce z włączoną akceleracją grafiki.</p>
+</div>

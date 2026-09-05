@@ -1,0 +1,422 @@
+import { context2d, requireElement } from './ui/dom.ts';
+import * as THREE from 'three';
+import { icon, refreshIcons } from './ui/icons.ts';
+import shell from './ui/shell.html?raw';
+import '@fontsource-variable/inter';
+import './style.css';
+import { createWorld } from './world.ts';
+import { createHorse } from './horse.ts';
+import { createHorsePreview } from './horse-preview.ts';
+import { setupAppearancePanel } from './appearance-panel.ts';
+import {
+	createState,
+	changeGait,
+	requestJump,
+	step,
+	GAITS,
+} from './physics.ts';
+import { Soundscape } from './audio.ts';
+import { createHorseAnimation } from './horse-animation.ts';
+import { STABLE, insideStable, inTackRoom } from './stable-layout.ts';
+
+document.querySelector('#app')!.innerHTML = shell;
+refreshIcons();
+const canvas = requireElement('#game', HTMLCanvasElement);
+let renderer;
+try {
+	renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+} catch (error) {
+	requireElement('#error', HTMLElement).hidden = false;
+	throw error;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+const scene = new THREE.Scene(),
+	camera = new THREE.PerspectiveCamera(
+		52,
+		innerWidth / innerHeight,
+		0.1,
+		350,
+	);
+const world = createWorld(scene),
+	horse = createHorse();
+scene.add(horse.root);
+const preview = createHorsePreview(
+	requireElement('#horse-preview', HTMLCanvasElement),
+	horse,
+);
+const horseAnimation = createHorseAnimation(horse);
+const state = createState(),
+	audio = new Soundscape(),
+	keys = new Set();
+let firstPerson = false,
+	paused = false,
+	look = 0,
+	dragging = false,
+	previousMouse = 0,
+	elapsed = 0,
+	hintUntil = 9,
+	started = false;
+const $ = (id: string) => requireElement(`#${id}`, HTMLElement);
+const dialog = (id: string) => requireElement(`#${id}`, HTMLDialogElement);
+const dialogs = [
+	dialog('pause-dialog'),
+	dialog('help-dialog'),
+	dialog('dress-dialog'),
+];
+function focusGame() {
+	canvas.focus({ preventScroll: true });
+}
+function showDialog(dialog: HTMLDialogElement) {
+	keys.clear();
+	dragging = false;
+	paused = true;
+	dialog.showModal();
+}
+function closeDialog(dialog: HTMLDialogElement) {
+	dialog.close();
+	paused = false;
+	focusGame();
+}
+for (const dialog of dialogs)
+	dialog.addEventListener('cancel', (event) => {
+		event.preventDefault();
+		closeDialog(dialog);
+	});
+function pause() {
+	if (!dialogs.some((d) => d.open)) showDialog(dialog('pause-dialog'));
+}
+function hint(title: string, subtitle: string, duration = 4) {
+	requireElement('#hint strong', HTMLElement).textContent = title;
+	requireElement('#hint p', HTMLElement).textContent = subtitle;
+	hintUntil = elapsed + duration;
+	$('hint').classList.remove('hidden');
+}
+function updateGait() {
+	$('gait').textContent = GAITS[state.gait];
+	document
+		.querySelectorAll('.gait-steps b')
+		.forEach((bar, i) => bar.classList.toggle('on', i <= state.gait));
+	requireElement('#slower', HTMLButtonElement).disabled = state.gait === 0;
+	requireElement('#faster', HTMLButtonElement).disabled = state.gait === 3;
+}
+function tempo(delta: number) {
+	changeGait(state, delta);
+	updateGait();
+	if (!started && state.gait) {
+		started = true;
+		hint(
+			'Świetnie! Teraz wybierz swoją drogę.',
+			'← → skręcaj · Spacja — skok',
+			6,
+		);
+	}
+}
+function toggleCamera() {
+	firstPerson = !firstPerson;
+	horse.rider.visible = !firstPerson;
+	look = 0;
+	requireElement('#camera span', HTMLElement).textContent = firstPerson
+		? 'Oczami jeźdźca'
+		: 'Zza konia';
+	$('camera').setAttribute('aria-pressed', String(firstPerson));
+	updateCamera(1, true);
+}
+function home() {
+	Object.assign(state, createState());
+	look = 0;
+	updateGait();
+	updateCamera(1, true);
+	focusGame();
+	hint('Z powrotem przy stajni', 'Dokąd teraz pojedziemy?');
+}
+$('faster').onclick = () => {
+	tempo(1);
+	focusGame();
+};
+$('slower').onclick = () => {
+	tempo(-1);
+	focusGame();
+};
+$('jump').onclick = () => {
+	requestJump(state);
+	focusGame();
+};
+$('camera').onclick = () => {
+	toggleCamera();
+	focusGame();
+};
+$('home').onclick = home;
+$('pause').onclick = pause;
+$('resume').onclick = () => closeDialog(dialog('pause-dialog'));
+$('help').onclick = () => showDialog(dialog('help-dialog'));
+for (const id of ['close-help', 'help-play'])
+	$(id).onclick = () => closeDialog(dialog('help-dialog'));
+$('wardrobe').onclick = () => showDialog(dialog('dress-dialog'));
+$('preview-left').onclick = () => preview.rotate(-1);
+$('preview-right').onclick = () => preview.rotate(1);
+$('preview-in').onclick = () => preview.zoom(1);
+$('preview-out').onclick = () => preview.zoom(-1);
+$('preview-reset').onclick = () => preview.reset();
+$('preview-rider').onclick = () =>
+	$('preview-rider').setAttribute(
+		'aria-pressed',
+		String(preview.toggleRider()),
+	);
+for (const id of ['close-dress', 'dress-play'])
+	$(id).onclick = () => closeDialog(dialog('dress-dialog'));
+$('sound').onclick = () => {
+	audio.enabled = !audio.enabled;
+	$('sound').innerHTML =
+		`${icon(audio.enabled ? 'volume-2' : 'volume-x')}<span>Dźwięk</span>`;
+	$('sound').setAttribute('aria-pressed', String(audio.enabled));
+	refreshIcons();
+	focusGame();
+};
+$('sound').setAttribute('aria-pressed', 'true');
+$('fullscreen').onclick = async () => {
+	try {
+		if (document.fullscreenElement) await document.exitFullscreen();
+		else await document.documentElement.requestFullscreen();
+	} catch {
+		hint(
+			'Pełny ekran jest niedostępny',
+			'Możesz dalej jeździć w tym oknie.',
+		);
+	}
+	focusGame();
+};
+setupAppearancePanel($('swatches'), horse);
+addEventListener('keydown', (event) => {
+	void audio.unlock();
+	if (dialogs.some((d) => d.open)) return;
+	if (event.target instanceof HTMLButtonElement) return;
+	const gameKeys = [
+		'ArrowUp',
+		'ArrowDown',
+		'ArrowLeft',
+		'ArrowRight',
+		'KeyW',
+		'KeyS',
+		'KeyA',
+		'KeyD',
+		'Space',
+		'KeyC',
+		'Escape',
+	];
+	if (!gameKeys.includes(event.code)) return;
+	event.preventDefault();
+	keys.add(event.code);
+	if (event.repeat) return;
+	if (['ArrowUp', 'KeyW'].includes(event.code)) tempo(1);
+	if (['ArrowDown', 'KeyS'].includes(event.code)) tempo(-1);
+	if (event.code === 'Space') requestJump(state);
+	if (event.code === 'KeyC') toggleCamera();
+	if (event.code === 'Escape') pause();
+});
+addEventListener('keyup', (event) => keys.delete(event.code));
+addEventListener('pointerdown', () => {
+	void audio.unlock();
+});
+canvas.addEventListener('pointerdown', (event) => {
+	dragging = true;
+	previousMouse = event.clientX;
+	canvas.setPointerCapture(event.pointerId);
+	focusGame();
+});
+canvas.addEventListener('pointermove', (event) => {
+	if (dragging) {
+		look -= (event.clientX - previousMouse) * 0.006;
+		look = THREE.MathUtils.clamp(look, -2.6, 2.6);
+		previousMouse = event.clientX;
+	}
+});
+canvas.addEventListener('pointerup', () => {
+	dragging = false;
+});
+canvas.addEventListener('pointercancel', () => {
+	dragging = false;
+});
+addEventListener('blur', pause);
+document.addEventListener('visibilitychange', () => {
+	if (document.hidden) pause();
+});
+addEventListener('resize', () => {
+	renderer.setSize(innerWidth, innerHeight);
+	camera.aspect = innerWidth / innerHeight;
+	camera.updateProjectionMatrix();
+});
+const desiredCamera = new THREE.Vector3(),
+	target = new THREE.Vector3();
+const cameraRay = new THREE.Raycaster(),
+	cameraDirection = new THREE.Vector3();
+function updateCamera(dt: number, snap = false) {
+	const heading = state.heading + look;
+	const indoors = insideStable(state.x, state.z, 1.5);
+	if (firstPerson) {
+		desiredCamera.set(
+			state.x - Math.sin(state.heading) * 0.3,
+			4.1 + state.height,
+			state.z - Math.cos(state.heading) * 0.3,
+		);
+		target.set(
+			desiredCamera.x + Math.sin(heading) * 15,
+			desiredCamera.y - (indoors ? 2.2 : 0.35),
+			desiredCamera.z + Math.cos(heading) * 15,
+		);
+	} else {
+		const distance = indoors ? 7.2 : 9;
+		desiredCamera.set(
+			state.x - Math.sin(heading) * distance,
+			(indoors ? 5.15 : 5.7) + state.height * 0.55,
+			state.z - Math.cos(heading) * distance,
+		);
+		const ahead = indoors ? 0 : 2.5;
+		target.set(
+			state.x + Math.sin(state.heading) * ahead,
+			(indoors ? 2.2 : 1.7) + state.height * 0.65,
+			state.z + Math.cos(state.heading) * ahead,
+		);
+	}
+	camera.position.lerp(desiredCamera, snap ? 1 : 1 - Math.exp(-dt * 7));
+	if (!firstPerson) {
+		cameraDirection.copy(camera.position).sub(target);
+		const cameraDistance = cameraDirection.length();
+		cameraRay.set(target, cameraDirection.normalize());
+		cameraRay.far = cameraDistance;
+		const hit = cameraRay.intersectObjects(
+			world.stable.cameraBlockers,
+			false,
+		)[0];
+		if (hit)
+			camera.position
+				.copy(target)
+				.addScaledVector(
+					cameraRay.ray.direction,
+					Math.max(0.25, hit.distance - 0.25),
+				);
+	}
+	camera.lookAt(target);
+}
+const map = context2d(requireElement('#map', HTMLCanvasElement));
+function drawMap() {
+	map.clearRect(0, 0, 180, 180);
+	map.fillStyle = '#aabc89';
+	map.fillRect(0, 0, 180, 180);
+	const point = (x: number, z: number): [number, number] => [
+		90 + x * 0.7,
+		90 + z * 0.7,
+	];
+	map.fillStyle = '#648562';
+	map.beginPath();
+	map.ellipse(88, 39, 70, 28, 0, 0, 7);
+	map.fill();
+	map.strokeStyle = '#e8d7b0';
+	map.lineWidth = 5;
+	map.beginPath();
+	world.points.forEach((p, i) => {
+		const [x, y] = point(p.x, p.z);
+		if (i) map.lineTo(x, y);
+		else map.moveTo(x, y);
+	});
+	map.stroke();
+	map.fillStyle = '#e4cda5';
+	map.fillRect(...point(-16, -38), 22.4, 40.6);
+	map.fillStyle = '#a96a4f';
+	map.fillRect(...point(STABLE.x - 12, STABLE.z - 13), 16.8, 18.2);
+	map.fillStyle = '#eadcbb';
+	map.fillRect(...point(STABLE.x - 3.7, STABLE.z - 13), 5.18, 18.2);
+	map.strokeStyle = '#7b8f7d';
+	map.lineWidth = 2;
+	for (const o of world.obstacles) {
+		map.beginPath();
+		map.moveTo(...point(-4, o.z));
+		map.lineTo(...point(4, o.z));
+		map.stroke();
+	}
+	map.save();
+	map.translate(...point(state.x, state.z));
+	map.rotate(-state.heading);
+	map.fillStyle = '#fff9e9';
+	map.strokeStyle = '#345b4a';
+	map.lineWidth = 2.5;
+	map.beginPath();
+	map.moveTo(0, 8);
+	map.lineTo(-5, -5);
+	map.lineTo(0, -2);
+	map.lineTo(5, -5);
+	map.closePath();
+	map.fill();
+	map.stroke();
+	map.restore();
+}
+updateGait();
+updateCamera(1, true);
+focusGame();
+let previousTime = performance.now();
+renderer.setAnimationLoop((time) => {
+	const dt = Math.min(0.04, Math.max(0, (time - previousTime) / 1000));
+	previousTime = time;
+	if (!paused) {
+		elapsed += dt;
+		const turn =
+			Number(keys.has('ArrowLeft') || keys.has('KeyA')) -
+			Number(keys.has('ArrowRight') || keys.has('KeyD'));
+		const oldGait = state.gait;
+		if (step(state, dt, turn, world.obstacles, world.solids)) {
+			audio.tone(170, 0.18, 0.07, 65, 'triangle');
+			hint(
+				'Poprzeczka zaraz wróci na miejsce',
+				'Spróbuj nacisnąć spację przed przeszkodą.',
+			);
+		}
+		if (state.gait !== oldGait) updateGait();
+		horse.root.position.set(state.x, state.height, state.z);
+		horse.root.rotation.y = state.heading;
+		const footfalls = horseAnimation.update(dt, state, elapsed);
+		for (const obstacle of world.obstacles) {
+			obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0;
+			obstacle.rails.position.y = obstacle.down ? -0.28 : 0;
+		}
+		if (!dragging) look *= Math.exp(-dt * 2.5);
+		updateCamera(dt);
+		audio.tick(
+			dt,
+			state,
+			Math.abs(state.x) < 16 && state.z < 20 && state.z > -38,
+			footfalls,
+		);
+		$('location').textContent = inTackRoom(state.x, state.z)
+			? 'Siodlarnia'
+			: insideStable(state.x, state.z)
+				? 'Stajnia'
+				: state.z < -40
+					? 'Leśna ścieżka'
+					: Math.abs(state.x) < 17 && state.z < 21
+						? 'Plac do skoków'
+						: state.x < -20 && state.z < 25 && state.z > -10
+							? 'Stadnina'
+							: 'Słoneczna polana';
+		$('hint').classList.toggle('hidden', elapsed > hintUntil);
+	}
+	world.stable.update(elapsed);
+	drawMap();
+	renderer.render(scene, camera);
+	if (dialog('dress-dialog').open) preview.render();
+});
+// A read-only snapshot helps repeatable browser checks without altering gameplay.
+if (import.meta.env.DEV)
+	window.__polana = {
+		snapshot: () => ({
+			...state,
+			paused,
+			firstPerson,
+			obstacles: world.obstacles.map(({ z, down }) => ({ z, down })),
+			calls: renderer.info.render.calls,
+		}),
+	};

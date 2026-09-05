@@ -1,0 +1,43 @@
+import {
+	createIcons,
+	Camera,
+	Volume2,
+	VolumeX,
+	Pause,
+	Play,
+	RotateCcw,
+	HelpCircle,
+	X,
+	ArrowUp,
+	ArrowDown,
+	ArrowLeft,
+	ArrowRight,
+	CornerLeftUp,
+	Trees,
+	Palette,
+	Check,
+	Maximize,
+} from 'lucide';
+export const icons = {
+	Camera,
+	Volume2,
+	VolumeX,
+	Pause,
+	Play,
+	RotateCcw,
+	HelpCircle,
+	X,
+	ArrowUp,
+	ArrowDown,
+	ArrowLeft,
+	ArrowRight,
+	CornerLeftUp,
+	Trees,
+	Palette,
+	Check,
+	Maximize,
+};
+export const refreshIcons = () => createIcons({ icons });
+
+export const icon = (name: string) =>
+	`<i data-lucide="${name}" aria-hidden="true"></i>`;
