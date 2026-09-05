@@ -1,4 +1,4 @@
-import type { HorseModel } from './horse-types.ts';
+import type { HorseModel } from '../horse/types.ts';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -6,6 +6,7 @@ export function createHorsePreview(
 	canvas: HTMLCanvasElement,
 	horse: HorseModel,
 ) {
+	const events = new AbortController();
 	const renderer = new THREE.WebGLRenderer({
 		canvas,
 		antialias: true,
@@ -95,22 +96,36 @@ export function createHorsePreview(
 		camera.position.copy(controls.target).add(offset);
 		controls.update();
 	}
-	canvas.addEventListener('keydown', (event) => {
-		if (
-			['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
-				event.code,
-			)
-		) {
-			event.preventDefault();
-			if (event.code === 'ArrowLeft') rotate(-1);
-			if (event.code === 'ArrowRight') rotate(1);
-			if (event.code === 'ArrowUp') zoom(1);
-			if (event.code === 'ArrowDown') zoom(-1);
-		}
-	});
+	canvas.addEventListener(
+		'keydown',
+		(event) => {
+			if (
+				['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
+					event.code,
+				)
+			) {
+				event.preventDefault();
+				if (event.code === 'ArrowLeft') rotate(-1);
+				if (event.code === 'ArrowRight') rotate(1);
+				if (event.code === 'ArrowUp') zoom(1);
+				if (event.code === 'ArrowDown') zoom(-1);
+			}
+		},
+		{ signal: events.signal },
+	);
 	let lastWidth = 0,
 		lastHeight = 0;
 	return {
+		dispose() {
+			events.abort();
+			controls.dispose();
+			// The cloned horse shares geometry/materials with the live horse, whose scene owns them.
+			floor.geometry.dispose();
+			floor.material.dispose();
+			light.shadow.dispose();
+			scene.clear();
+			renderer.dispose();
+		},
 		rotate,
 		zoom,
 		reset,

@@ -1,7 +1,10 @@
-import { chromium } from '@playwright/test';
+import type * as ThreeModule from 'three';
+import type * as HorseModule from '../src/horse/model.ts';
+import type * as AnimationModule from '../src/horse/animation.ts';
+import { BASE_URL, launchBrowser } from './browser-support.ts';
 import { mkdir } from 'node:fs/promises';
 await mkdir('artifacts', { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchBrowser();
 try {
 	const page = await browser.newPage({
 		viewport: { width: 1440, height: 990 },
@@ -12,12 +15,17 @@ try {
 			body: '<html><body style="margin:0;background:#f1eddf;font:16px sans-serif"><main style="display:grid;grid-template-columns:repeat(4,1fr)"></main></body></html>',
 		}),
 	);
-	await page.goto('http://127.0.0.1:5173/gait-inspection');
+	await page.goto(`${BASE_URL}/gait-inspection`);
 	await page.evaluate(async () => {
-		const THREE = await import('/node_modules/.vite/deps/three.js');
-		const { createHorse } = await import('/src/horse.ts');
-		const { createHorseAnimation } =
-			await import('/src/horse-animation.ts');
+		const THREE = (await import(
+			String('/node_modules/.vite/deps/three.js')
+		)) as typeof ThreeModule;
+		const { createHorse } = (await import(
+			String('/src/horse/model.ts')
+		)) as typeof HorseModule;
+		const { createHorseAnimation } = (await import(
+			String('/src/horse/animation.ts')
+		)) as typeof AnimationModule;
 		const renderer = new THREE.WebGLRenderer({
 			antialias: true,
 			preserveDrawingBuffer: true,
@@ -45,7 +53,7 @@ try {
 			[1, 2.5, 'Step', 1.35],
 			[2, 5.5, 'Klus', 1.7],
 			[3, 9, 'Galop', 1.8],
-		]) {
+		] as const) {
 			const horse = createHorse();
 			scene.add(horse.root);
 			const anim = createHorseAnimation(horse);
@@ -60,15 +68,15 @@ try {
 					);
 				renderer.render(scene, camera);
 				const cell = document.createElement('div');
-				cell.style = 'height:330px;text-align:center';
+				cell.style.cssText = 'height:330px;text-align:center';
 				const title = document.createElement('p');
 				title.textContent = label + ' - ' + (frame + 1);
-				title.style = 'margin:8px';
+				title.style.cssText = 'margin:8px';
 				const image = document.createElement('img');
 				image.src = renderer.domElement.toDataURL();
 				image.width = 360;
 				cell.append(title, image);
-				document.querySelector('main').append(cell);
+				document.querySelector('main')!.append(cell);
 			}
 			scene.remove(horse.root);
 		}

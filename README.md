@@ -1,20 +1,28 @@
 # Końska Polana
 
-Przeglądarkowy prototyp spokojnej gry jeździeckiej dla dzieci. Three.js, JavaScript i Vite. Modele powstają w kodzie, dźwięki są syntezowane lokalnie. Gra nie potrzebuje konta ani zewnętrznych usług.
+Przeglądarkowy prototyp spokojnej gry jeździeckiej dla dzieci. Three.js, TypeScript 7 i Vite. Modele powstają w kodzie, dźwięki są syntezowane lokalnie. Gra nie potrzebuje konta ani zewnętrznych usług.
 
 ## Uruchomienie
 
-Wymagany Node.js 22.12+ lub 24+.
+Wymagany Node.js 22.18+ lub 24+.
 
 ```sh
-npm install
+npm ci
 npm run dev
 ```
 
 Otwórz adres wypisany przez Vite (zwykle http://127.0.0.1:5173). `npm run build` tworzy statyczną wersję w `dist`, którą można umieścić na hostingu. `npm test` sprawdza mechanikę ruchu, skoków i kolizji.
 
-Przy uruchomionym serwerze na porcie 5173: `node scripts/browser-check.mjs` wykonuje test w zainstalowanym Chrome i zapisuje zrzuty w `artifacts/`.
-`node scripts/appearance-check.mjs` sprawdza zmiany wszystkich wariantów w podglądzie, zapis wyborów i układ panelu. Testy używają osobnego profilu i nie zmieniają zapisów gracza.
+Przy uruchomionym serwerze na porcie 5173: `node scripts/browser-check.ts` wykonuje test w zainstalowanym Chrome i zapisuje zrzuty w `artifacts/`.
+`node scripts/appearance-check.ts` sprawdza zmiany wszystkich wariantów w podglądzie, zapis wyborów i układ panelu. Testy używają osobnego profilu i nie zmieniają zapisów gracza.
+
+## Praca nad kodem
+
+`npm run check` uruchamia natywny TypeScript 7, Oxlint z analizą typów, Stylelint, HTML Validate, kontrolę formatowania i testy jednostkowe. `npm run format` formatuje pliki przez Prettier, z tabulatorami w TS/JS, HTML i CSS.
+
+`npm run check:browser` uruchamia komplet testów przeglądarkowych we własnym serwerze Vite na porcie 5174, a potem go zamyka. Domyślnie używa zainstalowanego Chrome. W CI działa Chromium instalowany przez Playwright.
+
+Opis granic modułów, wymiany modeli, zarządzania zasobami i poleceń: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Sterowanie
 
@@ -35,7 +43,7 @@ Panel wyglądu ma cztery sekcje: kolory, fryzury, ozdoby i czaprak. Grzywa i ogo
 
 To prototyp na PC z klawiaturą, nie gotowa gra mobilna. Dźwięki i modele są robocze. Do oceny z dzieckiem: tempo skręcania, wysokość kamery, czytelność konia, łatwość skoków i płynność na docelowym komputerze.
 
-Model konia jest w `src/horse.js`: zaokrąglona sylwetka, pysk, pasma grzywy i ogona, nogi z ruchomymi stawami oraz dopasowany czaprak i siodło. Podgląd w panelu wyglądu pozwala obracać i przybliżać konia, opcjonalnie z jeźdźcem. Zmiany kolorów są widoczne od razu. Przeciąganie obraca model, kółko myszy przybliża; dostępne są też przyciski i strzałki klawiatury po ustawieniu fokusu na podglądzie.
+Model konia jest w `src/horse/model.ts`: zaokrąglona sylwetka, pysk, pasma grzywy i ogona, nogi z ruchomymi stawami oraz dopasowany czaprak i siodło. Podgląd w panelu wyglądu pozwala obracać i przybliżać konia, opcjonalnie z jeźdźcem. Zmiany kolorów są widoczne od razu. Przeciąganie obraca model, kółko myszy przybliża; dostępne są też przyciski i strzałki klawiatury po ustawieniu fokusu na podglądzie.
 
 ## Animacje chodów
 
@@ -43,7 +51,7 @@ Stęp ma cztery osobne takty i ciągłe podparcie. Kłus pracuje parami przekąt
 
 Podstawa rytmów: [FEI — Gait](https://www.fei.org/node/38138), [University of Arizona — Horse gaits](https://opentextbooks.library.arizona.edu/app/uploads/sites/274/2023/11/Horse-Gaits.pdf).
 
-`node scripts/gait-check.mjs` zapisuje w `artifacts/gait-phases.png` porównanie czterech faz każdego chodu z boku. Wymaga uruchomionego Vite na porcie 5173. `tests/gaits.test.js` sprawdza kolejność podparć, zawieszenie, przejścia, wyciszenie kroków przy skoku i położenie kopyt.
+`node scripts/gait-check.ts` zapisuje w `artifacts/gait-phases.png` porównanie czterech faz każdego chodu z boku. Wymaga uruchomionego Vite na porcie 5173. `tests/gaits.test.ts` sprawdza kolejność podparć, zawieszenie, przejścia, wyciszenie kroków przy skoku i położenie kopyt.
 
 ## Stajnia
 
@@ -51,6 +59,6 @@ Budynek na zachód od placu ma dwa otwarte wjazdy i przejezdną centralną alejk
 
 Siodlarnia znajduje się po prawej stronie od głównego wjazdu. Można do niej wjechać; zawiera siodła na stojakach, ogłowia, złożone czapraki i skrzynkę ze szczotkami. To wyposażenie otoczenia; dekorowanie własnego konia nadal otwiera przycisk z paletą.
 
-Wnętrze ma brukowaną alejkę, drewnianą konstrukcję, dach ze spadkiem, lampy i okna. Kamera TPP skraca dystans przy ścianach i dachu, FPP kieruje się nieco niżej we wnętrzu. Rozmieszczenie ścian i kolizji współdzieli `src/stable-layout.js`.
+Wnętrze ma brukowaną alejkę, drewnianą konstrukcję, dach ze spadkiem, lampy i okna. Kamera TPP skraca dystans przy ścianach i dachu, FPP kieruje się nieco niżej we wnętrzu. Rozmieszczenie ścian i kolizji współdzieli `src/world/stable-layout.ts`.
 
-`node scripts/stable-check.mjs` przejeżdża od punktu startowego do stajni, sprawdza TPP/FPP, wjazd do siodlarni i wyjazd tylnymi drzwiami oraz zapisuje zrzuty. `tests/stable.test.js` sprawdza przejezdność alei, drzwi i bariery przy boksach.
+`node scripts/stable-check.ts` przejeżdża od punktu startowego do stajni, sprawdza TPP/FPP, wjazd do siodlarni i wyjazd tylnymi drzwiami oraz zapisuje zrzuty. `tests/stable.test.ts` sprawdza przejezdność alei, drzwi i bariery przy boksach.

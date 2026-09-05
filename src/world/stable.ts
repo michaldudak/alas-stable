@@ -1,8 +1,9 @@
-import type { HorseModel, Vector3Tuple } from './horse-types.ts';
-import type { Solid } from './game-types.ts';
-import { context2d } from './ui/dom.ts';
+import type { HorseModel } from '../horse/types.ts';
+import type { Vector3Tuple } from '../rendering/types.ts';
+import type { Solid } from '../game/types.ts';
+import { context2d } from '../platform/dom.ts';
 import * as THREE from 'three';
-import { createHorse } from './horse.ts';
+import { createHorse } from '../horse/model.ts';
 import { STABLE, STABLE_WALLS, stableSolids } from './stable-layout.ts';
 
 export function createStable(scene: THREE.Scene, solids: Solid[]) {

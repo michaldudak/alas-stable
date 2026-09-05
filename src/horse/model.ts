@@ -1,113 +1,14 @@
-import type { HorseModel, Vector3Tuple } from './horse-types.ts';
-import type { Appearance } from './appearance-options.ts';
-import { context2d } from './ui/dom.ts';
+import { createRider } from './rider.ts';
+import { surface, mesh, oval, limb, cord, form } from './geometry.ts';
+import type { HorseModel } from './types.ts';
+import type { Vector3Tuple } from '../rendering/types.ts';
+import type { Appearance } from './appearance.ts';
+import { createPatternTextures } from './patterns.ts';
 import * as THREE from 'three';
-import { normalizeAppearance } from './appearance-options.ts';
+import { normalizeAppearance } from './appearance.ts';
 
 // The model faces +Z. Separate material channels and named groups are the
 // attachment points for future hairstyles, saddlecloth patterns and ornaments.
-const sphere = new THREE.SphereGeometry(1, 20, 14);
-const up = new THREE.Vector3(0, 1, 0);
-const surface = (color: THREE.ColorRepresentation, roughness = 0.85) =>
-	new THREE.MeshStandardMaterial({ color, roughness });
-
-function mesh(
-	parent: THREE.Object3D,
-	geometry: THREE.BufferGeometry,
-	material: THREE.Material,
-	position: Vector3Tuple = [0, 0, 0],
-) {
-	const object = new THREE.Mesh(geometry, material);
-	object.position.set(...position);
-	object.castShadow = true;
-	object.receiveShadow = true;
-	parent.add(object);
-	return object;
-}
-
-function oval(
-	parent: THREE.Object3D,
-	material: THREE.Material,
-	scale: Vector3Tuple,
-	position: Vector3Tuple,
-) {
-	const object = mesh(parent, sphere, material, position);
-	object.scale.set(...scale);
-	return object;
-}
-
-function limb(
-	parent: THREE.Object3D,
-	material: THREE.Material,
-	start: Vector3Tuple,
-	end: Vector3Tuple,
-	radius: number,
-	endRadius = radius,
-) {
-	const a = new THREE.Vector3(...start),
-		b = new THREE.Vector3(...end);
-	const object = mesh(
-		parent,
-		new THREE.CylinderGeometry(endRadius, radius, a.distanceTo(b), 14),
-		material,
-	);
-	object.position.copy(a).add(b).multiplyScalar(0.5);
-	object.quaternion.setFromUnitVectors(up, b.sub(a).normalize());
-	return object;
-}
-
-function cord(
-	parent: THREE.Object3D,
-	material: THREE.Material,
-	points: Vector3Tuple[],
-	radius = 0.025,
-) {
-	const curve = new THREE.CatmullRomCurve3(
-		points.map((point) => new THREE.Vector3(...point)),
-	);
-	return mesh(
-		parent,
-		new THREE.TubeGeometry(curve, 32, radius, 6, false),
-		material,
-	);
-}
-
-// Smooth connected elliptical sections, instead of intersecting polygonal blocks.
-function form(
-	parent: THREE.Object3D,
-	material: THREE.Material,
-	sections: [Vector3Tuple, number, number][],
-	axis: 'y' | 'z' = 'z',
-	segments = 24,
-) {
-	const positions: number[] = [],
-		indices: number[] = [];
-	sections.forEach(([center, width, depth], ring) => {
-		for (let j = 0; j <= segments; j++) {
-			const angle = (j / segments) * Math.PI * 2;
-			positions.push(
-				center[0] + Math.cos(angle) * width,
-				center[1] + (axis === 'z' ? Math.sin(angle) * depth : 0),
-				center[2] + (axis === 'y' ? Math.sin(angle) * depth : 0),
-			);
-			if (ring && j < segments) {
-				const a = ring * (segments + 1) + j,
-					b = a - segments - 1;
-				if (axis === 'z') indices.push(b, b + 1, a, b + 1, a + 1, a);
-				else indices.push(b, a, b + 1, b + 1, a, a + 1);
-			}
-		}
-	});
-	const geometry = new THREE.BufferGeometry();
-	geometry.setAttribute(
-		'position',
-		new THREE.Float32BufferAttribute(positions, 3),
-	);
-	geometry.setIndex(indices);
-	geometry.computeVertexNormals();
-	return mesh(parent, geometry, material);
-}
-
 export function createHorse(): HorseModel {
 	const root = new THREE.Group(),
 		body = new THREE.Group();
@@ -405,62 +306,7 @@ export function createHorse(): HorseModel {
 	oval(tack, leather, [0.41, 0.19, 0.13], [0, 2.66, -0.48]);
 	oval(tack, leather, [0.32, 0.14, 0.1], [0, 2.66, 0.28]);
 
-	const rider = new THREE.Group();
-	rider.name = 'rider';
-	body.add(rider);
-	const shirt = surface('#cb7956'),
-		pants = surface('#e6dbc1'),
-		boots = surface('#303d3b', 0.6);
-	const skin = surface('#edbd96'),
-		helmet = surface('#35534b', 0.5),
-		riderHair = surface('#66442e');
-	oval(rider, pants, [0.32, 0.19, 0.26], [0, 2.72, -0.12]);
-	form(
-		rider,
-		shirt,
-		[
-			[[0, 2.75, -0.14], 0.23, 0.16],
-			[[0, 2.89, -0.12], 0.24, 0.17],
-			[[0, 3.16, -0.12], 0.29, 0.18],
-			[[0, 3.28, -0.1], 0.22, 0.14],
-		],
-		'y',
-	);
-	limb(rider, skin, [0, 3.24, -0.1], [0, 3.43, -0.08], 0.095);
-	oval(rider, skin, [0.235, 0.275, 0.22], [0, 3.6, -0.07]);
-	oval(rider, riderHair, [0.239, 0.22, 0.16], [0, 3.63, -0.16]);
-	oval(rider, helmet, [0.277, 0.2, 0.26], [0, 3.79, -0.08]);
-	oval(rider, helmet, [0.27, 0.035, 0.22], [0, 3.72, 0.09]);
-	oval(rider, skin, [0.04, 0.045, 0.05], [0, 3.57, 0.155]);
-	for (const side of [-1, 1]) {
-		oval(rider, eye, [0.022, 0.029, 0.012], [side * 0.09, 3.63, 0.13]);
-		oval(rider, skin, [0.045, 0.07, 0.045], [side * 0.226, 3.58, -0.06]);
-		cord(
-			rider,
-			boots,
-			[
-				[side * 0.24, 3.72, -0.04],
-				[side * 0.2, 3.42, 0.025],
-				[0, 3.38, 0.04],
-			],
-			0.012,
-		);
-		const shoulder: Vector3Tuple = [side * 0.27, 3.17, -0.09],
-			elbow: Vector3Tuple = [side * 0.37, 2.96, 0.04],
-			hand: Vector3Tuple = [side * 0.29, 2.85, 0.43];
-		oval(rider, shirt, [0.12, 0.15, 0.13], shoulder);
-		limb(rider, shirt, shoulder, elbow, 0.115, 0.09);
-		oval(rider, shirt, [0.09, 0.09, 0.09], elbow);
-		limb(rider, shirt, elbow, hand, 0.085, 0.065);
-		oval(rider, skin, [0.072, 0.065, 0.09], hand);
-		const hip: Vector3Tuple = [side * 0.22, 2.72, -0.12],
-			knee: Vector3Tuple = [side * 0.56, 2.22, 0.3],
-			ankle: Vector3Tuple = [side * 0.64, 1.7, 0.08];
-		limb(rider, pants, hip, knee, 0.15, 0.11);
-		oval(rider, pants, [0.12, 0.13, 0.12], knee);
-		limb(rider, boots, [side * 0.575, 2.13, 0.27], ankle, 0.105, 0.075);
-		oval(rider, boots, [0.11, 0.09, 0.21], [side * 0.64, 1.63, 0.19]);
-	}
+	const rider = createRider(body, eye);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
 	decoration.position.set(0.3, 3.4, 1.05);
@@ -612,41 +458,7 @@ export function createHorse(): HorseModel {
 			0.035,
 		);
 
-	const textures = new Map<string, THREE.CanvasTexture>();
-	function patternTexture(id: string) {
-		if (id === 'plain') return null;
-		if (textures.has(id)) return textures.get(id)!;
-		const canvas = document.createElement('canvas');
-		canvas.width = 256;
-		canvas.height = 256;
-		const ctx = context2d(canvas);
-		ctx.fillStyle = '#ffffff';
-		ctx.fillRect(0, 0, 256, 256);
-		ctx.fillStyle = '#54616a';
-		if (id === 'stripes')
-			for (let x = 0; x < 256; x += 64) ctx.fillRect(x, 0, 22, 256);
-		else
-			for (let x = 32; x < 256; x += 64)
-				for (let y = 32; y < 256; y += 64) {
-					ctx.beginPath();
-					if (id === 'dots') ctx.arc(x, y, 10, 0, Math.PI * 2);
-					else
-						for (let i = 0; i < 10; i++) {
-							const a = (i * Math.PI) / 5 - Math.PI / 2,
-								r = i % 2 ? 6 : 15;
-							const px = x + Math.cos(a) * r,
-								py = y + Math.sin(a) * r;
-							if (i) ctx.lineTo(px, py);
-							else ctx.moveTo(px, py);
-						}
-					ctx.closePath();
-					ctx.fill();
-				}
-		const texture = new THREE.CanvasTexture(canvas);
-		texture.colorSpace = THREE.SRGBColorSpace;
-		textures.set(id, texture);
-		return texture;
-	}
+	const patterns = createPatternTextures();
 	const channels = { coat, hair, cloth, leather, ornamentColor: petals };
 	function setAppearance(value: unknown) {
 		const settings = normalizeAppearance(value);
@@ -660,7 +472,7 @@ export function createHorse(): HorseModel {
 						? settings.ornament
 						: settings[key as keyof Appearance]);
 			}
-		const texture = patternTexture(settings.pattern);
+		const texture = patterns.get(settings.pattern);
 		if (cloth.map !== texture) {
 			cloth.map = texture;
 			cloth.needsUpdate = true;
@@ -684,5 +496,9 @@ export function createHorse(): HorseModel {
 		mane,
 		decoration,
 		setAppearance,
+		dispose() {
+			cloth.map = null;
+			patterns.dispose();
+		},
 	};
 }

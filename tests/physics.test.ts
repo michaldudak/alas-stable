@@ -1,8 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createState, changeGait, requestJump, step } from '../src/physics.ts';
+import {
+	createState,
+	changeGait,
+	requestJump,
+	step,
+} from '../src/game/physics.ts';
 
-test('a single key press selects a persistent gait, clamped to safe limits', () => {
+await test('a single key press selects a persistent gait, clamped to safe limits', () => {
 	const s = createState();
 	changeGait(s, 1);
 	for (let i = 0; i < 120; i++) step(s, 1 / 60, 0);
@@ -13,7 +18,7 @@ test('a single key press selects a persistent gait, clamped to safe limits', () 
 	changeGait(s, -20);
 	assert.equal(s.gait, 0);
 });
-test('early and late jumps both clear a rail, while a missed jump knocks it down', () => {
+await test('early and late jumps both clear a rail, while a missed jump knocks it down', () => {
 	for (const advance of [0.04, 0.35, 0.85, 1.3]) {
 		const s = createState();
 		s.gait = 2;
@@ -35,14 +40,14 @@ test('early and late jumps both clear a rail, while a missed jump knocks it down
 	for (let i = 0; i < 320; i++) step(s, 0.016, 0, [obstacle]);
 	assert.equal(obstacle.down, 0);
 });
-test('jump finishes on the ground and cannot be held to fly', () => {
+await test('jump finishes on the ground and cannot be held to fly', () => {
 	const s = createState();
 	requestJump(s);
 	for (let i = 0; i < 100; i++) step(s, 0.016, 0);
 	assert.equal(s.jump, -1);
 	assert.equal(s.height, 0);
 });
-test('solid collisions and world boundary stop gently', () => {
+await test('solid collisions and world boundary stop gently', () => {
 	const s = createState();
 	s.gait = 3;
 	s.speed = 9;
@@ -54,7 +59,7 @@ test('solid collisions and world boundary stop gently', () => {
 	assert.ok(Math.hypot(s.x, s.z) <= 112.00001);
 });
 
-test('jumping clears enclosure fences on either axis and in both directions', () => {
+await test('jumping clears enclosure fences on either axis and in both directions', () => {
 	for (const axis of ['x', 'z'] as const)
 		for (const direction of [-1, 1]) {
 			for (const advance of [0.02, 0.3, 0.8]) {
@@ -89,7 +94,7 @@ test('jumping clears enclosure fences on either axis and in both directions', ()
 		}
 });
 
-test('fences still stop a grounded horse and buildings still stop a jumping horse', () => {
+await test('fences still stop a grounded horse and buildings still stop a jumping horse', () => {
 	for (const jumping of [false, true]) {
 		const s = createState();
 		s.z = 0.95;

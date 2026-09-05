@@ -1,11 +1,8 @@
-import type { HorseModel } from './horse-types.ts';
-import type { Appearance } from './appearance-options.ts';
-import { context2d } from './ui/dom.ts';
-import {
-	colorOptions,
-	styleOptions,
-	normalizeAppearance,
-} from './appearance-options.ts';
+import { createAppearanceStore } from '../platform/appearance-storage.ts';
+import type { HorseModel } from '../horse/types.ts';
+import type { Appearance } from '../horse/appearance.ts';
+import { context2d } from '../platform/dom.ts';
+import { colorOptions, styleOptions } from '../horse/appearance.ts';
 
 function thumbnail(canvas: HTMLCanvasElement, key: string, value: string) {
 	canvas.width = 160;
@@ -155,25 +152,13 @@ export function setupAppearancePanel(
 	container: HTMLElement,
 	horse: Pick<HorseModel, 'setAppearance'>,
 ) {
-	let saved: unknown;
-	try {
-		saved = JSON.parse(localStorage.getItem('polana-appearance') || '{}');
-	} catch {
-		saved = {};
-	}
-	let appearance = normalizeAppearance(saved);
+	const store = createAppearanceStore();
+	let appearance = store.load();
 	horse.setAppearance(appearance);
 	const controls: [HTMLButtonElement, keyof Appearance, string][] = [];
 	function choose(key: keyof Appearance, value: string) {
 		appearance = horse.setAppearance({ ...appearance, [key]: value });
-		try {
-			localStorage.setItem(
-				'polana-appearance',
-				JSON.stringify(appearance),
-			);
-		} catch {
-			/* Optional persistence. */
-		}
+		store.save(appearance);
 		for (const [button, field, option] of controls)
 			button.setAttribute(
 				'aria-pressed',

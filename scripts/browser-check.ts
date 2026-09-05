@@ -1,47 +1,49 @@
-import { chromium } from '@playwright/test';
+import { BASE_URL, launchBrowser } from './browser-support.ts';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 await mkdir('artifacts', { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchBrowser();
 try {
 	const page = await browser.newPage({
 		viewport: { width: 1440, height: 900 },
 	});
-	const errors = [];
+	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('http://127.0.0.1:5173');
-	await page.waitForFunction(() => window.__polana?.snapshot().calls > 0);
+	await page.goto(BASE_URL);
+	await page.waitForFunction(
+		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+	);
 	await page.screenshot({ path: 'artifacts/start.png' });
-	const before = await page.evaluate(() => window.__polana.snapshot());
+	const before = await page.evaluate(() => window.__polana!.snapshot());
 	await page.keyboard.press('ArrowUp');
 	await page.waitForTimeout(1100);
-	const moving = await page.evaluate(() => window.__polana.snapshot());
+	const moving = await page.evaluate(() => window.__polana!.snapshot());
 	assert.equal(moving.gait, 1);
 	assert.ok(moving.z < before.z - 1);
 	await page.keyboard.down('ArrowUp');
 	await page.waitForTimeout(350);
 	await page.keyboard.up('ArrowUp');
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).gait,
+		(await page.evaluate(() => window.__polana!.snapshot())).gait,
 		2,
 	);
 	await page.keyboard.press('Space');
 	await page.waitForTimeout(300);
 	assert.ok(
-		(await page.evaluate(() => window.__polana.snapshot())).height > 0.5,
+		(await page.evaluate(() => window.__polana!.snapshot())).height > 0.5,
 	);
 	await page.keyboard.press('KeyC');
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).firstPerson,
+		(await page.evaluate(() => window.__polana!.snapshot())).firstPerson,
 		true,
 	);
 	await page.screenshot({ path: 'artifacts/first-person.png' });
 	await page.keyboard.press('Escape');
-	const paused = await page.evaluate(() => window.__polana.snapshot());
+	const paused = await page.evaluate(() => window.__polana!.snapshot());
 	assert.equal(paused.paused, true);
 	await page.waitForTimeout(250);
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).z,
+		(await page.evaluate(() => window.__polana!.snapshot())).z,
 		paused.z,
 	);
 	await page
@@ -53,7 +55,7 @@ try {
 		.getByRole('button', { name: 'Wygląd konia', exact: true })
 		.click();
 	const previewPosition = await page.evaluate(() =>
-		window.__polana.snapshot(),
+		window.__polana!.snapshot(),
 	);
 	const previewCanvas = page.locator('#horse-preview');
 	const originalPreview = await previewCanvas.screenshot();
@@ -90,14 +92,16 @@ try {
 		.click();
 	await page.screenshot({ path: 'artifacts/wardrobe.png' });
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).z,
+		(await page.evaluate(() => window.__polana!.snapshot())).z,
 		previewPosition.z,
 	);
 	await page
 		.getByRole('button', { name: 'Wracamy na polanę', exact: true })
 		.click();
 	await page.reload();
-	await page.waitForFunction(() => window.__polana?.snapshot().calls > 0);
+	await page.waitForFunction(
+		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+	);
 	await page
 		.getByRole('button', { name: 'Wygląd konia', exact: true })
 		.click();
@@ -115,25 +119,25 @@ try {
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana.snapshot().z < 12);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < 12);
 	await page.keyboard.press('Space');
-	await page.waitForFunction(() => window.__polana.snapshot().z < 6);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < 6);
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).obstacles[0]
+		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[0]
 			.down,
 		0,
 	);
-	await page.waitForFunction(() => window.__polana.snapshot().z < -9);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < -9);
 	assert.ok(
-		(await page.evaluate(() => window.__polana.snapshot())).obstacles[1]
+		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[1]
 			.down > 0,
 	);
 	// Continue straight to the actual enclosure boundary, then jump out.
-	await page.waitForFunction(() => window.__polana.snapshot().z < -34);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < -34);
 	await page.keyboard.press('Space');
-	await page.waitForFunction(() => window.__polana.snapshot().z < -41);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < -41);
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).gait,
+		(await page.evaluate(() => window.__polana!.snapshot())).gait,
 		3,
 	);
 	await page.screenshot({ path: 'artifacts/fence-jump.png' });
@@ -166,7 +170,7 @@ try {
 	);
 	await page.keyboard.press('Escape');
 	assert.equal(
-		(await page.evaluate(() => window.__polana.snapshot())).paused,
+		(await page.evaluate(() => window.__polana!.snapshot())).paused,
 		false,
 	);
 	console.log(

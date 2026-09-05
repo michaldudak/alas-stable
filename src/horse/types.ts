@@ -1,7 +1,5 @@
 import type * as THREE from 'three';
-import type { Appearance } from './appearance-options.ts';
-
-export type Vector3Tuple = [x: number, y: number, z: number];
+import type { Appearance } from './appearance.ts';
 
 /** A replaceable visual model: +Y up, +Z forward, origin at ground level.
  * Limb order is left hind, left fore, right hind, right fore.
@@ -22,5 +20,7 @@ export interface HorseModel {
 	hair: THREE.MeshStandardMaterial;
 	cloth: THREE.MeshStandardMaterial;
 	leather: THREE.MeshStandardMaterial;
+	/** Frees cached appearance textures; scene ownership covers mesh resources. */
+	dispose(): void;
 	setAppearance(value: unknown): Appearance;
 }

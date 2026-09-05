@@ -1,4 +1,4 @@
-import type { Solid } from './game-types.ts';
+import type { Solid } from '../game/types.ts';
 export const STABLE = {
 	x: -38,
 	z: -1,

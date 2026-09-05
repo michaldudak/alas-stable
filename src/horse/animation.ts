@@ -1,7 +1,7 @@
-import type { HorseModel } from './horse-types.ts';
-import type { MotionState } from './game-types.ts';
+import type { HorseModel } from './types.ts';
+import type { MotionState } from '../game/types.ts';
 import * as THREE from 'three';
-import { createGaitController, solveLeg } from './gaits.ts';
+import { createGaitController, solveLeg } from '../game/gaits.ts';
 export function createHorseAnimation(horse: HorseModel) {
 	const controller = createGaitController(),
 		target = new THREE.Vector3(),

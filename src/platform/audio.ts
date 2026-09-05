@@ -1,4 +1,4 @@
-import type { GameState } from './game-types.ts';
+import type { GameState } from '../game/types.ts';
 // Small synthesized soundscape: no downloads or autoplay permission prompts.
 export class Soundscape {
 	enabled = true;
@@ -6,6 +6,12 @@ export class Soundscape {
 	birdTime = 3;
 	horseTime = 18;
 	windTime = 0;
+	dispose() {
+		const context = this.context;
+		this.context = null;
+		if (context && context.state !== 'closed')
+			void context.close().catch(() => {});
+	}
 	async unlock() {
 		try {
 			this.context ||= new AudioContext();

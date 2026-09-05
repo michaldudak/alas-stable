@@ -1,4 +1,5 @@
-import type { MotionState } from './game-types.ts';
+import { JUMP_DURATION } from './tuning.ts';
+import type { MotionState } from './types.ts';
 // Rig order: left hind, left fore, right hind, right fore.
 // Galop means three-beat canter, not four-beat cwal.
 export const GAIT_CYCLES = [
@@ -150,7 +151,7 @@ export function createGaitController() {
 			);
 			let footfalls = 0;
 			if (state.jump >= 0) {
-				const progress = clamp(state.jump / 1.45, 0, 1),
+				const progress = clamp(state.jump / JUMP_DURATION, 0, 1),
 					tuck = Math.sin(Math.PI * progress);
 				pose.pitch = Math.cos(Math.PI * progress) * 0.12;
 				pose.y *= 1 - tuck;

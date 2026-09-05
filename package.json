@@ -7,12 +7,13 @@
 		"dev": "vite --host 127.0.0.1",
 		"build": "npm run typecheck && vite build",
 		"preview": "vite preview --host 127.0.0.1",
-		"typecheck": "node node_modules/typescript-native/bin/tsc --noEmit",
+		"typecheck": "tsc --noEmit",
 		"test": "node --test tests/*.test.ts",
-		"lint": "eslint . --max-warnings 0 && stylelint \"src/**/*.css\" && html-validate index.html \"src/**/*.html\"",
+		"lint": "oxlint --type-aware --max-warnings 0 && stylelint \"src/**/*.css\" && html-validate index.html \"src/**/*.html\"",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+		"check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+		"check:browser": "node scripts/check-browser.ts"
 	},
 	"dependencies": {
 		"@fontsource-variable/inter": "^5.3.0",
@@ -20,20 +21,16 @@
 		"three": "^0.180.0"
 	},
 	"devDependencies": {
-		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.63.0",
 		"@types/node": "^24.13.3",
 		"@types/three": "^0.180.0",
-		"eslint": "^10.10.0",
-		"eslint-config-prettier": "^10.1.8",
-		"globals": "^17.12.0",
 		"html-validate": "^11.14.0",
+		"oxlint": "1.81.0",
+		"oxlint-tsgolint": "7.0.2001",
 		"prettier": "^3.9.6",
 		"stylelint": "^17.15.0",
 		"stylelint-config-standard": "^40.0.0",
-		"typescript": "~6.0.3",
-		"typescript-eslint": "^8.69.0",
-		"typescript-native": "npm:typescript@^7.0.2",
+		"typescript": "7.0.2",
 		"vite": "^7.3.6"
 	},
 	"engines": {

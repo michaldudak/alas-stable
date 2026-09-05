@@ -1,17 +1,20 @@
-import { chromium } from '@playwright/test';
+import type { Appearance } from '../src/horse/appearance.ts';
+import { BASE_URL, launchBrowser } from './browser-support.ts';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 await mkdir('artifacts', { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchBrowser();
 try {
 	const page = await browser.newPage({
 		viewport: { width: 1440, height: 900 },
 	});
-	const errors = [];
+	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
-	await page.goto('http://127.0.0.1:5173');
-	await page.waitForFunction(() => window.__polana?.snapshot().calls > 0);
-	const click = (name) =>
+	await page.goto(BASE_URL);
+	await page.waitForFunction(
+		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+	);
+	const click = (name: string) =>
 		page.getByRole('button', { name, exact: true }).click();
 	await click('Wygląd konia');
 	await click('Obróć w prawo');
@@ -51,7 +54,7 @@ try {
 				'Wzór czapraka: Gładki',
 			],
 		],
-	]) {
+	] as const) {
 		await click(tab);
 		let previous = await shot();
 		for (const name of names) {
@@ -83,8 +86,11 @@ try {
 	await click('Wzór czapraka: Gwiazdki');
 	await click('Czaprak: Fioletowy');
 	await page.screenshot({ path: 'artifacts/patterns.png' });
-	const saved = await page.evaluate(() =>
-		JSON.parse(localStorage.getItem('polana-appearance')),
+	const saved = await page.evaluate(
+		() =>
+			JSON.parse(
+				localStorage.getItem('polana-appearance') || '{}',
+			) as Appearance,
 	);
 	assert.equal(saved.maneStyle, 'braided');
 	assert.equal(saved.tailStyle, 'braided');
@@ -92,13 +98,15 @@ try {
 	assert.equal(saved.ornament, 'bow');
 	await click('Wracamy na polanę');
 	await page.reload();
-	await page.waitForFunction(() => window.__polana?.snapshot().calls > 0);
+	await page.waitForFunction(
+		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+	);
 	await click('Wygląd konia');
 	for (const [tab, names] of [
 		['Fryzury', ['Grzywa: Zapleciona', 'Ogon: Zapleciony']],
 		['Ozdoby', ['Ozdoba: Kokarda', 'Kolor ozdób: Różowy']],
 		['Czaprak', ['Wzór czapraka: Gwiazdki', 'Czaprak: Fioletowy']],
-	]) {
+	] as const) {
 		await click(tab);
 		for (const name of names)
 			assert.equal(

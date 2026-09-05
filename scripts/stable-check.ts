@@ -1,26 +1,28 @@
-import { chromium } from '@playwright/test';
+import { BASE_URL, launchBrowser } from './browser-support.ts';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 await mkdir('artifacts', { recursive: true });
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchBrowser();
 try {
 	const page = await browser.newPage({
 		viewport: { width: 1440, height: 900 },
 	});
-	const errors = [];
+	const errors: string[] = [];
 	page.on('pageerror', (e) => errors.push(e.message));
-	await page.goto('http://127.0.0.1:5173');
-	await page.waitForFunction(() => window.__polana?.snapshot().calls > 0);
-	const state = () => page.evaluate(() => window.__polana.snapshot());
-	async function turnTo(angle) {
+	await page.goto(BASE_URL);
+	await page.waitForFunction(
+		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+	);
+	const state = () => page.evaluate(() => window.__polana!.snapshot());
+	async function turnTo(angle: number) {
 		const before = await state();
 		const positive = angle > before.heading;
 		await page.keyboard.down(positive ? 'ArrowLeft' : 'ArrowRight');
 		await page.waitForFunction(
 			({ angle, positive }) =>
 				positive
-					? window.__polana.snapshot().heading >= angle - 0.015
-					: window.__polana.snapshot().heading <= angle + 0.015,
+					? window.__polana!.snapshot().heading >= angle - 0.015
+					: window.__polana!.snapshot().heading <= angle + 0.015,
 			{ angle, positive },
 		);
 		await page.keyboard.up(positive ? 'ArrowLeft' : 'ArrowRight');
@@ -29,18 +31,18 @@ try {
 		const s = await state();
 		for (let i = 0; i < s.gait; i++) await page.keyboard.press('ArrowDown');
 		await page.waitForFunction(
-			() => window.__polana.snapshot().speed < 0.04,
+			() => window.__polana!.snapshot().speed < 0.04,
 		);
 	}
 	await turnTo(Math.PI * 1.5);
 	for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana.snapshot().x < -35.6);
+	await page.waitForFunction(() => window.__polana!.snapshot().x < -35.6);
 	await stop();
 	await turnTo(Math.PI);
 	await page.screenshot({ path: 'artifacts/stable-exterior.png' });
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana.snapshot().z < 7.3);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < 7.3);
 	await stop();
 	assert.equal(await page.locator('#location').textContent(), 'Stajnia');
 	await page.screenshot({ path: 'artifacts/stable-aisle-tpp.png' });
@@ -48,18 +50,18 @@ try {
 	await page.screenshot({ path: 'artifacts/stable-aisle-fpp.png' });
 	await turnTo(Math.PI / 2);
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana.snapshot().x > -31.5);
+	await page.waitForFunction(() => window.__polana!.snapshot().x > -31.5);
 	await stop();
 	assert.equal(await page.locator('#location').textContent(), 'Siodlarnia');
 	await page.screenshot({ path: 'artifacts/stable-tack-room.png' });
 	await turnTo(-Math.PI / 2);
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana.snapshot().x < -37.3);
+	await page.waitForFunction(() => window.__polana!.snapshot().x < -37.3);
 	await stop();
 	await turnTo(-Math.PI);
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana.snapshot().z < -17);
+	await page.waitForFunction(() => window.__polana!.snapshot().z < -17);
 	await stop();
 	assert.notEqual(await page.locator('#location').textContent(), 'Stajnia');
 	assert.deepEqual(errors, []);

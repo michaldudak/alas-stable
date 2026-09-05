@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeAppearance } from '../src/appearance-options.ts';
+import { normalizeAppearance } from '../src/horse/appearance.ts';
 
-test('old flower and color saves migrate without losing the horse appearance', () => {
+await test('old flower and color saves migrate without losing the horse appearance', () => {
 	const settings = normalizeAppearance({ coat: '#e6e0d2', flower: true });
 	assert.equal(settings.coat, '#e6e0d2');
 	assert.equal(settings.ornament, 'flower');
 	assert.equal(settings.maneStyle, 'long');
 	assert.equal(settings.tailStyle, 'long');
 });
-test('invalid saved selections fall back safely and valid styles remain independent', () => {
+await test('invalid saved selections fall back safely and valid styles remain independent', () => {
 	for (const input of [
 		null,
 		3,

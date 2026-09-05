@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { sampleGait, createGaitController } from '../src/gaits.ts';
-import { createHorse } from '../src/horse.ts';
-import { createHorseAnimation } from '../src/horse-animation.ts';
+import { sampleGait, createGaitController } from '../src/game/gaits.ts';
+import { createHorse } from '../src/horse/model.ts';
+import { createHorseAnimation } from '../src/horse/animation.ts';
 
 function strikes(gait: number) {
 	const events = [];
@@ -18,12 +18,12 @@ function strikes(gait: number) {
 	}
 	return events;
 }
-test('walk has four successive footfalls with continuous support', () => {
+await test('walk has four successive footfalls with continuous support', () => {
 	assert.deepEqual(strikes(1), [[0], [1], [2], [3]]);
 	for (let p = 0; p < 1; p += 0.001)
 		assert.ok(sampleGait(1, p).feet.filter((f) => f.contact).length >= 2);
 });
-test('trot uses diagonal pairs and has suspension between beats', () => {
+await test('trot uses diagonal pairs and has suspension between beats', () => {
 	assert.deepEqual(strikes(2), [
 		[0, 3],
 		[1, 2],
@@ -31,11 +31,11 @@ test('trot uses diagonal pairs and has suspension between beats', () => {
 	assert.ok(sampleGait(2, 0.45).feet.every((f) => !f.contact));
 	assert.ok(sampleGait(2, 0.95).feet.every((f) => !f.contact));
 });
-test('right-lead canter has hind, diagonal, leading fore, then suspension', () => {
+await test('right-lead canter has hind, diagonal, leading fore, then suspension', () => {
 	assert.deepEqual(strikes(3), [[0], [1, 2], [3]]);
 	assert.ok(sampleGait(3, 0.91).feet.every((f) => !f.contact));
 });
-test('transition blends poses and sound is silent in jumps and at rest', () => {
+await test('transition blends poses and sound is silent in jumps and at rest', () => {
 	const controller = createGaitController();
 	let state = { gait: 1, speed: 2.5, jump: -1 },
 		pose;
@@ -63,7 +63,7 @@ test('transition blends poses and sound is silent in jumps and at rest', () => {
 	assert.equal(pose.y, 0);
 	assert.ok(pose.feet.every((f) => f.lift === 0 && f.z === 0));
 });
-test('animated hoof centers stay above ground and joint rotations remain finite', () => {
+await test('animated hoof centers stay above ground and joint rotations remain finite', () => {
 	const horse = createHorse(),
 		animation = createHorseAnimation(horse),
 		position = new THREE.Vector3();

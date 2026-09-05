@@ -1,8 +1,8 @@
-import type { GameState } from './game-types.ts';
+import type { GameState } from './game/types.ts';
 declare global {
 	interface Window {
 		__polana?: {
-			snapshot(): GameState & {
+			snapshot: () => GameState & {
 				paused: boolean;
 				firstPerson: boolean;
 				obstacles: { z: number; down: number }[];

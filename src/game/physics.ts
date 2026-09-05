@@ -1,5 +1,12 @@
-import type { GameState, Obstacle, Solid } from './game-types.ts';
-export const SPEEDS = [0, 2.5, 5.5, 9];
+import type { GameState, Obstacle, Solid } from './types.ts';
+import {
+	SPEEDS,
+	JUMP_DURATION,
+	JUMP_HEIGHT,
+	JUMP_BUFFER,
+	WORLD_RADIUS,
+	HORSE_COLLISION_RADIUS,
+} from './tuning.ts';
 export const GAITS = ['Postój', 'Stęp', 'Kłus', 'Galop'];
 export function createState(): GameState {
 	return {
@@ -18,7 +25,7 @@ export function changeGait(state: GameState, delta: number) {
 }
 export function requestJump(state: GameState) {
 	if (state.jump < 0) state.jump = 0;
-	else state.bufferedJump = 0.22;
+	else state.bufferedJump = JUMP_BUFFER;
 }
 export function step(
 	state: GameState,
@@ -35,8 +42,10 @@ export function step(
 	if (state.jump >= 0) {
 		state.jump += dt;
 		// A long, broad arc keeps a slightly early or late press forgiving.
-		state.height = 2.1 * Math.sin(Math.PI * Math.min(1, state.jump / 1.45));
-		if (state.jump >= 1.45) {
+		state.height =
+			JUMP_HEIGHT *
+			Math.sin(Math.PI * Math.min(1, state.jump / JUMP_DURATION));
+		if (state.jump >= JUMP_DURATION) {
 			state.jump = -1;
 			state.height = 0;
 		}
@@ -68,8 +77,9 @@ export function step(
 		// Buildings, tree trunks and obstacle uprights remain solid during jumps.
 		if (solid.jumpable && state.jump >= 0) continue;
 		if (
-			Math.abs(state.x - solid.x) < solid.w / 2 + 0.7 &&
-			Math.abs(state.z - solid.z) < solid.d / 2 + 0.7
+			Math.abs(state.x - solid.x) <
+				solid.w / 2 + HORSE_COLLISION_RADIUS &&
+			Math.abs(state.z - solid.z) < solid.d / 2 + HORSE_COLLISION_RADIUS
 		) {
 			state.x = previous.x;
 			state.z = previous.z;
@@ -78,9 +88,9 @@ export function step(
 		}
 	}
 	const radius = Math.hypot(state.x, state.z);
-	if (radius > 112) {
-		state.x *= 112 / radius;
-		state.z *= 112 / radius;
+	if (radius > WORLD_RADIUS) {
+		state.x *= WORLD_RADIUS / radius;
+		state.z *= WORLD_RADIUS / radius;
 		state.gait = 0;
 		state.speed = 0;
 	}
