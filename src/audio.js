@@ -2,7 +2,6 @@
 export class Soundscape {
   enabled = true;
   context = null;
-  hoofTime = 0;
   birdTime = 3;
   horseTime = 18;
   windTime = 0;
@@ -25,8 +24,8 @@ export class Soundscape {
     oscillator.start(); oscillator.stop(ctx.currentTime + duration + 0.01);
     oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
   }
-  tick(dt, state, sand) {
-    this.hoofTime -= dt; this.birdTime -= dt; this.horseTime -= dt; this.windTime -= dt;
+  tick(dt, state, sand, footfalls = 0) {
+    this.birdTime -= dt; this.horseTime -= dt; this.windTime -= dt;
     if (this.windTime <= 0 && this.enabled && this.context?.state === 'running') {
       const ctx = this.context, duration = 2.5;
       const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
@@ -38,9 +37,8 @@ export class Soundscape {
       source.onended = () => { source.disconnect(); filter.disconnect(); };
       this.windTime = 2.5;
     }
-    if (state.speed > 0.5 && state.height < 0.1 && this.hoofTime <= 0) {
-      this.tone(sand ? 130 : 90, sand ? 0.075 : 0.11, 0.075, 45, 'triangle');
-      this.hoofTime = Math.max(0.13, 0.46 - state.speed * 0.032);
+    if (footfalls > 0) {
+      this.tone(sand ? 130 : 90, sand ? 0.075 : 0.11, 0.065 * Math.sqrt(footfalls), 45, 'triangle');
     }
     if (this.birdTime <= 0) {
       this.tone(1800 + Math.random() * 900, 0.16, 0.018, 3400);

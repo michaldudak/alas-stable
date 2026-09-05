@@ -8,6 +8,7 @@ import { createHorsePreview } from './horse-preview.js';
 import { setupAppearancePanel } from './appearance-panel.js';
 import { createState, changeGait, requestJump, step, GAITS } from './physics.js';
 import { Soundscape } from './audio.js';
+import { createHorseAnimation } from './horse-animation.js';
 
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const button = (id, glyph, label, shortcut = '') => `<button type="button" id="${id}" title="${label}${shortcut ? ` (${shortcut})` : ''}" aria-label="${label}">${icon(glyph)}<span>${label}</span>${shortcut ? `<kbd>${shortcut}</kbd>` : ''}</button>`;
@@ -38,6 +39,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.A
 const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 350);
 const world = createWorld(scene), horse = createHorse(); scene.add(horse.root);
 const preview = createHorsePreview(document.getElementById('horse-preview'), horse);
+const horseAnimation = createHorseAnimation(horse);
 const state = createState(), audio = new Soundscape(), keys = new Set();
 let firstPerson = false, paused = false, look = 0, dragging = false, previousMouse = 0, elapsed = 0, hintUntil = 9, started = false;
 const $ = (id) => document.getElementById(id);
@@ -147,7 +149,7 @@ function drawMap() {
   map.fillStyle = '#fff9e9'; map.strokeStyle = '#345b4a'; map.lineWidth = 2.5; map.beginPath(); map.moveTo(0, 8); map.lineTo(-5, -5); map.lineTo(0, -2); map.lineTo(5, -5); map.closePath(); map.fill(); map.stroke(); map.restore();
 }
 updateGait(); updateCamera(1, true); focusGame();
-let previousTime = performance.now(), animation = 0;
+let previousTime = performance.now();
 renderer.setAnimationLoop(time => {
   const dt = Math.min(0.04, Math.max(0, (time - previousTime) / 1000)); previousTime = time;
   if (!paused) {
@@ -156,16 +158,11 @@ renderer.setAnimationLoop(time => {
     const oldGait = state.gait;
     if (step(state, dt, turn, world.obstacles, world.solids)) { audio.tone(170, 0.18, 0.07, 65, 'triangle'); hint('Poprzeczka zaraz wróci na miejsce', 'Spróbuj nacisnąć spację przed przeszkodą.'); }
     if (state.gait !== oldGait) updateGait();
-    animation += dt * state.speed * 2.6;
     horse.root.position.set(state.x, state.height, state.z); horse.root.rotation.y = state.heading;
-    horse.body.position.y = state.jump >= 0 ? 0 : Math.sin(animation * 2) * Math.min(0.06, state.speed * 0.01);
-    horse.body.rotation.x = state.jump >= 0 ? Math.cos(state.jump / 1.45 * Math.PI) * 0.12 : 0;
-    horse.legs.forEach((leg, i) => { leg.rotation.x = state.jump >= 0 ? (i % 2 ? -0.65 : 0.65) : Math.sin(animation + (i === 0 || i === 3 ? 0 : Math.PI)) * Math.min(0.65, state.speed * 0.11); });
-    horse.knees.forEach((knee, i) => { knee.rotation.x = state.jump >= 0 ? 0.9 : Math.max(0, -Math.sin(animation + (i === 0 || i === 3 ? 0 : Math.PI))) * Math.min(0.65, state.speed * 0.09); });
-    horse.tail.rotation.z = Math.sin(elapsed * 2) * 0.12;
+    const footfalls = horseAnimation.update(dt, state, elapsed);
     for (const obstacle of world.obstacles) { obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0; obstacle.rails.position.y = obstacle.down ? -0.28 : 0; }
     if (!dragging) look *= Math.exp(-dt * 2.5);
-    updateCamera(dt); audio.tick(dt, state, Math.abs(state.x) < 16 && state.z < 20 && state.z > -38);
+    updateCamera(dt); audio.tick(dt, state, Math.abs(state.x) < 16 && state.z < 20 && state.z > -38, footfalls);
     $('location').textContent = state.z < -40 ? 'Leśna ścieżka' : Math.abs(state.x) < 17 && state.z < 21 ? 'Plac do skoków' : state.x < -20 && state.z < 25 && state.z > -10 ? 'Stadnina' : 'Słoneczna polana';
     $('hint').classList.toggle('hidden', elapsed > hintUntil);
   }

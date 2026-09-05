@@ -36,3 +36,11 @@ Panel wyglądu ma cztery sekcje: kolory, fryzury, ozdoby i czaprak. Grzywa i ogo
 To prototyp na PC z klawiaturą, nie gotowa gra mobilna. Dźwięki i modele są robocze. Do oceny z dzieckiem: tempo skręcania, wysokość kamery, czytelność konia, łatwość skoków i płynność na docelowym komputerze.
 
 Model konia jest w `src/horse.js`: zaokrąglona sylwetka, pysk, pasma grzywy i ogona, nogi z ruchomymi stawami oraz dopasowany czaprak i siodło. Podgląd w panelu wyglądu pozwala obracać i przybliżać konia, opcjonalnie z jeźdźcem. Zmiany kolorów są widoczne od razu. Przeciąganie obraca model, kółko myszy przybliża; dostępne są też przyciski i strzałki klawiatury po ustawieniu fokusu na podglądzie.
+
+## Animacje chodów
+
+Stęp ma cztery osobne takty i ciągłe podparcie. Kłus pracuje parami przekątnymi z fazami zawieszenia. Galop to trzytaktowy galop z prawej nogi (canter), z sekwencją: lewa tylna, prawa tylna razem z lewą przednią, prawa przednia, zawieszenie. Model ma osobne ruchy tułowia i jeźdźca, zginanie stawów i płynne przejścia. Tętent jest wyzwalany przez kontakty nóg, a nie niezależny zegar. Prędkości i mechanika skoku pozostają bez zmian. Jest to stylizowana animacja proceduralna, bez motion capture i bez automatycznej zmiany nogi prowadzącej.
+
+Podstawa rytmów: [FEI — Gait](https://www.fei.org/node/38138), [University of Arizona — Horse gaits](https://opentextbooks.library.arizona.edu/app/uploads/sites/274/2023/11/Horse-Gaits.pdf).
+
+`node scripts/gait-check.mjs` zapisuje w `artifacts/gait-phases.png` porównanie czterech faz każdego chodu z boku. Wymaga uruchomionego Vite na porcie 5173. `tests/gaits.test.js` sprawdza kolejność podparć, zawieszenie, przejścia, wyciszenie kroków przy skoku i położenie kopyt.

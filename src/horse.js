@@ -112,7 +112,7 @@ export function createHorse() {
     cord(tail, hair, [[x * 0.3, 0, 0], [x, -0.3, -0.3], [x * 1.3, -0.85, -0.4], [x * 1.1 + 0.07, -1.53 + Math.abs(x), -0.31]], 0.092);
   }
 
-  const legs = [], knees = [];
+  const legs = [], knees = [], hooves = [];
   for (const side of [-1, 1]) for (const front of [false, true]) {
     const leg = new THREE.Group(); leg.position.set(side * 0.41, 1.81, front ? 0.72 : -0.82); body.add(leg);
     const kneeZ = front ? -0.01 : 0.13;
@@ -124,7 +124,7 @@ export function createHorse() {
     limb(knee, cream, [0, -0.5, -0.055], [0, -0.78, 0.02], 0.075, 0.095);
     oval(knee, cream, [0.1, 0.12, 0.1], [0, -0.72, 0]);
     const foot = mesh(knee, new THREE.CylinderGeometry(0.1, 0.14, 0.2, 16), hoof, [0, -0.87, 0.035]); foot.scale.z = 1.35;
-    legs.push(leg);
+    hooves.push(foot); legs.push(leg);
   }
 
   const tack = new THREE.Group(); tack.name = 'tack'; body.add(tack);
@@ -270,5 +270,5 @@ export function createHorse() {
     return settings;
   }
   setAppearance({});
-  return { root, body, legs, knees, tail, rider, coat, hair, cloth, leather, mane, decoration, setAppearance };
+  return { root, body, legs, knees, hooves, tail, rider, coat, hair, cloth, leather, mane, decoration, setAppearance };
 }
