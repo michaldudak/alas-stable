@@ -77,7 +77,23 @@ export function form(
 ) {
 	const positions: number[] = [],
 		indices: number[] = [];
-	sections.forEach(([center, width, depth], ring) => {
+	// Interpolate longitudinal sections so cheeks, neck and clothing have soft contours.
+	const centerCurve = new THREE.CatmullRomCurve3(
+		sections.map(([center]) => new THREE.Vector3(...center)),
+	);
+	const profileCurve = new THREE.CatmullRomCurve3(
+		sections.map(([, width, depth], i) => new THREE.Vector3(width, depth, i)),
+		false,
+		'catmullrom',
+		0.35,
+	);
+	const rings = (sections.length - 1) * 4;
+	for (let ring = 0; ring <= rings; ring++) {
+		const t = ring / rings;
+		const center = centerCurve.getPoint(t).toArray();
+		const profile = profileCurve.getPoint(t);
+		const width = Math.max(0.005, profile.x),
+			depth = Math.max(0.005, profile.y);
 		for (let j = 0; j <= segments; j++) {
 			const angle = (j / segments) * Math.PI * 2;
 			positions.push(
@@ -92,7 +108,7 @@ export function form(
 				else indices.push(b, a, b + 1, b + 1, a, a + 1);
 			}
 		}
-	});
+	}
 	const geometry = new THREE.BufferGeometry();
 	geometry.setAttribute(
 		'position',

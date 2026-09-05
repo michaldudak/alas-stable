@@ -79,10 +79,9 @@ export function createHorse(): HorseModel {
 			12,
 		);
 		oval(ear, muzzle, [0.045, 0.15, 0.018], [0, 0.13, 0.055]);
-		oval(body, coat, [0.08, 0.11, 0.13], [side * 0.25, 3.26, 1.46]);
+		oval(body, coat, [0.052, 0.083, 0.1], [side * 0.267, 3.26, 1.46]);
 		oval(body, eye, [0.039, 0.055, 0.068], [side * 0.299, 3.265, 1.49]);
 		oval(body, cream, [0.009, 0.013, 0.015], [side * 0.336, 3.291, 1.51]);
-		oval(body, hoof, [0.018, 0.04, 0.065], [side * 0.217, 2.91, 2.08]);
 		cord(
 			body,
 			muzzle,
@@ -106,11 +105,38 @@ export function createHorse(): HorseModel {
 		0.043,
 	);
 
+	// Subtle anatomical contours share the coat channel used by the wardrobe.
+	for (const side of [-1, 1]) {
+		oval(body, coat, [0.115, 0.22, 0.21], [side * 0.22, 3.07, 1.28]);
+		cord(
+			body,
+			coat,
+			[
+				[side * 0.29, 3.28, 1.435],
+				[side * 0.337, 3.308, 1.487],
+				[side * 0.321, 3.279, 1.549],
+			],
+			0.019,
+		);
+		oval(body, muzzle, [0.028, 0.06, 0.082], [side * 0.213, 2.913, 2.077]);
+		oval(body, eye, [0.016, 0.037, 0.058], [side * 0.237, 2.92, 2.091]);
+		oval(body, coat, [0.16, 0.35, 0.33], [side * 0.4, 1.94, 0.62]);
+	}
+	cord(
+		body,
+		muzzle,
+		[
+			[-0.16, 2.757, 2.143],
+			[0, 2.735, 2.188],
+			[0.16, 2.757, 2.143],
+		],
+		0.013,
+	);
 	const mane = new THREE.Group();
 	mane.name = 'mane';
 	body.add(mane);
-	for (let i = 0; i < 10; i++) {
-		const t = i / 9;
+	for (let i = 0; i < 18; i++) {
+		const t = i / 17;
 		const y = 3.4 - t * 0.95,
 			z = 1.02 - t * 0.72;
 		cord(
@@ -122,7 +148,7 @@ export function createHorse(): HorseModel {
 				[0.32, y - 0.27, z + 0.02],
 				[0.32, y - 0.38, z + 0.09],
 			],
-			0.09 - t * 0.02,
+			0.056 - t * 0.012,
 		);
 	}
 	cord(
@@ -139,8 +165,8 @@ export function createHorse(): HorseModel {
 	tail.name = 'tail';
 	tail.position.set(0, 2.04, -1.13);
 	body.add(tail);
-	for (let i = 0; i < 7; i++) {
-		const x = (i - 3) * 0.047;
+	for (let i = 0; i < 13; i++) {
+		const x = (i - 6) * 0.025;
 		cord(
 			tail,
 			hair,
@@ -150,7 +176,7 @@ export function createHorse(): HorseModel {
 				[x * 1.3, -0.85, -0.4],
 				[x * 1.1 + 0.07, -1.53 + Math.abs(x), -0.31],
 			],
-			0.092,
+			0.057,
 		);
 	}
 
@@ -179,7 +205,16 @@ export function createHorse(): HorseModel {
 				hoof,
 				[0, -0.87, 0.035],
 			);
+			// A rounded toe, coronet and heel distinguish the hoof from the leg.
 			foot.scale.z = 1.35;
+			const coronet = mesh(
+				foot,
+				new THREE.TorusGeometry(0.105, 0.012, 6, 20),
+				cream,
+				[0, 0.087, 0],
+			);
+			coronet.rotation.x = Math.PI / 2;
+			oval(knee, coat, [0.08, 0.115, 0.085], [0, -0.51, -0.05]);
 			hooves.push(foot);
 			legs.push(leg);
 		}
@@ -299,6 +334,47 @@ export function createHorse(): HorseModel {
 	oval(tack, leather, [0.41, 0.19, 0.13], [0, 2.66, -0.48]);
 	oval(tack, leather, [0.32, 0.14, 0.1], [0, 2.66, 0.28]);
 
+	// A visible girth, saddle stitching and buckles give the tack a constructed finish.
+	const girthPoints: Vector3Tuple[] = Array.from({ length: 25 }, (_, i) => {
+		const a = (i / 24) * Math.PI * 2;
+		return [Math.sin(a) * 0.615, 1.83 + Math.cos(a) * 0.65, 0.32];
+	});
+	cord(tack, leather, girthPoints, 0.065);
+	for (const side of [-1, 1]) {
+		cord(
+			tack,
+			trim,
+			[
+				[side * 0.574, 2.47, -0.065],
+				[side * 0.595, 2.27, -0.18],
+				[side * 0.578, 2.0, 0.04],
+				[side * 0.572, 2.21, 0.32],
+			],
+			0.006,
+		);
+		for (const [y, z] of [
+			[2.18, 0.32],
+			[3.23, 1.33],
+		]) {
+			const buckle = mesh(
+				tack,
+				new THREE.TorusGeometry(0.034, 0.008, 6, 12),
+				metal,
+				[side * (y < 3 ? 0.623 : 0.326), y, z],
+			);
+			buckle.rotation.y = Math.PI / 2;
+		}
+	}
+	cord(
+		tack,
+		leather,
+		[
+			[-0.24, 3.4, 1.32],
+			[0, 3.425, 1.48],
+			[0.24, 3.4, 1.32],
+		],
+		0.022,
+	);
 	const rider = createRider(body, eye);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
@@ -374,7 +450,7 @@ export function createHorse(): HorseModel {
 	const shortTail = variant(tail, 'tailStyle', 'short'),
 		braidedTail = variant(tail, 'tailStyle', 'braided');
 	for (let i = 0; i < 7; i++) {
-		const x = (i - 3) * 0.045;
+		const x = (i - 6) * 0.024;
 		cord(
 			shortTail,
 			hair,
@@ -383,7 +459,7 @@ export function createHorse(): HorseModel {
 				[x, -0.2, -0.25],
 				[x * 1.1, -0.82, -0.32],
 			],
-			0.082,
+			0.052,
 		);
 	}
 	for (let i = 0; i < 13; i++) {
