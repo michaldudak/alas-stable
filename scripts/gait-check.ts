@@ -49,22 +49,29 @@ try {
 		const camera = new THREE.PerspectiveCamera(38, 360 / 290, 0.1, 50);
 		camera.position.set(7, 2.9, 1.4);
 		camera.lookAt(0, 1.85, 0.1);
-		for (const [gait, speed, label, freq] of [
-			[1, 2.5, 'Walk', 1.35],
-			[2, 5.5, 'Trot', 1.7],
-			[3, 9, 'Canter', 1.8],
+		for (const [gait, speed, label, freq, turn] of [
+			[1, 2.5, 'Walk', 1.35, 0],
+			[2, 5.5, 'Trot', 1.7, 0],
+			[3, 9, 'Canter', 1.8, 0],
+			[0, 0, 'Turn left', 1.25, 1],
+			[0, 0, 'Turn right', 1.25, -1],
 		] as const) {
+			if (gait === 0) {
+				camera.position.set(4, 2.9, 7);
+				camera.lookAt(0, 1.85, 0.1);
+			}
 			const horse = createHorse();
 			scene.add(horse.root);
 			const anim = createHorseAnimation(horse);
 			const state = { gait, speed, jump: -1 };
-			for (let i = 0; i < 360; i++) anim.update(1 / 120, state, i / 120);
+			for (let i = 0; i < 360; i++) anim.update(1 / 120, state, i / 120, turn);
 			for (let frame = 0; frame < 4; frame++) {
 				for (let i = 0; i < 30; i++)
 					anim.update(
 						1 / (120 * freq),
 						state,
 						3 + frame / (4 * freq) + i / (120 * freq),
+						turn,
 					);
 				renderer.render(scene, camera);
 				const cell = document.createElement('div');
@@ -85,7 +92,12 @@ try {
 		path: 'artifacts/gait-phases.png',
 		fullPage: true,
 	});
-	console.log('Saved side-view phase sheet for all three gait animations.');
+	await page.screenshot({
+		path: 'artifacts/turn-phases.png',
+		fullPage: true,
+		clip: { x: 0, y: 990, width: 1440, height: 660 },
+	});
+	console.log('Saved phase sheets for locomotion and turning in place.');
 } finally {
 	await browser.close();
 }

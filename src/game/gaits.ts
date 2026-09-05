@@ -35,6 +35,7 @@ export function sampleGait(gait: number, phase: number) {
 	if (!cycle)
 		return {
 			feet: Array.from({ length: 4 }, () => ({
+				x: 0,
 				z: 0,
 				lift: 0,
 				contact: true,
@@ -51,6 +52,7 @@ export function sampleGait(gait: number, phase: number) {
 			contact = local < cycle.stance;
 		const swing = clamp((local - cycle.stance) / (1 - cycle.stance), 0, 1);
 		return {
+			x: 0,
 			z: contact
 				? cycle.reach * (1 - (2 * local) / cycle.stance)
 				: -cycle.reach * Math.cos(Math.PI * swing),
@@ -115,8 +117,10 @@ export function createGaitController() {
 		weights = [1, 0, 0, 0],
 		oldContacts = [true, true, true, true];
 	let jumping = false;
+	let turnPhase = 0,
+		turnAmount = 0;
 	return {
-		update(dt: number, state: MotionState) {
+		update(dt: number, state: MotionState, turn = 0) {
 			const target = state.speed < 0.08 ? 0 : state.gait || 1;
 			const blend = 1 - Math.exp(-dt * 8);
 			weights = weights.map(
@@ -145,9 +149,42 @@ export function createGaitController() {
 					pose.feet[i].lift += sample.feet[i].lift * weight;
 				}
 			}
-			const contacts = sampleGait(target, phase).feet.map(
-				(foot) => foot.contact,
-			);
+
+			// Counter-rotate planted hooves, then lift and replace them one at a time.
+			// Fade this shuffle out as forward locomotion takes over.
+			const desiredTurn =
+				state.jump < 0 ? clamp(turn, -1, 1) * (1 - motion) : 0;
+			turnAmount += (desiredTurn - turnAmount) * (1 - Math.exp(-dt * 10));
+			if (Math.abs(turnAmount) < 0.0001) turnAmount = 0;
+			const turnWeight = Math.abs(turnAmount);
+			turnPhase = wrap(turnPhase + dt * 1.25 * Math.min(1, turnWeight * 4));
+			const turningContacts: boolean[] = [];
+			for (let i = 0; i < 4; i++) {
+				const local = wrap(turnPhase - i * 0.25),
+					stance = 0.78;
+				const contact = local < stance;
+				const swing = clamp((local - stance) / (1 - stance), 0, 1);
+				const angle =
+					(contact
+						? -0.43 + (0.86 * local) / stance
+						: 0.43 * Math.cos(Math.PI * swing)) * turnAmount;
+				const restX = i < 2 ? -0.41 : 0.41;
+				const restZ = i % 2 ? 0.745 : -0.655;
+				pose.feet[i].x +=
+					restX * (Math.cos(angle) - 1) - restZ * Math.sin(angle);
+				pose.feet[i].z +=
+					restX * Math.sin(angle) + restZ * (Math.cos(angle) - 1);
+				pose.feet[i].lift += contact
+					? 0
+					: 0.18 * Math.sin(Math.PI * swing) ** 1.3 * turnWeight;
+				turningContacts.push(contact);
+			}
+			pose.y -= 0.075 * turnWeight;
+			pose.roll += 0.012 * Math.sin(tau * turnPhase) * turnAmount;
+			const contacts =
+				turnWeight > 0.1 && motion < 0.5
+					? turningContacts
+					: sampleGait(target, phase).feet.map((foot) => foot.contact);
 			let footfalls = 0;
 			if (state.jump >= 0) {
 				const progress = clamp(state.jump / JUMP_DURATION, 0, 1),
@@ -159,6 +196,7 @@ export function createGaitController() {
 				pose.riderY = 0.025 * tuck;
 				pose.feet.forEach((foot, i) => {
 					const front = i % 2 === 1;
+					foot.x *= 1 - tuck;
 					foot.z = foot.z * (1 - tuck) + (front ? 0.22 : -0.2) * tuck;
 					foot.lift = foot.lift * (1 - tuck) + (front ? 0.85 : 0.42) * tuck;
 				});
@@ -166,7 +204,7 @@ export function createGaitController() {
 				jumping = true;
 			} else {
 				if (jumping) footfalls = 2;
-				else if (motion > 0.1)
+				else if (motion > 0.1 || turnWeight > 0.1)
 					footfalls = contacts.filter(
 						(contact, i) => contact && !oldContacts[i],
 					).length;

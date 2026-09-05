@@ -83,3 +83,74 @@ await test('animated hoof centers stay above ground and joint rotations remain f
 		}
 	}
 });
+
+await test('turning in place steps with all four feet and settles after release', () => {
+	for (const direction of [-1, 1]) {
+		const controller = createGaitController();
+		const state = { gait: 0, speed: 0, jump: -1 };
+		const maximumLift = [0, 0, 0, 0];
+		let footfalls = 0;
+		let lateral = 0;
+		for (let i = 0; i < 300; i++) {
+			const pose = controller.update(1 / 120, state, direction);
+			pose.feet.forEach((foot, index) => {
+				maximumLift[index] = Math.max(maximumLift[index], foot.lift);
+				lateral = Math.max(lateral, Math.abs(foot.x));
+			});
+			assert.ok(pose.feet.filter((foot) => foot.lift < 0.001).length >= 3);
+			footfalls += pose.footfalls;
+		}
+		assert.ok(maximumLift.every((lift) => lift > 0.15));
+		assert.ok(lateral > 0.2);
+		assert.ok(footfalls >= 8);
+		let pose = controller.update(1 / 120, state, 0);
+		for (let i = 0; i < 240; i++) pose = controller.update(1 / 120, state, 0);
+		assert.equal(pose.footfalls, 0);
+		assert.ok(
+			pose.feet.every(
+				(foot) => foot.x === 0 && foot.z === 0 && foot.lift === 0,
+			),
+		);
+	}
+});
+
+await test('turning shuffle does not replace forward gaits or add airborne footsteps', () => {
+	const straight = createGaitController(),
+		turning = createGaitController();
+	for (let i = 0; i < 180; i++) {
+		const state = { gait: 2, speed: 5.5, jump: -1 };
+		assert.deepEqual(
+			turning.update(1 / 120, state, 1),
+			straight.update(1 / 120, state, 0),
+		);
+	}
+	for (let i = 0; i < 120; i++) {
+		const pose = turning.update(
+			1 / 120,
+			{ gait: 0, speed: 0, jump: i / 120 },
+			1,
+		);
+		assert.equal(pose.footfalls, 0);
+	}
+});
+
+await test('lateral stepping keeps the rig above the floor in both turn directions', () => {
+	const horse = createHorse(),
+		animation = createHorseAnimation(horse),
+		position = new THREE.Vector3();
+	for (const direction of [-1, 1, 0])
+		for (let i = 0; i < 240; i++) {
+			animation.update(
+				1 / 120,
+				{ gait: 0, speed: 0, jump: -1 },
+				i / 120,
+				direction,
+			);
+			horse.root.updateMatrixWorld(true);
+			for (const hoof of horse.hooves) {
+				hoof.getWorldPosition(position);
+				assert.ok(position.y >= 0.085);
+				assert.ok(Number.isFinite(hoof.quaternion.w));
+			}
+		}
+});

@@ -246,7 +246,7 @@ export function startGame() {
 			if (state.gait !== oldGait) updateGait();
 			horse.root.position.set(state.x, state.height, state.z);
 			horse.root.rotation.y = state.heading;
-			const footfalls = horseAnimation.update(dt, state, elapsed);
+			const footfalls = horseAnimation.update(dt, state, elapsed, turn);
 			for (const obstacle of world.obstacles) {
 				obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0;
 				obstacle.rails.position.y = obstacle.down ? -0.28 : 0;

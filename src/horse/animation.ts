@@ -7,8 +7,8 @@ export function createHorseAnimation(horse: HorseModel) {
 		target = new THREE.Vector3(),
 		inverse = new THREE.Quaternion();
 	return {
-		update(dt: number, state: MotionState, elapsed: number) {
-			const pose = controller.update(dt, state);
+		update(dt: number, state: MotionState, elapsed: number, turn = 0) {
+			const pose = controller.update(dt, state, turn);
 			horse.body.position.y = pose.y;
 			horse.body.rotation.set(pose.pitch, 0, pose.roll);
 			inverse.copy(horse.body.quaternion).invert();
@@ -16,7 +16,7 @@ export function createHorseAnimation(horse: HorseModel) {
 				const front = i % 2 === 1;
 				const restZ = (front ? -0.01 : 0.13) + 0.035;
 				target.set(
-					leg.position.x,
+					leg.position.x + pose.feet[i].x,
 					0.12 + pose.feet[i].lift,
 					leg.position.z + restZ + pose.feet[i].z,
 				);
@@ -24,10 +24,20 @@ export function createHorseAnimation(horse: HorseModel) {
 					.sub(horse.body.position)
 					.applyQuaternion(inverse)
 					.sub(leg.position);
-				const angles = solveLeg(target.y, target.z, front);
+				const angles = solveLeg(
+					-Math.hypot(target.x, target.y),
+					target.z,
+					front,
+				);
+				leg.rotation.order = 'ZXY';
+				leg.rotation.z = Math.atan2(target.x, -target.y);
 				leg.rotation.x = angles.hip;
 				horse.knees[i].rotation.x = angles.knee;
-				horse.hooves[i].rotation.x = -pose.pitch - angles.hip - angles.knee;
+				horse.hooves[i].quaternion
+					.copy(horse.body.quaternion)
+					.multiply(leg.quaternion)
+					.multiply(horse.knees[i].quaternion)
+					.invert();
 			});
 			// Lean around the seat instead of the horse's ground-level origin.
 			horse.rider.rotation.x = pose.riderPitch;
