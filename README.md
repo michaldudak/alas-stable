@@ -4,23 +4,23 @@ Przeglądarkowy prototyp spokojnej gry jeździeckiej dla dzieci. Three.js, TypeS
 
 ## Uruchomienie
 
-Wymagany Node.js 22.18+ lub 24+.
+Wymagany Node.js 22.18+ lub 24+ oraz pnpm 10.33.4 (wersja przypięta w `package.json`). Instrukcja instalacji pnpm: [pnpm.io](https://pnpm.io/10.x/installation).
 
 ```sh
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 ```
 
-Otwórz adres wypisany przez Vite (zwykle http://127.0.0.1:5173). `npm run build` tworzy statyczną wersję w `dist`, którą można umieścić na hostingu. `npm test` sprawdza mechanikę ruchu, skoków i kolizji.
+Otwórz adres wypisany przez Vite (zwykle http://127.0.0.1:5173). `pnpm run build` tworzy statyczną wersję w `dist`, którą można umieścić na hostingu. `pnpm test` sprawdza mechanikę ruchu, skoków i kolizji.
 
 Przy uruchomionym serwerze na porcie 5173: `node scripts/browser-check.ts` wykonuje test w zainstalowanym Chrome i zapisuje zrzuty w `artifacts/`.
 `node scripts/appearance-check.ts` sprawdza zmiany wszystkich wariantów w podglądzie, zapis wyborów i układ panelu. Testy używają osobnego profilu i nie zmieniają zapisów gracza.
 
 ## Praca nad kodem
 
-`npm run check` uruchamia natywny TypeScript 7, Oxlint z analizą typów, Stylelint, HTML Validate, kontrolę formatowania i testy jednostkowe. `npm run format` formatuje pliki przez Prettier, z tabulatorami w TS/JS, HTML i CSS.
+`pnpm run check` uruchamia natywny TypeScript 7, Oxlint z analizą typów, Stylelint, HTML Validate, kontrolę formatowania i testy jednostkowe. `pnpm run format` formatuje pliki przez Prettier, z tabulatorami w TS/JS, HTML i CSS.
 
-`npm run check:browser` uruchamia komplet testów przeglądarkowych we własnym serwerze Vite na porcie 5174, a potem go zamyka. Domyślnie używa zainstalowanego Chrome. W CI działa Chromium instalowany przez Playwright.
+`pnpm run check:browser` uruchamia komplet testów przeglądarkowych we własnym serwerze Vite na porcie 5174, a potem go zamyka. Domyślnie używa zainstalowanego Chrome. W CI działa Chromium instalowany przez Playwright.
 
 Opis granic modułów, wymiany modeli, zarządzania zasobami i poleceń: [ARCHITECTURE.md](ARCHITECTURE.md).
 

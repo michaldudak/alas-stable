@@ -54,20 +54,20 @@ Keep allocations and DOM queries out of frequently called frame code when practi
 
 ## Tooling and checks
 
-Use Node 24 (or Node 22.18+). Run `npm ci` to reproduce the lockfile.
+Use Node 24 (or Node 22.18+) and pnpm 10.33.4, pinned in the `packageManager` field. See the [pnpm installation instructions](https://pnpm.io/10.x/installation) if it is not installed. Run `pnpm install --frozen-lockfile` to reproduce `pnpm-lock.yaml`. Use `pnpm add` / `pnpm add -D` to change dependencies and commit the updated lockfile. `pnpm-workspace.yaml` permits the esbuild native-binary installation script; other dependency build scripts require an explicit entry.
 
-- `npm run dev`: local Vite server.
-- `npm run typecheck`: native TypeScript 7.0.2 (`tsc`), strict mode, no emit.
-- `npm run lint`: Oxlint with native TS 7 type-aware rules, Stylelint for CSS, HTML Validate for HTML.
-- `npm run format`: Prettier with tabs for TS, JS, HTML and CSS.
-- `npm run check`: type checking, all linters, formatting check and unit tests.
-- `npm run build`: type checking followed by the production Vite bundle.
-- `npm run check:browser`: isolated browser regression suite; starts and stops its own Vite server on port 5174. It uses installed Chrome by default. Set `BROWSER_PORT` if that port is occupied. To use Playwright's Chromium, run `npx playwright install chromium` and set `BROWSER_CHANNEL=chromium`.
+- `pnpm run dev`: local Vite server.
+- `pnpm run typecheck`: native TypeScript 7.0.2 (`tsc`), strict mode, no emit.
+- `pnpm run lint`: Oxlint with native TS 7 type-aware rules, Stylelint for CSS, HTML Validate for HTML.
+- `pnpm run format`: Prettier with tabs for TS, JS, HTML and CSS.
+- `pnpm run check`: type checking, all linters, formatting check and unit tests.
+- `pnpm run build`: type checking followed by the production Vite bundle.
+- `pnpm run check:browser`: isolated browser regression suite; starts and stops its own Vite server on port 5174. It uses installed Chrome by default. Set `BROWSER_PORT` if that port is occupied. To use Playwright's Chromium, run `pnpm exec playwright install chromium` and set `BROWSER_CHANNEL=chromium`.
 
 Browser scripts can also run individually with `node scripts/browser-check.ts` (or appearance/stable/gait/lifecycle equivalents) against a running server on port 5173. `BROWSER_BASE_URL` overrides that address. They use fresh browser profiles and save screenshots under ignored `artifacts/`.
 
 Oxlint and `oxlint-tsgolint` provide native type-aware linting; there is no TS 6 or ESLint compatibility dependency. The compiler and native lint engine are pinned to matching TS 7 versions. Update them together and run the full suite. Formatting belongs to Prettier, with HTML Validate's Prettier compatibility preset. Stylelint's descending-specificity rule is disabled because independent UI components intentionally use selectors of different specificity; duplicate selectors and CSS correctness rules remain enabled. YAML uses spaces because tabs are invalid YAML indentation.
 
-CI runs the checks, build and browser suite with Chromium on Node 24, and uploads screenshots. Unit tests cover gameplay, rig motion, camera collision, storage failure/migration and resource disposal. Browser checks cover movement, jumps, pause, cameras, all appearance variants, persistence, stable navigation, compact layouts and repeated start/dispose cycles.
+CI installs the pinned pnpm version, caches its store, uses a frozen lockfile, and runs the checks, build and browser suite with Chromium on Node 24, and uploads screenshots. Unit tests cover gameplay, rig motion, camera collision, storage failure/migration and resource disposal. Browser checks cover movement, jumps, pause, cameras, all appearance variants, persistence, stable navigation, compact layouts and repeated start/dispose cycles.
 
 The production Three.js chunk currently exceeds Vite's default 500 kB warning threshold, as it did in the prototype. Keep the warning visible and profile real loading/rendering costs before adding code splitting or increasing the limit.
