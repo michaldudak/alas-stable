@@ -9,6 +9,7 @@ import { setupAppearancePanel } from './appearance-panel.js';
 import { createState, changeGait, requestJump, step, GAITS } from './physics.js';
 import { Soundscape } from './audio.js';
 import { createHorseAnimation } from './horse-animation.js';
+import { STABLE, insideStable, inTackRoom } from './stable-layout.js';
 
 const icon = (name) => `<i data-lucide="${name}" aria-hidden="true"></i>`;
 const button = (id, glyph, label, shortcut = '') => `<button type="button" id="${id}" title="${label}${shortcut ? ` (${shortcut})` : ''}" aria-label="${label}">${icon(glyph)}<span>${label}</span>${shortcut ? `<kbd>${shortcut}</kbd>` : ''}</button>`;
@@ -123,16 +124,28 @@ addEventListener('blur', pause);
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 const desiredCamera = new THREE.Vector3(), target = new THREE.Vector3();
+const cameraRay = new THREE.Raycaster(), cameraDirection = new THREE.Vector3();
 function updateCamera(dt, snap = false) {
   const heading = state.heading + look;
+  const indoors = insideStable(state.x, state.z, 1.5);
   if (firstPerson) {
     desiredCamera.set(state.x - Math.sin(state.heading) * 0.3, 4.1 + state.height, state.z - Math.cos(state.heading) * 0.3);
-    target.set(desiredCamera.x + Math.sin(heading) * 15, desiredCamera.y - 0.35, desiredCamera.z + Math.cos(heading) * 15);
+    target.set(desiredCamera.x + Math.sin(heading) * 15, desiredCamera.y - (indoors ? 2.2 : 0.35), desiredCamera.z + Math.cos(heading) * 15);
   } else {
-    desiredCamera.set(state.x - Math.sin(heading) * 9, 5.7 + state.height * 0.55, state.z - Math.cos(heading) * 9);
-    target.set(state.x + Math.sin(state.heading) * 2.5, 1.7 + state.height * 0.65, state.z + Math.cos(state.heading) * 2.5);
+    const distance = indoors ? 7.2 : 9;
+    desiredCamera.set(state.x - Math.sin(heading) * distance, (indoors ? 5.15 : 5.7) + state.height * 0.55, state.z - Math.cos(heading) * distance);
+    const ahead = indoors ? 0 : 2.5;
+    target.set(state.x + Math.sin(state.heading) * ahead, (indoors ? 2.2 : 1.7) + state.height * 0.65, state.z + Math.cos(state.heading) * ahead);
   }
-  camera.position.lerp(desiredCamera, snap ? 1 : 1 - Math.exp(-dt * 7)); camera.lookAt(target);
+  camera.position.lerp(desiredCamera, snap ? 1 : 1 - Math.exp(-dt * 7));
+  if (!firstPerson) {
+    cameraDirection.copy(camera.position).sub(target);
+    const cameraDistance = cameraDirection.length();
+    cameraRay.set(target, cameraDirection.normalize()); cameraRay.far = cameraDistance;
+    const hit = cameraRay.intersectObjects(world.stable.cameraBlockers, false)[0];
+    if (hit) camera.position.copy(target).addScaledVector(cameraRay.ray.direction, Math.max(0.25, hit.distance - 0.25));
+  }
+  camera.lookAt(target);
 }
 const map = $('map').getContext('2d');
 function drawMap() {
@@ -142,7 +155,8 @@ function drawMap() {
   map.strokeStyle = '#e8d7b0'; map.lineWidth = 5; map.beginPath();
   world.points.forEach((p, i) => { const [x, y] = point(p.x, p.z); if (i) map.lineTo(x, y); else map.moveTo(x, y); }); map.stroke();
   map.fillStyle = '#e4cda5'; map.fillRect(...point(-16, -38), 22.4, 40.6);
-  map.fillStyle = '#a96a4f'; map.fillRect(...point(-41.5, 1), 12, 8);
+  map.fillStyle = '#a96a4f'; map.fillRect(...point(STABLE.x - 12, STABLE.z - 13), 16.8, 18.2);
+  map.fillStyle = '#eadcbb'; map.fillRect(...point(STABLE.x - 3.7, STABLE.z - 13), 5.18, 18.2);
   map.strokeStyle = '#7b8f7d'; map.lineWidth = 2;
   for (const o of world.obstacles) { map.beginPath(); map.moveTo(...point(-4, o.z)); map.lineTo(...point(4, o.z)); map.stroke(); }
   map.save(); map.translate(...point(state.x, state.z)); map.rotate(-state.heading);
@@ -163,9 +177,10 @@ renderer.setAnimationLoop(time => {
     for (const obstacle of world.obstacles) { obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0; obstacle.rails.position.y = obstacle.down ? -0.28 : 0; }
     if (!dragging) look *= Math.exp(-dt * 2.5);
     updateCamera(dt); audio.tick(dt, state, Math.abs(state.x) < 16 && state.z < 20 && state.z > -38, footfalls);
-    $('location').textContent = state.z < -40 ? 'Leśna ścieżka' : Math.abs(state.x) < 17 && state.z < 21 ? 'Plac do skoków' : state.x < -20 && state.z < 25 && state.z > -10 ? 'Stadnina' : 'Słoneczna polana';
+    $('location').textContent = inTackRoom(state.x, state.z) ? 'Siodlarnia' : insideStable(state.x, state.z) ? 'Stajnia' : state.z < -40 ? 'Leśna ścieżka' : Math.abs(state.x) < 17 && state.z < 21 ? 'Plac do skoków' : state.x < -20 && state.z < 25 && state.z > -10 ? 'Stadnina' : 'Słoneczna polana';
     $('hint').classList.toggle('hidden', elapsed > hintUntil);
   }
+  world.stable.update(elapsed);
   drawMap(); renderer.render(scene, camera);
   if ($('dress-dialog').open) preview.render();
 });

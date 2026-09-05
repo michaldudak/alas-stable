@@ -44,3 +44,13 @@ Stęp ma cztery osobne takty i ciągłe podparcie. Kłus pracuje parami przekąt
 Podstawa rytmów: [FEI — Gait](https://www.fei.org/node/38138), [University of Arizona — Horse gaits](https://opentextbooks.library.arizona.edu/app/uploads/sites/274/2023/11/Horse-Gaits.pdf).
 
 `node scripts/gait-check.mjs` zapisuje w `artifacts/gait-phases.png` porównanie czterech faz każdego chodu z boku. Wymaga uruchomionego Vite na porcie 5173. `tests/gaits.test.js` sprawdza kolejność podparć, zawieszenie, przejścia, wyciszenie kroków przy skoku i położenie kopyt.
+
+## Stajnia
+
+Budynek na zachód od placu ma dwa otwarte wjazdy i przejezdną centralną alejkę. Pięć zamkniętych boksów zamieszkują Luna, Fuks, Toffi, Burza i Kasztan. Boksy mają ściółkę, wodę, siano i otwarte fragmenty górnych drzwi, przez które widać konie. Konie w boksach pozostają na miejscu; mają delikatne animacje spoczynkowe.
+
+Siodlarnia znajduje się po prawej stronie od głównego wjazdu. Można do niej wjechać; zawiera siodła na stojakach, ogłowia, złożone czapraki i skrzynkę ze szczotkami. To wyposażenie otoczenia; dekorowanie własnego konia nadal otwiera przycisk z paletą.
+
+Wnętrze ma brukowaną alejkę, drewnianą konstrukcję, dach ze spadkiem, lampy i okna. Kamera TPP skraca dystans przy ścianach i dachu, FPP kieruje się nieco niżej we wnętrzu. Rozmieszczenie ścian i kolizji współdzieli `src/stable-layout.js`.
+
+`node scripts/stable-check.mjs` przejeżdża od punktu startowego do stajni, sprawdza TPP/FPP, wjazd do siodlarni i wyjazd tylnymi drzwiami oraz zapisuje zrzuty. `tests/stable.test.js` sprawdza przejezdność alei, drzwi i bariery przy boksach.

@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { createStable } from './stable.js';
+import { insideStable } from './stable-layout.js';
 
 const materials = new Map();
 export function material(color) {
@@ -71,25 +73,13 @@ export function createWorld(scene) {
     for (const y of [0.5, 1]) for (let i = 0; i < 8; i++) box(rails, i % 2 ? '#fff0d3' : color, [1, 0.16, 0.16], [-3.5 + i, y, 0]);
     obstacles.push({ x, z, width, rails, down: 0 });
   }
-  const stable = new THREE.Group(); stable.position.set(-33, 0, 7); scene.add(stable);
-  box(stable, '#b87553', [17, 6, 12], [0, 3, 0]);
-  for (let x = -8; x <= 8; x += 0.65) box(stable, '#c88660', [0.07, 5.9, 0.06], [x, 3, 6.04]);
-  // Two sloped roof planes are intentionally broad and readable from a distance.
-  for (const side of [-1, 1]) { const panel = box(stable, '#465c54', [18.5, 0.3, 7.8], [0, 7.2, side * 3.3]); panel.rotation.x = side * 0.43; }
-  for (const x of [-5.5, 0, 5.5]) {
-    box(stable, '#614c39', [3.7, 3.8, 0.16], [x, 1.9, 6.1]);
-    box(stable, '#e9dab9', [3.95, 0.17, 0.2], [x, 3.86, 6.23]);
-    for (const side of [-1, 1]) box(stable, '#e9dab9', [0.17, 3.9, 0.2], [x + side * 1.9, 1.95, 6.23]);
-    const brace = box(stable, '#ddc8a0', [0.14, 4.1, 0.12], [x, 1.9, 6.24]); brace.rotation.z = -0.72;
-  }
-  solids.push({ x: -33, z: 7, w: 17, d: 12 });
-  sign(scene, 'STADNINA', -33, 16); sign(scene, 'TOR  →', -9, 26); sign(scene, 'LAS  →', 39, 34, -0.3);
-  for (let i = 0; i < 6; i++) cylinder(scene, '#cbaa60', 1.1, 1.5, [-45 + i % 3 * 2.4, 0.75, 12 + Math.floor(i / 3) * 2.4]);
+  const stable = createStable(scene, solids);
+  sign(scene, 'TOR  →', -9, 26); sign(scene, 'LAS  →', 39, 34, -0.3);
   let seed = 521;
   const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   for (let i = 0; i < 230; i++) {
     const x = (random() - 0.5) * 224, z = (random() - 0.5) * 224;
-    if (Math.hypot(x, z) > 112 || (Math.abs(x) < 24 && z > -46 && z < 36) || (x < -20 && x > -49 && z > -5 && z < 27)) continue;
+    if (insideStable(x, z, 7) || Math.hypot(x, z) > 112 || (Math.abs(x) < 24 && z > -46 && z < 36) || (x < -20 && x > -49 && z > -5 && z < 27)) continue;
     if (points.some(p => Math.hypot(x - p.x, z - p.z) < 6)) continue;
     if (z > 25 && random() > 0.2) continue;
     const height = 4 + random() * 5, tree = new THREE.Group(); tree.position.set(x, 0, z); scene.add(tree);
@@ -102,7 +92,7 @@ export function createWorld(scene) {
   }
   for (let i = 0; i < 450; i++) {
     const x = (random() - 0.5) * 210, z = (random() - 0.5) * 210;
-    if ((Math.abs(x) < 20 && z > -42 && z < 30) || points.some(p => Math.hypot(x - p.x, z - p.z) < 3.3)) continue;
+    if (insideStable(x, z, 5) || (Math.abs(x) < 20 && z > -42 && z < 30) || points.some(p => Math.hypot(x - p.x, z - p.z) < 3.3)) continue;
     const color = ['#e9d795', '#f0e6c8', '#b5bf79', '#819957'][i % 4];
     ellipsoid(scene, color, [0.15, 0.15 + random() * 0.2, 0.15], [x, 0.16, z], 0);
   }
@@ -114,5 +104,5 @@ export function createWorld(scene) {
     const cloud = new THREE.Group(); cloud.position.set((random() - 0.5) * 250, 40 + random() * 22, (random() - 0.5) * 250); scene.add(cloud);
     for (let j = 0; j < 4; j++) ellipsoid(cloud, '#f8f4e6', [7, 2.6, 3], [j * 4, Math.sin(j) * 1.2, 0], 1).castShadow = false;
   }
-  return { obstacles, solids, points };
+  return { obstacles, solids, points, stable };
 }
