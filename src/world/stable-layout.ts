@@ -16,7 +16,7 @@ export const STABLE_WALLS: (Solid & { h: number; stall?: boolean })[] = [
 	...[-1, 1].flatMap((side) =>
 		[-5, 3].map((z) => ({ x: side * 7.85, z, w: 8.3, d: 0.22, h: 3.8 })),
 	),
-	...[-9, -1, 7].map((z) => ({
+	...[-9, -1].map((z) => ({
 		x: -3.7,
 		z,
 		w: 0.2,
@@ -26,6 +26,15 @@ export const STABLE_WALLS: (Solid & { h: number; stall?: boolean })[] = [
 	})),
 	...[-9, -1].map((z) => ({ x: 3.7, z, w: 0.2, d: 8, h: 1.8, stall: true })),
 	{ x: -7.85, z: 11, w: 8.3, d: 0.22, h: 3.8 },
+	// Raven's stall has a 3.2-unit opening onto the aisle.
+	...[4.2, 9.8].map((z) => ({
+		x: -3.7,
+		z,
+		w: 0.2,
+		d: 2.4,
+		h: 1.8,
+		stall: true,
+	})),
 	// Tack-room entrance is 4.8 units wide, opening directly onto the aisle.
 	{ x: 3.7, z: 3.75, w: 0.2, d: 1.5, h: 4.6 },
 	{ x: 3.7, z: 11.75, w: 0.2, d: 2.5, h: 4.6 },

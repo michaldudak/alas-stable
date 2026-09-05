@@ -31,10 +31,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		parent = root,
 		blockCamera = false,
 	) {
-		const object = new THREE.Mesh(
-			new THREE.BoxGeometry(...size),
-			mat(color),
-		);
+		const object = new THREE.Mesh(new THREE.BoxGeometry(...size), mat(color));
 		object.position.set(...pos);
 		object.castShadow = true;
 		object.receiveShadow = true;
@@ -107,9 +104,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 	for (let z = -12.5; z < 13; z += 1)
 		for (let x = -3; x < 3.6; x += 1.2)
 			box(
-				(Math.round(z * 2) + Math.round(x * 5)) % 3
-					? '#bdb8a9'
-					: '#c7c1b1',
+				(Math.round(z * 2) + Math.round(x * 5)) % 3 ? '#bdb8a9' : '#c7c1b1',
 				[1.17, 0.025, 0.97],
 				[x, 0, z],
 			);
@@ -135,18 +130,30 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 			);
 		}
 		if (wall.stall) {
-			for (let z = wall.z - 3.75; z < wall.z + 4; z += 0.42)
+			for (
+				let z = wall.z - wall.d / 2 + 0.25;
+				z < wall.z + wall.d / 2;
+				z += 0.42
+			)
 				box('#795338', [0.24, 1.72, 0.055], [wall.x, 0.9, z]);
-			for (let z = wall.z - 3.7; z < wall.z + 3.8; z += 0.42) {
-				if (Math.abs(z - wall.z) > 1.25)
+			for (
+				let z = wall.z - wall.d / 2 + 0.3;
+				z < wall.z + wall.d / 2 - 0.2;
+				z += 0.42
+			) {
+				if (wall.d < 8 || Math.abs(z - wall.z) > 1.25)
 					cylinder('#454c47', 0.035, 1.7, [wall.x, 2.7, z]);
 			}
-			box('#4d534c', [0.23, 0.14, 7.9], [wall.x, 3.6, wall.z]);
-			box('#ccb487', [0.26, 0.13, 7.9], [wall.x, 1.86, wall.z]);
+			box('#4d534c', [0.23, 0.14, wall.d - 0.1], [wall.x, 3.6, wall.z]);
+			box('#ccb487', [0.26, 0.13, wall.d - 0.1], [wall.x, 1.86, wall.z]);
 			box(
 				'#454c47',
 				[0.3, 0.17, 0.4],
-				[wall.x + (wall.x < 0 ? 0.18 : -0.18), 1.45, wall.z + 1.1],
+				[
+					wall.x + (wall.x < 0 ? 0.18 : -0.18),
+					1.45,
+					wall.z + Math.min(1.1, wall.d / 2 - 0.3),
+				],
 			);
 		}
 	}
@@ -257,24 +264,20 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 				const x = side * 12 + face * 0.22;
 				box('#a0bbc0', [0.025, 1.35, 2.4], [x, 4.25, z]);
 				for (const dz of [-1.28, 1.28])
-					box(
-						'#f0e1bc',
-						[0.06, 1.55, 0.14],
-						[x + face * 0.03, 4.25, z + dz],
-					);
+					box('#f0e1bc', [0.06, 1.55, 0.14], [x + face * 0.03, 4.25, z + dz]);
 				for (const y of [3.5, 5])
 					box('#f0e1bc', [0.06, 0.14, 2.65], [x + face * 0.03, y, z]);
 				box('#f0e1bc', [0.06, 1.5, 0.09], [x + face * 0.04, 4.25, z]);
 			}
 		}
-	const residents: [number, number, string, string][] = [
+	const stalls: [number, number, string, string | null][] = [
 		[-1, -9, 'LUNA', '#e6e0d2'],
 		[-1, -1, 'FUKS', '#aa6941'],
-		[-1, 7, 'TOFFI', '#e1c39a'],
+		[-1, 7, 'Raven', null],
 		[1, -9, 'BURZA', '#343330'],
 		[1, -1, 'KASZTAN', '#665046'],
 	];
-	for (const [side, z, name, color] of residents) {
+	for (const [side, z, name, color] of stalls) {
 		box('#b7a16a', [7.65, 0.06, 7.65], [side * 7.8, 0.075, z]);
 		for (let i = 0; i < 35; i++) {
 			const straw = box(
@@ -288,24 +291,31 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 			);
 			straw.rotation.y = i * 1.7;
 		}
-		const horse = createHorse();
-		horse.setAppearance({
-			coat: color,
-			hair: side < 0 ? '#47332d' : '#d7b879',
-			maneStyle: name === 'LUNA' ? 'braided' : 'long',
-		});
-		horse.rider.visible = false;
-		horse.tack.visible = false;
-		horse.root.scale.setScalar(0.92);
-		horse.root.position.set(side * 6.5, 0.09, z);
-		horse.root.rotation.y = (-side * Math.PI) / 2;
-		root.add(horse.root);
-		horses.push(horse);
+		if (color !== null) {
+			const horse = createHorse();
+			horse.setAppearance({
+				coat: color,
+				hair: side < 0 ? '#47332d' : '#d7b879',
+				maneStyle: name === 'LUNA' ? 'braided' : 'long',
+			});
+			horse.rider.visible = false;
+			horse.tack.visible = false;
+			horse.root.scale.setScalar(0.92);
+			horse.root.position.set(side * 6.5, 0.09, z);
+			horse.root.rotation.y = (-side * Math.PI) / 2;
+			root.add(horse.root);
+			horses.push(horse);
+		}
 		cylinder('#4e7977', 0.36, 0.48, [side * 4.5, 0.4, z - 2.8]);
 		cylinder('#8cb6b8', 0.3, 0.025, [side * 4.5, 0.65, z - 2.8]);
 		box('#8e7045', [1.5, 0.55, 0.9], [side * 10.5, 0.48, z - 2.8]);
 		oval('#c9b170', [0.65, 0.28, 0.36], [side * 10.5, 0.87, z - 2.8]);
-		label(name, [side * 3.53, 2.05, z], 1.6, (-side * Math.PI) / 2);
+		label(
+			name,
+			[side * 3.53, 2.05, color === null ? z + 2.8 : z],
+			1.6,
+			(-side * Math.PI) / 2,
+		);
 	}
 	// Tack room: wall-mounted saddle racks, bridles, folded pads and grooming kit.
 	label('SIODLARNIA', [3.55, 4.1, 7], 3.2, -Math.PI / 2);
@@ -319,12 +329,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		root.add(saddle);
 		oval('#704c31', [0.48, 0.12, 0.57], [0, 0.03, 0], saddle);
 		for (const side of [-1, 1])
-			oval(
-				'#825a39',
-				[0.08, 0.4, 0.36],
-				[side * 0.43, -0.23, 0.02],
-				saddle,
-			);
+			oval('#825a39', [0.08, 0.4, 0.36], [side * 0.43, -0.23, 0.02], saddle);
 		oval('#64452f', [0.48, 0.19, 0.12], [0, 0.13, -0.48], saddle);
 		oval('#64452f', [0.33, 0.14, 0.1], [0, 0.12, 0.4], saddle);
 		solids.push({ x: STABLE.x + 11, z: STABLE.z + z, w: 1.4, d: 1.4 });
@@ -337,8 +342,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		root.add(bridle);
 	}
 	box('#8d6d49', [5.6, 0.16, 0.8], [7.6, 1.55, 12.15]);
-	for (const x of [5.2, 10])
-		box('#785c3f', [0.17, 1.5, 0.6], [x, 0.75, 12.15]);
+	for (const x of [5.2, 10]) box('#785c3f', [0.17, 1.5, 0.6], [x, 0.75, 12.15]);
 	solids.push({ x: STABLE.x + 7.6, z: STABLE.z + 12.15, w: 5.6, d: 0.8 });
 	for (let i = 0; i < 6; i++)
 		box(

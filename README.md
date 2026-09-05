@@ -56,7 +56,7 @@ Rhythm references: [FEI — Gait](https://www.fei.org/node/38138), [University o
 
 ## Stable
 
-The building west of the arena has two open entrances and a traversable central aisle. Five enclosed stalls house Luna, Fuks, Toffi, Burza, and Kasztan. Stalls contain bedding, water, and hay; open upper door sections let players see the horses. Resident horses stay in place and have subtle idle animations.
+The building west of the arena has two open entrances and a traversable central aisle. Four enclosed stalls house Luna, Fuks, Burza, and Kasztan. The first stall on the left from the main entrance is empty and reserved for Raven, the player's horse. Its entrance is open so the player can ride in and out. Stalls contain bedding, water, and hay; open upper door sections let players see the horses. Resident horses stay in place and have subtle idle animations.
 
 The tack room is on the right when entering through the main entrance. Players can ride inside; it contains saddles on racks, bridles, folded saddlecloths, and a grooming box. These are environmental props; the palette button still opens customization for the player's own horse.
 

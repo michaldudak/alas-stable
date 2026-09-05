@@ -30,9 +30,7 @@ try {
 	async function stop() {
 		const s = await state();
 		for (let i = 0; i < s.gait; i++) await page.keyboard.press('ArrowDown');
-		await page.waitForFunction(
-			() => window.__polana!.snapshot().speed < 0.04,
-		);
+		await page.waitForFunction(() => window.__polana!.snapshot().speed < 0.04);
 	}
 	await turnTo(Math.PI * 1.5);
 	for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
@@ -48,6 +46,16 @@ try {
 	await page.screenshot({ path: 'artifacts/stable-aisle-tpp.png' });
 	await page.keyboard.press('KeyC');
 	await page.screenshot({ path: 'artifacts/stable-aisle-fpp.png' });
+	await turnTo(Math.PI * 1.5);
+	await page.keyboard.press('ArrowUp');
+	await page.waitForFunction(() => window.__polana!.snapshot().x < -44.5);
+	await stop();
+	assert.equal(await page.locator('#location').textContent(), 'Stajnia');
+	await page.screenshot({ path: 'artifacts/raven-stall.png' });
+	await turnTo(Math.PI / 2);
+	await page.keyboard.press('ArrowUp');
+	await page.waitForFunction(() => window.__polana!.snapshot().x > -38.7);
+	await stop();
 	await turnTo(Math.PI / 2);
 	await page.keyboard.press('ArrowUp');
 	await page.waitForFunction(() => window.__polana!.snapshot().x > -31.5);

@@ -39,3 +39,12 @@ await test('stable walls and stall fronts remain solid instead of passing throug
 	assert.equal(outside.gait, 0);
 	assert.ok(outside.x < STABLE.x - 12);
 });
+
+await test('Raven can enter the empty stall and return to the aisle', () => {
+	const entered = ride(STABLE.x, STABLE.z + 7, -Math.PI / 2, 1.4);
+	assert.ok(entered.x < STABLE.x - 7);
+	assert.equal(entered.gait, 2);
+	const returned = ride(entered.x, entered.z, Math.PI / 2, 1.4);
+	assert.ok(Math.abs(returned.x - STABLE.x) < 0.01);
+	assert.equal(returned.gait, 2);
+});
