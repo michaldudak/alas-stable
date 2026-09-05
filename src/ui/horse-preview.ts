@@ -100,9 +100,7 @@ export function createHorsePreview(
 		'keydown',
 		(event) => {
 			if (
-				['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(
-					event.code,
-				)
+				['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.code)
 			) {
 				event.preventDefault();
 				if (event.code === 'ArrowLeft') rotate(-1);

@@ -30,21 +30,13 @@ try {
 				requestAnimationFrame(() => resolve()),
 			);
 			const snapshot = window.__polana!.snapshot;
-			window.dispatchEvent(
-				new KeyboardEvent('keydown', { code: 'ArrowUp' }),
-			);
-			window.dispatchEvent(
-				new KeyboardEvent('keyup', { code: 'ArrowUp' }),
-			);
+			window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
+			window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ArrowUp' }));
 			const activeGait = snapshot().gait;
 			game.dispose();
 			game.dispose();
-			window.dispatchEvent(
-				new KeyboardEvent('keydown', { code: 'ArrowUp' }),
-			);
-			window.dispatchEvent(
-				new KeyboardEvent('keyup', { code: 'ArrowUp' }),
-			);
+			window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
+			window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ArrowUp' }));
 			results.push({
 				activeGait,
 				disposedGait: snapshot().gait,

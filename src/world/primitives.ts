@@ -24,10 +24,7 @@ export function box(
 	position: Vector3Tuple,
 	rotation = 0,
 ) {
-	const mesh = new THREE.Mesh(
-		new THREE.BoxGeometry(...size),
-		material(color),
-	);
+	const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material(color));
 	mesh.position.set(...position);
 	mesh.rotation.y = rotation;
 	mesh.castShadow = true;

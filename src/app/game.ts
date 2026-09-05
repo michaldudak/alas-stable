@@ -103,10 +103,8 @@ export function startGame() {
 		document
 			.querySelectorAll('.gait-steps b')
 			.forEach((bar, i) => bar.classList.toggle('on', i <= state.gait));
-		requireElement('#slower', HTMLButtonElement).disabled =
-			state.gait === 0;
-		requireElement('#faster', HTMLButtonElement).disabled =
-			state.gait === 3;
+		requireElement('#slower', HTMLButtonElement).disabled = state.gait === 0;
+		requireElement('#faster', HTMLButtonElement).disabled = state.gait === 3;
 	}
 	function tempo(delta: number) {
 		changeGait(state, delta);
@@ -187,10 +185,7 @@ export function startGame() {
 			if (document.fullscreenElement) await document.exitFullscreen();
 			else await document.documentElement.requestFullscreen();
 		} catch {
-			hint(
-				'Pełny ekran jest niedostępny',
-				'Możesz dalej jeździć w tym oknie.',
-			);
+			hint('Pełny ekran jest niedostępny', 'Możesz dalej jeździć w tym oknie.');
 		}
 		focusGame();
 	};

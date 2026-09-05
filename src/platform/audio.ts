@@ -39,10 +39,7 @@ export class Soundscape {
 		);
 		gain.gain.setValueAtTime(0.001, ctx.currentTime);
 		gain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 0.012);
-		gain.gain.exponentialRampToValueAtTime(
-			0.001,
-			ctx.currentTime + duration,
-		);
+		gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
 		oscillator.connect(gain);
 		gain.connect(ctx.destination);
 		oscillator.start();
@@ -52,12 +49,7 @@ export class Soundscape {
 			gain.disconnect();
 		};
 	}
-	tick(
-		dt: number,
-		state: Pick<GameState, 'z'>,
-		sand: boolean,
-		footfalls = 0,
-	) {
+	tick(dt: number, state: Pick<GameState, 'z'>, sand: boolean, footfalls = 0) {
 		this.birdTime -= dt;
 		this.horseTime -= dt;
 		this.windTime -= dt;

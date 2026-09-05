@@ -51,9 +51,7 @@ try {
 		.click();
 	await page.getByRole('button', { name: 'Do stajni', exact: true }).click();
 	await page.keyboard.press('KeyC');
-	await page
-		.getByRole('button', { name: 'Wygląd konia', exact: true })
-		.click();
+	await page.getByRole('button', { name: 'Wygląd konia', exact: true }).click();
 	const previewPosition = await page.evaluate(() =>
 		window.__polana!.snapshot(),
 	);
@@ -67,10 +65,7 @@ try {
 		.click();
 	await page.getByRole('button', { name: 'Przybliż', exact: true }).click();
 	await page.waitForTimeout(200);
-	assert.equal(
-		originalPreview.equals(await previewCanvas.screenshot()),
-		false,
-	);
+	assert.equal(originalPreview.equals(await previewCanvas.screenshot()), false);
 	await page
 		.getByRole('button', { name: 'Pokaż jeźdźca', exact: true })
 		.click();
@@ -102,9 +97,7 @@ try {
 	await page.waitForFunction(
 		() => (window.__polana?.snapshot().calls ?? 0) > 0,
 	);
-	await page
-		.getByRole('button', { name: 'Wygląd konia', exact: true })
-		.click();
+	await page.getByRole('button', { name: 'Wygląd konia', exact: true }).click();
 	await page.getByRole('button', { name: 'Kolory', exact: true }).click();
 	assert.equal(
 		await page
@@ -123,14 +116,13 @@ try {
 	await page.keyboard.press('Space');
 	await page.waitForFunction(() => window.__polana!.snapshot().z < 6);
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[0]
-			.down,
+		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[0].down,
 		0,
 	);
 	await page.waitForFunction(() => window.__polana!.snapshot().z < -9);
 	assert.ok(
-		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[1]
-			.down > 0,
+		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[1].down >
+			0,
 	);
 	// Continue straight to the actual enclosure boundary, then jump out.
 	await page.waitForFunction(() => window.__polana!.snapshot().z < -34);
@@ -158,9 +150,7 @@ try {
 		),
 		true,
 	);
-	await page
-		.getByRole('button', { name: 'Wygląd konia', exact: true })
-		.click();
+	await page.getByRole('button', { name: 'Wygląd konia', exact: true }).click();
 	await page.screenshot({ path: 'artifacts/preview-compact.png' });
 	assert.equal(
 		await page

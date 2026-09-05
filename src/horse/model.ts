@@ -171,14 +171,7 @@ export function createHorse(): HorseModel {
 			leg.add(knee);
 			knees.push(knee);
 			limb(knee, coat, [0, 0, 0], [0, -0.5, -0.055], 0.09, 0.067);
-			limb(
-				knee,
-				cream,
-				[0, -0.5, -0.055],
-				[0, -0.78, 0.02],
-				0.075,
-				0.095,
-			);
+			limb(knee, cream, [0, -0.5, -0.055], [0, -0.78, 0.02], 0.075, 0.095);
 			oval(knee, cream, [0.1, 0.12, 0.1], [0, -0.72, 0]);
 			const foot = mesh(
 				knee,
@@ -399,11 +392,7 @@ export function createHorse(): HorseModel {
 				braidedTail,
 				hair,
 				[0.077, 0.12, 0.075],
-				[
-					side * 0.038,
-					-0.08 - i * 0.095,
-					-0.18 - Math.min(i, 3) * 0.045,
-				],
+				[side * 0.038, -0.08 - i * 0.095, -0.18 - Math.min(i, 3) * 0.045],
 			);
 			piece.rotation.z = side * 0.55;
 		}
@@ -412,12 +401,8 @@ export function createHorse(): HorseModel {
 	variant(decoration, 'ornament', 'none');
 	const bow = variant(decoration, 'ornament', 'bow');
 	for (const side of [-1, 1]) {
-		oval(
-			bow,
-			petals,
-			[0.14, 0.105, 0.045],
-			[side * 0.105, 0, 0],
-		).rotation.z = side * 0.35;
+		oval(bow, petals, [0.14, 0.105, 0.045], [side * 0.105, 0, 0]).rotation.z =
+			side * 0.35;
 		cord(
 			bow,
 			petals,

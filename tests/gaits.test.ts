@@ -47,9 +47,8 @@ await test('transition blends poses and sound is silent in jumps and at rest', (
 	assert.ok(pose.weights[1] > 0.8 && pose.weights[3] < 0.2);
 	assert.ok(Math.abs(pose.y - previous.y) < 0.03);
 	assert.ok(
-		Math.max(
-			...pose.feet.map((f, i) => Math.abs(f.z - previous.feet[i].z)),
-		) < 0.2,
+		Math.max(...pose.feet.map((f, i) => Math.abs(f.z - previous.feet[i].z))) <
+			0.2,
 	);
 	for (let i = 0; i < 70; i++)
 		assert.equal(
@@ -78,10 +77,7 @@ await test('animated hoof centers stay above ground and joint rotations remain f
 			horse.root.updateMatrixWorld(true);
 			for (const hoof of horse.hooves) {
 				hoof.getWorldPosition(position);
-				assert.ok(
-					position.y >= 0.085,
-					`gait ${gait}: hoof y ${position.y}`,
-				);
+				assert.ok(position.y >= 0.085, `gait ${gait}: hoof y ${position.y}`);
 				assert.ok(Number.isFinite(hoof.rotation.x));
 			}
 		}

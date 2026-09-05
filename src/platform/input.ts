@@ -64,11 +64,7 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 		},
 		options,
 	);
-	window.addEventListener(
-		'pointerdown',
-		() => actions.unlockAudio(),
-		options,
-	);
+	window.addEventListener('pointerdown', () => actions.unlockAudio(), options);
 	canvas.addEventListener(
 		'pointerdown',
 		(event) => {

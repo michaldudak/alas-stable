@@ -124,8 +124,7 @@ export function createGaitController() {
 			);
 			const motion = clamp(state.speed / 1.5, 0, 1);
 			const frequency = weights.reduce(
-				(sum, weight, i) =>
-					sum + weight * (GAIT_CYCLES[i]?.frequency || 0),
+				(sum, weight, i) => sum + weight * (GAIT_CYCLES[i]?.frequency || 0),
 				0,
 			);
 			phase = wrap(phase + dt * frequency * motion);
@@ -161,8 +160,7 @@ export function createGaitController() {
 				pose.feet.forEach((foot, i) => {
 					const front = i % 2 === 1;
 					foot.z = foot.z * (1 - tuck) + (front ? 0.22 : -0.2) * tuck;
-					foot.lift =
-						foot.lift * (1 - tuck) + (front ? 0.85 : 0.42) * tuck;
+					foot.lift = foot.lift * (1 - tuck) + (front ? 0.85 : 0.42) * tuck;
 				});
 				oldContacts.fill(false);
 				jumping = true;

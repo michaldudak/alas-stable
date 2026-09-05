@@ -43,8 +43,7 @@ export function step(
 		state.jump += dt;
 		// A long, broad arc keeps a slightly early or late press forgiving.
 		state.height =
-			JUMP_HEIGHT *
-			Math.sin(Math.PI * Math.min(1, state.jump / JUMP_DURATION));
+			JUMP_HEIGHT * Math.sin(Math.PI * Math.min(1, state.jump / JUMP_DURATION));
 		if (state.jump >= JUMP_DURATION) {
 			state.jump = -1;
 			state.height = 0;
@@ -77,8 +76,7 @@ export function step(
 		// Buildings, tree trunks and obstacle uprights remain solid during jumps.
 		if (solid.jumpable && state.jump >= 0) continue;
 		if (
-			Math.abs(state.x - solid.x) <
-				solid.w / 2 + HORSE_COLLISION_RADIUS &&
+			Math.abs(state.x - solid.x) < solid.w / 2 + HORSE_COLLISION_RADIUS &&
 			Math.abs(state.z - solid.z) < solid.d / 2 + HORSE_COLLISION_RADIUS
 		) {
 			state.x = previous.x;

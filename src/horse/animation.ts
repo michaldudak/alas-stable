@@ -27,8 +27,7 @@ export function createHorseAnimation(horse: HorseModel) {
 				const angles = solveLeg(target.y, target.z, front);
 				leg.rotation.x = angles.hip;
 				horse.knees[i].rotation.x = angles.knee;
-				horse.hooves[i].rotation.x =
-					-pose.pitch - angles.hip - angles.knee;
+				horse.hooves[i].rotation.x = -pose.pitch - angles.hip - angles.knee;
 			});
 			// Lean around the seat instead of the horse's ground-level origin.
 			horse.rider.rotation.x = pose.riderPitch;
@@ -39,8 +38,7 @@ export function createHorseAnimation(horse: HorseModel) {
 			);
 			horse.tail.rotation.z = Math.sin(elapsed * 2) * 0.07;
 			horse.tail.rotation.x =
-				-0.06 * pose.weights[3] +
-				0.025 * Math.sin(pose.phase * Math.PI * 2);
+				-0.06 * pose.weights[3] + 0.025 * Math.sin(pose.phase * Math.PI * 2);
 			return pose.footfalls;
 		},
 	};

@@ -81,14 +81,7 @@ function thumbnail(canvas: HTMLCanvasElement, key: string, value: string) {
 			for (let i = 0; i < 3; i++) {
 				ctx.beginPath();
 				ctx.moveTo(30 + i * 10, 8);
-				ctx.bezierCurveTo(
-					50 + i * 8,
-					22,
-					15 + i * 12,
-					26,
-					33 + i * 9,
-					43,
-				);
+				ctx.bezierCurveTo(50 + i * 8, 22, 15 + i * 12, 26, 33 + i * 9, 43);
 				ctx.stroke();
 			}
 	} else {
@@ -160,10 +153,7 @@ export function setupAppearancePanel(
 		appearance = horse.setAppearance({ ...appearance, [key]: value });
 		store.save(appearance);
 		for (const [button, field, option] of controls)
-			button.setAttribute(
-				'aria-pressed',
-				String(appearance[field] === option),
-			);
+			button.setAttribute('aria-pressed', String(appearance[field] === option));
 	}
 	const nav = document.createElement('div');
 	nav.className = 'appearance-nav';

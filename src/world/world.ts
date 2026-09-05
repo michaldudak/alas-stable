@@ -73,10 +73,7 @@ export function createWorld(scene: THREE.Scene) {
 		}
 	}
 	const geometry = new THREE.BufferGeometry();
-	geometry.setAttribute(
-		'position',
-		new THREE.Float32BufferAttribute(verts, 3),
-	);
+	geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
 	geometry.setIndex(indices);
 	geometry.computeVertexNormals();
 	const pathMaterial = new THREE.MeshStandardMaterial({
@@ -158,14 +155,7 @@ export function createWorld(scene: THREE.Scene) {
 			tree = new THREE.Group();
 		tree.position.set(x, 0, z);
 		scene.add(tree);
-		cylinder(
-			tree,
-			'#80674b',
-			0.3,
-			height * 0.65,
-			[0, height * 0.325, 0],
-			0.18,
-		);
+		cylinder(tree, '#80674b', 0.3, height * 0.65, [0, height * 0.325, 0], 0.18);
 		const green = ['#577b47', '#648751', '#789958', '#456f50'][
 			Math.floor(random() * 4)
 		];
