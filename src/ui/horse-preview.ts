@@ -1,3 +1,4 @@
+import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import type { HorseModel } from '../horse/types.ts';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -35,7 +36,7 @@ export function createHorsePreview(
 	const fill = new THREE.DirectionalLight('#d5e9ee', 1.3);
 	fill.position.set(-4, 4, -3);
 	scene.add(fill);
-	const model = horse.root.clone(true);
+	const model = clone(horse.root);
 	model.position.set(0, 0, 0);
 	model.rotation.set(0, 0, 0);
 	const body = model.getObjectByName(horse.body.name)!;
@@ -117,6 +118,9 @@ export function createHorsePreview(
 		dispose() {
 			events.abort();
 			controls.dispose();
+			model.traverse((object) => {
+				if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose();
+			});
 			// The cloned horse shares geometry/materials with the live horse, whose scene owns them.
 			floor.geometry.dispose();
 			floor.material.dispose();

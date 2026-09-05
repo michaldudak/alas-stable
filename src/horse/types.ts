@@ -8,8 +8,8 @@ import type { Appearance } from './appearance.ts';
 export interface HorseModel {
 	root: THREE.Group;
 	body: THREE.Group;
-	legs: THREE.Group[];
-	knees: THREE.Group[];
+	legs: THREE.Bone[];
+	knees: THREE.Bone[];
 	hooves: THREE.Mesh[];
 	tail: THREE.Group;
 	rider: THREE.Group;

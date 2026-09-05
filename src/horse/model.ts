@@ -1,5 +1,6 @@
+import { attachSkin } from './skin.ts';
 import { createRider } from './rider.ts';
-import { surface, mesh, oval, limb, cord, form } from './geometry.ts';
+import { surface, mesh, oval, cord } from './geometry.ts';
 import type { HorseModel } from './types.ts';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import type { Appearance } from './appearance.ts';
@@ -27,61 +28,18 @@ export function createHorse(): HorseModel {
 		metal = surface('#b6b7ab', 0.32);
 	metal.metalness = 0.65;
 
-	form(body, coat, [
-		[[0, 1.86, -1.24], 0.015, 0.015],
-		[[0, 1.87, -1.13], 0.36, 0.42],
-		[[0, 1.88, -0.84], 0.59, 0.65],
-		[[0, 1.82, -0.36], 0.64, 0.67],
-		[[0, 1.82, 0.22], 0.6, 0.65],
-		[[0, 1.9, 0.67], 0.53, 0.67],
-		[[0, 1.95, 0.95], 0.34, 0.47],
-		[[0, 1.96, 1.07], 0.015, 0.015],
-	]);
-	form(
-		body,
-		coat,
-		[
-			[[0, 1.63, 0.69], 0.22, 0.31],
-			[[0, 1.96, 0.72], 0.44, 0.55],
-			[[0, 2.28, 0.83], 0.39, 0.52],
-			[[0, 2.64, 1.02], 0.3, 0.44],
-			[[0, 2.97, 1.16], 0.245, 0.35],
-			[[0, 3.27, 1.23], 0.23, 0.25],
-			[[0, 3.39, 1.23], 0.07, 0.12],
-		],
-		'y',
-	);
-	// Long forehead, a distinct jaw, and a soft tapered nose.
-	oval(body, coat, [0.29, 0.36, 0.3], [0, 3.18, 1.26]);
-	form(body, coat, [
-		[[0, 3.26, 1.13], 0.015, 0.015],
-		[[0, 3.25, 1.32], 0.29, 0.31],
-		[[0, 3.13, 1.58], 0.255, 0.29],
-		[[0, 2.96, 1.83], 0.21, 0.235],
-		[[0, 2.84, 2.02], 0.22, 0.18],
-		[[0, 2.82, 2.1], 0.08, 0.08],
-	]);
-	oval(body, muzzle, [0.235, 0.19, 0.21], [0, 2.84, 2.025]);
+	// Eyes, inner ears and mouth remain separate surface details.
+
 	for (const side of [-1, 1]) {
 		const ear = new THREE.Group();
 		ear.position.set(side * 0.2, 3.46, 1.19);
 		ear.rotation.z = side * -0.19;
 		body.add(ear);
-		form(
-			ear,
-			coat,
-			[
-				[[0, -0.07, 0], 0.08, 0.075],
-				[[0, 0.13, 0], 0.1, 0.06],
-				[[0, 0.33, 0.01], 0.01, 0.015],
-			],
-			'y',
-			12,
-		);
+
 		oval(ear, muzzle, [0.045, 0.15, 0.018], [0, 0.13, 0.055]);
-		oval(body, coat, [0.052, 0.083, 0.1], [side * 0.267, 3.26, 1.46]);
-		oval(body, eye, [0.039, 0.055, 0.068], [side * 0.299, 3.265, 1.49]);
-		oval(body, cream, [0.009, 0.013, 0.015], [side * 0.336, 3.291, 1.51]);
+
+		oval(body, eye, [0.039, 0.055, 0.068], [side * 0.276, 3.265, 1.49]);
+
 		cord(
 			body,
 			muzzle,
@@ -93,34 +51,11 @@ export function createHorse(): HorseModel {
 			0.01,
 		);
 	}
-	cord(
-		body,
-		cream,
-		[
-			[0, 3.46, 1.38],
-			[0, 3.36, 1.57],
-			[0, 3.16, 1.78],
-			[0, 2.99, 1.96],
-		],
-		0.043,
-	);
 
-	// Subtle anatomical contours share the coat channel used by the wardrobe.
+	// Recessed nostrils retain their darker material.
 	for (const side of [-1, 1]) {
-		oval(body, coat, [0.115, 0.22, 0.21], [side * 0.22, 3.07, 1.28]);
-		cord(
-			body,
-			coat,
-			[
-				[side * 0.29, 3.28, 1.435],
-				[side * 0.337, 3.308, 1.487],
-				[side * 0.321, 3.279, 1.549],
-			],
-			0.019,
-		);
 		oval(body, muzzle, [0.028, 0.06, 0.082], [side * 0.213, 2.913, 2.077]);
 		oval(body, eye, [0.016, 0.037, 0.058], [side * 0.237, 2.92, 2.091]);
-		oval(body, coat, [0.16, 0.35, 0.33], [side * 0.4, 1.94, 0.62]);
 	}
 	cord(
 		body,
@@ -180,25 +115,21 @@ export function createHorse(): HorseModel {
 		);
 	}
 
-	const legs = [],
-		knees = [],
+	const legs: THREE.Bone[] = [],
+		knees: THREE.Bone[] = [],
 		hooves = [];
 	for (const side of [-1, 1])
 		for (const front of [false, true]) {
-			const leg = new THREE.Group();
+			const leg = new THREE.Bone();
 			leg.position.set(side * 0.41, 1.81, front ? 0.72 : -0.82);
 			body.add(leg);
 			const kneeZ = front ? -0.01 : 0.13;
-			oval(leg, coat, [front ? 0.19 : 0.235, 0.43, 0.24], [0, -0.15, 0]);
-			limb(leg, coat, [0, -0.28, 0], [0, -0.82, kneeZ], 0.15, 0.095);
-			oval(leg, coat, [0.11, 0.14, 0.115], [0, -0.82, kneeZ]);
-			const knee = new THREE.Group();
+
+			const knee = new THREE.Bone();
 			knee.position.set(0, -0.82, kneeZ);
 			leg.add(knee);
 			knees.push(knee);
-			limb(knee, coat, [0, 0, 0], [0, -0.5, -0.055], 0.09, 0.067);
-			limb(knee, cream, [0, -0.5, -0.055], [0, -0.78, 0.02], 0.075, 0.095);
-			oval(knee, cream, [0.1, 0.12, 0.1], [0, -0.72, 0]);
+
 			const foot = mesh(
 				knee,
 				new THREE.CylinderGeometry(0.1, 0.14, 0.2, 16),
@@ -214,11 +145,11 @@ export function createHorse(): HorseModel {
 				[0, 0.087, 0],
 			);
 			coronet.rotation.x = Math.PI / 2;
-			oval(knee, coat, [0.08, 0.115, 0.085], [0, -0.51, -0.05]);
+
 			hooves.push(foot);
 			legs.push(leg);
 		}
-
+	attachSkin(body, legs, knees, [coat, cream, muzzle]);
 	const tack = new THREE.Group();
 	tack.name = 'tack';
 	body.add(tack);

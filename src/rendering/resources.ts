@@ -2,10 +2,12 @@ import * as THREE from 'three';
 
 /** Dispose once per scene, because meshes and the wardrobe preview share resources. */
 export function disposeScene(root: THREE.Object3D) {
+	const skeletons = new Set<THREE.Skeleton>();
 	const geometries = new Set<THREE.BufferGeometry>();
 	const materials = new Set<THREE.Material>();
 	const textures = new Set<THREE.Texture>();
 	root.traverse((object) => {
+		if (object instanceof THREE.SkinnedMesh) skeletons.add(object.skeleton);
 		if (object instanceof THREE.Mesh) {
 			geometries.add(object.geometry);
 			const entries = Array.isArray(object.material)
@@ -26,6 +28,7 @@ export function disposeScene(root: THREE.Object3D) {
 		material.dispose();
 	}
 	for (const texture of textures) texture.dispose();
+	for (const skeleton of skeletons) skeleton.dispose();
 	for (const geometry of geometries) geometry.dispose();
 	root.clear();
 }
