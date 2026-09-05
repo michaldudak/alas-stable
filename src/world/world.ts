@@ -1,5 +1,6 @@
+import { terrainMaterial } from './terrain-material.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
-import { material, box, ellipsoid, cylinder, sign } from './primitives.ts';
+import { box, ellipsoid, cylinder, sign } from './primitives.ts';
 import type { Solid, Obstacle } from '../game/types.ts';
 import * as THREE from 'three';
 import { createStable } from './stable.ts';
@@ -8,10 +9,10 @@ import { insideStable } from './stable-layout.ts';
 export function createWorld(scene: THREE.Scene) {
 	const solids: Solid[] = [],
 		obstacles: (Obstacle & { rails: THREE.Group })[] = [];
-	scene.background = new THREE.Color('#b9dfe2');
-	scene.fog = new THREE.Fog('#b9dfe2', 85, 230);
-	scene.add(new THREE.HemisphereLight('#fff7df', '#638549', 2.4));
-	const sun = new THREE.DirectionalLight('#fff0cf', 3);
+	scene.background = new THREE.Color('#c4d6df');
+	scene.fog = new THREE.Fog('#c4d6df', 85, 230);
+	scene.add(new THREE.HemisphereLight('#e6eff8', '#77735a', 1.65));
+	const sun = new THREE.DirectionalLight('#fff1dd', 2.6);
 	sun.position.set(-35, 65, 25);
 	sun.castShadow = true;
 	sun.shadow.mapSize.set(2048, 2048);
@@ -22,18 +23,19 @@ export function createWorld(scene: THREE.Scene) {
 		bottom: -70,
 		far: 180,
 	});
-	sun.shadow.bias = -0.0005;
+	sun.shadow.bias = -0.0003;
+	sun.shadow.normalBias = 0.035;
 	scene.add(sun);
 	const ground = new THREE.Mesh(
 		new THREE.CircleGeometry(260, 96),
-		material('#91ac67'),
+		terrainMaterial('#849468', 32, 32),
 	);
 	ground.rotation.x = -Math.PI / 2;
 	ground.receiveShadow = true;
 	scene.add(ground);
 	const arena = new THREE.Mesh(
 		new THREE.PlaneGeometry(32, 58),
-		material('#d8bf8e'),
+		terrainMaterial('#cdbb99', 3, 5),
 	);
 	arena.rotation.x = -Math.PI / 2;
 	arena.position.set(0, 0.025, -9);
@@ -76,11 +78,12 @@ export function createWorld(scene: THREE.Scene) {
 	geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
 	geometry.setIndex(indices);
 	geometry.computeVertexNormals();
-	const pathMaterial = new THREE.MeshStandardMaterial({
-		color: '#c9b687',
-		side: THREE.DoubleSide,
-		roughness: 1,
-	});
+	const uvs: number[] = [];
+	for (let i = 0; i < verts.length; i += 3)
+		uvs.push(verts[i] / 12, verts[i + 2] / 12);
+	geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+	const pathMaterial = terrainMaterial('#b9aa8a', 1, 1);
+	pathMaterial.side = THREE.DoubleSide;
 	const path = new THREE.Mesh(geometry, pathMaterial);
 	path.receiveShadow = true;
 	scene.add(path);
@@ -156,27 +159,54 @@ export function createWorld(scene: THREE.Scene) {
 		tree.position.set(x, 0, z);
 		scene.add(tree);
 		cylinder(tree, '#80674b', 0.3, height * 0.65, [0, height * 0.325, 0], 0.18);
-		const green = ['#577b47', '#648751', '#789958', '#456f50'][
+		const green = ['#53694a', '#637952', '#73865c', '#49634e'][
 			Math.floor(random() * 4)
 		];
 		if (z < -35) {
-			for (let j = 0; j < 3; j++)
-				cylinder(
+			for (let j = 0; j < 5; j++) {
+				const crown = cylinder(
 					tree,
 					green,
-					2.4 - j * 0.45,
-					3.5,
-					[0, height * 0.5 + j * 1.2, 0],
-					0,
+					2.4 - j * 0.36,
+					2.6,
+					[
+						Math.sin(j * 2) * 0.16,
+						height * 0.42 + j * 0.95,
+						Math.cos(j * 2) * 0.16,
+					],
+					0.05,
 				);
-		} else
-			ellipsoid(
-				tree,
-				green,
-				[2.6, height * 0.43, 2.5],
-				[0, height * 0.76, 0],
-				1,
-			);
+				// Break the perfect cone outline while preserving the shared trunk collider.
+				const positions = crown.geometry.getAttribute('position');
+				for (let vertex = 0; vertex < positions.count; vertex++) {
+					const x = positions.getX(vertex),
+						z = positions.getZ(vertex);
+					const angle = Math.atan2(z, x);
+					const irregularity = 1 + 0.12 * Math.sin(angle * 5 + j * 1.7);
+					positions.setXYZ(
+						vertex,
+						x * irregularity,
+						positions.getY(vertex),
+						z * irregularity,
+					);
+				}
+				crown.geometry.computeVertexNormals();
+			}
+		} else {
+			for (let crown = 0; crown < 3; crown++) {
+				ellipsoid(
+					tree,
+					green,
+					[1.8 + crown * 0.15, height * 0.29, 1.9],
+					[
+						Math.sin(crown * 2.4) * 1.15,
+						height * (0.67 + crown * 0.08),
+						Math.cos(crown * 2.4) * 0.9,
+					],
+					2,
+				);
+			}
+		}
 		solids.push({ x, z, w: 0.65, d: 0.65 });
 	}
 	for (let i = 0; i < 450; i++) {
@@ -204,7 +234,7 @@ export function createWorld(scene: THREE.Scene) {
 			i % 2 ? '#809b70' : '#73936d',
 			[35, 12 + random() * 15, 28],
 			[Math.sin(angle) * 160, 0, Math.cos(angle) * 160],
-			1,
+			3,
 		);
 	}
 	for (let i = 0; i < 11; i++) {

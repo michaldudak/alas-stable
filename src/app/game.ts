@@ -41,7 +41,7 @@ export function startGame() {
 	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 	renderer.outputColorSpace = THREE.SRGBColorSpace;
 	renderer.toneMapping = THREE.ACESFilmicToneMapping;
-	renderer.toneMappingExposure = 1.15;
+	renderer.toneMappingExposure = 1.05;
 	const scene = new THREE.Scene(),
 		camera = new THREE.PerspectiveCamera(
 			52,

@@ -12,7 +12,7 @@ export function material(color: THREE.ColorRepresentation) {
 			new THREE.MeshStandardMaterial({
 				color,
 				roughness: 1,
-				flatShading: true,
+				flatShading: false,
 			}),
 		);
 	return materials.get(color)!;
@@ -59,7 +59,7 @@ export function cylinder(
 	radiusTop = radius,
 ) {
 	const mesh = new THREE.Mesh(
-		new THREE.CylinderGeometry(radiusTop, radius, height, 7),
+		new THREE.CylinderGeometry(radiusTop, radius, height, 12),
 		material(color),
 	);
 	mesh.position.set(...position);

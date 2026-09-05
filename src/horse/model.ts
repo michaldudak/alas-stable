@@ -15,12 +15,12 @@ export function createHorse(): HorseModel {
 	root.name = 'horse';
 	body.name = 'body';
 	root.add(body);
-	const coat = surface('#aa6941'),
-		hair = surface('#47332d');
+	const coat = surface('#aa6941', 0.58),
+		hair = surface('#47332d', 0.72);
 	const cloth = surface('#437f79'),
-		leather = surface('#60432c', 0.65);
+		leather = surface('#60432c', 0.48);
 	const cream = surface('#f1dfbf'),
-		hoof = surface('#393634', 0.7);
+		hoof = surface('#393634', 0.52);
 	const muzzle = surface('#86634f'),
 		eye = surface('#171c1b', 0.18);
 	const trim = surface('#dfcda3'),
@@ -80,8 +80,8 @@ export function createHorse(): HorseModel {
 		);
 		oval(ear, muzzle, [0.045, 0.15, 0.018], [0, 0.13, 0.055]);
 		oval(body, coat, [0.08, 0.11, 0.13], [side * 0.25, 3.26, 1.46]);
-		oval(body, eye, [0.045, 0.069, 0.081], [side * 0.299, 3.265, 1.49]);
-		oval(body, cream, [0.012, 0.018, 0.02], [side * 0.336, 3.291, 1.51]);
+		oval(body, eye, [0.039, 0.055, 0.068], [side * 0.299, 3.265, 1.49]);
+		oval(body, cream, [0.009, 0.013, 0.015], [side * 0.336, 3.291, 1.51]);
 		oval(body, hoof, [0.018, 0.04, 0.065], [side * 0.217, 2.91, 2.08]);
 		cord(
 			body,
