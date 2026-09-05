@@ -1,7 +1,7 @@
 import { JUMP_DURATION } from './tuning.ts';
 import type { MotionState } from './types.ts';
 // Rig order: left hind, left fore, right hind, right fore.
-// Galop means three-beat canter, not four-beat cwal.
+// The fastest gait is three-beat canter, not four-beat gallop.
 export const GAIT_CYCLES = [
 	null,
 	{

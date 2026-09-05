@@ -50,9 +50,9 @@ try {
 		camera.position.set(7, 2.9, 1.4);
 		camera.lookAt(0, 1.85, 0.1);
 		for (const [gait, speed, label, freq] of [
-			[1, 2.5, 'Step', 1.35],
-			[2, 5.5, 'Klus', 1.7],
-			[3, 9, 'Galop', 1.8],
+			[1, 2.5, 'Walk', 1.35],
+			[2, 5.5, 'Trot', 1.7],
+			[3, 9, 'Canter', 1.8],
 		] as const) {
 			const horse = createHorse();
 			scene.add(horse.root);
