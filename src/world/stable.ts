@@ -300,7 +300,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 			});
 			horse.rider.visible = false;
 			horse.tack.visible = false;
-			horse.root.scale.setScalar(0.92);
+			horse.root.name = name;
 			horse.root.position.set(side * 6.5, 0.09, z);
 			horse.root.rotation.y = (-side * Math.PI) / 2;
 			root.add(horse.root);
@@ -310,12 +310,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		cylinder('#8cb6b8', 0.3, 0.025, [side * 4.5, 0.65, z - 2.8]);
 		box('#8e7045', [1.5, 0.55, 0.9], [side * 10.5, 0.48, z - 2.8]);
 		oval('#c9b170', [0.65, 0.28, 0.36], [side * 10.5, 0.87, z - 2.8]);
-		label(
-			name,
-			[side * 3.53, 2.05, color === null ? z + 2.8 : z],
-			1.6,
-			(-side * Math.PI) / 2,
-		);
+		label(name, [side * 3.53, 2.05, z + 2.8], 1.6, (-side * Math.PI) / 2);
 	}
 	// Tack room: wall-mounted saddle racks, bridles, folded pads and grooming kit.
 	label('SIODLARNIA', [3.55, 4.1, 7], 3.2, -Math.PI / 2);
@@ -369,8 +364,9 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		root,
 		cameraBlockers,
 		horses,
-		update(time: number) {
+		update(time: number, active?: HorseModel) {
 			horses.forEach((horse, i) => {
+				if (horse === active) return;
 				horse.tail.rotation.z = Math.sin(time * 1.1 + i) * 0.1;
 				horse.body.position.y = Math.sin(time * 0.9 + i) * 0.012;
 			});

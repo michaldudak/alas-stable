@@ -30,12 +30,12 @@ All developer content is written in English. Player-readable strings currently r
 - W/S or Up/Down: select a persistent gait (reverse, stand, walk, trot, canter), without holding the key. On foot, select stand, walk, or run.
 - A/D or Left/Right: steer, including while standing still.
 - Space: jump with a forgiving timing window while mounted.
-- E or the mount button: dismount from a stopped horse, or mount when standing nearby. The horse waits at its location and is marked on the minimap. Both actions are animated; walls can block dismounting.
+- E or the mount button: dismount from a stopped horse, or mount any nearby horse from its side. All five horses are rideable; the others wait at their locations and remain marked on the minimap. Both actions are animated; walls can block dismounting.
 - C: switch between third-person and first-person cameras. Drag the mouse to look around.
 - Escape: pause. Switching tabs or losing focus also pauses the game.
 - Icon buttons: sound, help, horse appearance, return to the stable, and fullscreen.
 
-Audio starts after the first click or key press, as required by browsers. Horse appearance is saved in localStorage; if storage is unavailable, changes still work for the current session.
+Audio starts after the first click or key press, as required by browsers. Each horse has its own appearance saved in localStorage; if storage is unavailable, changes still work for the current session.
 
 ## Prototype scope
 
@@ -57,12 +57,14 @@ Rhythm references: [FEI — Gait](https://www.fei.org/node/38138), [University o
 
 ## Stable
 
-The building west of the arena has two open entrances and a traversable central aisle. Four enclosed stalls house Luna, Fuks, Burza, and Kasztan. The first stall on the left from the main entrance is empty and reserved for Raven, the player's horse. Its entrance is open so the player can ride in and out. Stalls contain bedding, water, and hay; open upper door sections let players see the horses. Resident horses stay in place and have subtle idle animations.
+The building west of the arena has two open entrances and a traversable central aisle. Four enclosed stalls house Luna, Fuks, Burza, and Kasztan. The first stall on the left from the main entrance is empty and reserved for Raven, the player's horse. All stall entrances are open so the player can approach and ride any horse in and out. Stalls contain bedding, water, and hay; nameplates identify each horse. Unmounted horses stay in place and have subtle idle animations.
 
-The tack room is on the right when entering through the main entrance. Players can ride inside; it contains saddles on racks, bridles, folded saddlecloths, and a grooming box. These are environmental props; the palette button still opens customization for the player's own horse.
+The tack room is on the right when entering through the main entrance. Players can ride inside; it contains saddles on racks, bridles, folded saddlecloths, and a grooming box. These are environmental props; the palette button still opens customization for the most recently ridden horse.
 
 The interior has a paved aisle, timber framing, a pitched roof, lamps, and windows. The third-person camera moves closer near walls and the roof, while the first-person camera looks slightly lower indoors. Wall placement and collisions share `src/world/stable-layout.ts`.
 
 `node scripts/stable-check.ts` rides from the starting position into the stable, checks both cameras, enters the tack room, exits through the rear doorway, and saves screenshots. `tests/stable.test.ts` checks aisle and doorway clearance and barriers around stalls.
 
 `node scripts/riding-check.ts` verifies mounting, dismounting, walking/running, proximity checks, pause, cameras, and reset using the local Vite server.
+
+`node scripts/herd-check.ts` verifies switching from Raven to Fuks, riding out of a stall, independent decorations, returning to Raven, and saved appearance after reloading. Horse positions reset on reload.

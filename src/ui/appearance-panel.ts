@@ -144,9 +144,11 @@ function star(
 export function setupAppearancePanel(
 	container: HTMLElement,
 	horse: Pick<HorseModel, 'setAppearance'>,
+	store = createAppearanceStore(),
+	initial?: Appearance,
 ) {
-	const store = createAppearanceStore();
-	let appearance = store.load();
+	container.replaceChildren();
+	let appearance = initial ?? store.load();
 	horse.setAppearance(appearance);
 	const controls: [HTMLButtonElement, keyof Appearance, string][] = [];
 	function choose(key: keyof Appearance, value: string) {

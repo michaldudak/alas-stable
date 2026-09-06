@@ -418,6 +418,7 @@ export function createHorse(): HorseModel {
 
 	const patterns = createPatternTextures();
 	const channels = { coat, hair, cloth, leather, ornamentColor: petals };
+	let appearance = normalizeAppearance({});
 	function setAppearance(value: unknown) {
 		const settings = normalizeAppearance(value);
 		for (const [key, channel] of Object.entries(channels))
@@ -435,6 +436,7 @@ export function createHorse(): HorseModel {
 			cloth.map = texture;
 			cloth.needsUpdate = true;
 		}
+		appearance = settings;
 		return settings;
 	}
 	setAppearance({});
@@ -454,6 +456,7 @@ export function createHorse(): HorseModel {
 		mane,
 		decoration,
 		setAppearance,
+		getAppearance: () => ({ ...appearance }),
 		dispose() {
 			cloth.map = null;
 			patterns.dispose();

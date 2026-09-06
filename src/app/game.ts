@@ -1,3 +1,5 @@
+import { horseBarrier, nearbyMount } from '../game/herd.ts';
+import { createAppearanceStore } from '../platform/appearance-storage.ts';
 import { createWalkingRider } from '../horse/walking-rider.ts';
 import { mountSide, stepPerson, MOUNT_DURATION } from '../game/riding.ts';
 import { MAX_FRAME_DELTA } from '../game/tuning.ts';
@@ -51,16 +53,70 @@ export function startGame() {
 			0.1,
 			350,
 		);
-	const world = createWorld(scene),
-		horse = createHorse();
-	scene.add(horse.root);
-	const preview = createHorsePreview(
+	const world = createWorld(scene);
+	const raven = createHorse();
+	raven.root.name = 'Raven';
+	scene.add(raven.root);
+	const herd = [raven, ...world.stable.horses].map((model) => {
+		scene.attach(model.root);
+		const state =
+			model === raven
+				? createState()
+				: {
+						...createState(),
+						x: model.root.position.x,
+						z: model.root.position.z,
+						heading: model.root.rotation.y,
+					};
+		const store = createAppearanceStore(
+			undefined,
+			model === raven
+				? 'polana-appearance'
+				: 'polana-appearance-' + model.root.name,
+			model === raven ? {} : model.getAppearance(),
+		);
+		model.setAppearance(store.load());
+		return {
+			model,
+			state,
+			store,
+			name: model.root.name,
+			animation: createHorseAnimation(model),
+		};
+	});
+	let selected = herd[0];
+	let horse = selected.model,
+		state = selected.state,
+		horseAnimation = selected.animation;
+	let preview = createHorsePreview(
 		requireElement('#horse-preview', HTMLCanvasElement),
 		horse,
 	);
-	const horseAnimation = createHorseAnimation(horse);
-	const state = createState(),
-		audio = new Soundscape();
+	const audio = new Soundscape();
+	const otherHorseSolids = () =>
+		herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state));
+	function selectHorse(next: typeof selected) {
+		if (selected === next) return;
+		horse.rider.visible = false;
+		selected = next;
+		horse = next.model;
+		state = next.state;
+		horseAnimation = next.animation;
+		horse.tack.visible = true;
+		preview.dispose();
+		preview = createHorsePreview(
+			requireElement('#horse-preview', HTMLCanvasElement),
+			horse,
+		);
+		setupAppearancePanel(
+			$('swatches'),
+			horse,
+			selected.store,
+			horse.getAppearance(),
+		);
+		requireElement('#dress-dialog h2', HTMLElement).textContent = selected.name;
+		$('preview-rider').setAttribute('aria-pressed', 'false');
+	}
 	const person = createState();
 	const walker = createWalkingRider(horse.rider);
 	scene.add(walker.root);
@@ -176,16 +232,20 @@ export function startGame() {
 			hint('Najpierw zatrzymaj konia', 'Zsiądziemy bezpiecznie na postoju.');
 			return;
 		}
-		if (
-			riding === 'on-foot' &&
-			Math.hypot(person.x - state.x, person.z - state.z) > 3.3
-		) {
-			hint('Podejdź bliżej konia', 'Raven czeka tam, gdzie go zostawiono.');
-			return;
+		if (riding === 'on-foot') {
+			const target = nearbyMount(herd, person, world.solids);
+			if (!target) {
+				hint(
+					'Podejdź do boku konia',
+					'Wybierz konia w stajni lub wróć do tego, którego zostawiono.',
+				);
+				return;
+			}
+			selectHorse(target.horse);
 		}
 		const side = mountSide(
 			state,
-			world.solids,
+			[...world.solids, ...otherHorseSolids()],
 			riding === 'on-foot' ? person : undefined,
 		);
 		if (!side) {
@@ -247,7 +307,9 @@ export function startGame() {
 			walker.root.visible = !firstPerson && riding === 'on-foot';
 			updateGait();
 			hint(
-				riding === 'mounted' ? 'Znów w siodle' : 'Spacer po polanie',
+				riding === 'mounted'
+					? 'W siodle: ' + selected.name
+					: 'Spacer po polanie',
 				riding === 'mounted'
 					? '↑ wybierz tempo'
 					: '↑ chód lub bieg · ↓ zwolnij · E wsiądź obok konia',
@@ -258,7 +320,21 @@ export function startGame() {
 		riding = 'mounted';
 		walker.root.visible = false;
 		horse.rider.visible = !firstPerson;
-		Object.assign(state, createState());
+		const spawn = createState();
+		// Keep the return shortcut clear of horses already waiting at the entrance.
+		const barriers = [...world.solids, ...otherHorseSolids()];
+		for (const offset of [0, 4, -4, 8, -8, 12, -12, 16, -16]) {
+			spawn.x = offset;
+			if (
+				!barriers.some(
+					(b) =>
+						Math.abs(spawn.x - b.x) < b.w / 2 + 0.8 &&
+						Math.abs(spawn.z - b.z) < b.d / 2 + 0.8,
+				)
+			)
+				break;
+		}
+		Object.assign(state, spawn);
 		input.resetLook();
 		updateGait();
 		updateCamera(1, true);
@@ -322,7 +398,12 @@ export function startGame() {
 		}
 		focusGame();
 	};
-	setupAppearancePanel($('swatches'), horse);
+	setupAppearancePanel(
+		$('swatches'),
+		horse,
+		selected.store,
+		horse.getAppearance(),
+	);
 	const input = createInput(canvas, {
 		isPaused: () => paused,
 		unlockAudio: () => {
@@ -378,13 +459,10 @@ export function startGame() {
 			const turn = input.turn;
 			const oldGait = activeState().gait;
 			if (
-				step(
-					state,
-					dt,
-					riding === 'mounted' ? turn : 0,
-					world.obstacles,
-					world.solids,
-				)
+				step(state, dt, riding === 'mounted' ? turn : 0, world.obstacles, [
+					...world.solids,
+					...otherHorseSolids(),
+				])
 			) {
 				audio.tone(170, 0.18, 0.07, 65, 'triangle');
 				hint(
@@ -399,6 +477,7 @@ export function startGame() {
 					turn,
 					[
 						...world.solids,
+						...otherHorseSolids(),
 						...world.obstacles
 							.filter((o) => !o.down)
 							.map((o) => ({ x: o.x, z: o.z, w: o.width, d: 0.18 })),
@@ -441,8 +520,13 @@ export function startGame() {
 			$('location').textContent = locationName(active.x, active.z);
 			$('hint').classList.toggle('hidden', elapsed > hintUntil);
 		}
-		world.stable.update(elapsed);
-		minimap.draw(activeState(), riding === 'mounted' ? undefined : state);
+		world.stable.update(elapsed, horse);
+		minimap.draw(
+			activeState(),
+			herd
+				.filter((h) => riding !== 'mounted' || h !== selected)
+				.map((h) => h.state),
+		);
 		renderer.render(scene, camera);
 		if (dialog('dress-dialog').open) preview.render();
 	});
@@ -452,6 +536,14 @@ export function startGame() {
 			snapshot: () => ({
 				...activeState(),
 				riding,
+				activeHorse: selected.name,
+				horses: herd.map((h) => ({
+					name: h.name,
+					x: h.state.x,
+					z: h.state.z,
+					heading: h.state.heading,
+					appearance: h.model.getAppearance(),
+				})),
 				horse: { x: state.x, z: state.z, heading: state.heading },
 				paused,
 				firstPerson,
@@ -470,8 +562,7 @@ export function startGame() {
 			input.dispose();
 			preview.dispose();
 			audio.dispose();
-			horse.dispose();
-			for (const resident of world.stable.horses) resident.dispose();
+			for (const entry of herd) entry.model.dispose();
 			disposeScene(scene);
 			renderer.dispose();
 			delete window.__polana;

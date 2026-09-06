@@ -31,8 +31,8 @@ await test('the tack-room doorway admits a horse and lets it return to the aisle
 	const returned = ride(entered.x, entered.z, -Math.PI / 2, 1.5);
 	assert.ok(Math.abs(returned.x - STABLE.x) < 0.01);
 });
-await test('stable walls and stall fronts remain solid instead of passing through residents', () => {
-	const stopped = ride(STABLE.x, STABLE.z - 1, -Math.PI / 2, 2);
+await test('stable walls and the closed sections of stall fronts remain solid', () => {
+	const stopped = ride(STABLE.x, STABLE.z + 1.8, -Math.PI / 2, 2);
 	assert.equal(stopped.gait, 0);
 	assert.ok(stopped.x > STABLE.x - 3.7);
 	const outside = ride(STABLE.x - 16, STABLE.z, Math.PI / 2, 2);

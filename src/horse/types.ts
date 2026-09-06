@@ -22,5 +22,6 @@ export interface HorseModel {
 	leather: THREE.MeshStandardMaterial;
 	/** Frees cached appearance textures; scene ownership covers mesh resources. */
 	dispose(): void;
+	getAppearance(): Appearance;
 	setAppearance(value: unknown): Appearance;
 }

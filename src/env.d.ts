@@ -1,8 +1,17 @@
+import type { Appearance } from './horse/appearance.ts';
 import type { GameState } from './game/types.ts';
 declare global {
 	interface Window {
 		__polana?: {
 			snapshot: () => GameState & {
+				activeHorse: string;
+				horses: {
+					name: string;
+					x: number;
+					z: number;
+					heading: number;
+					appearance: Appearance;
+				}[];
 				riding: 'mounted' | 'on-foot' | 'mounting' | 'dismounting';
 				horse: { x: number; z: number; heading: number };
 				paused: boolean;

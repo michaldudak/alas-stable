@@ -48,6 +48,7 @@ try {
 		'browser-check',
 		'appearance-check',
 		'riding-check',
+		'herd-check',
 		'stable-check',
 		'gait-check',
 		'lifecycle-check',
