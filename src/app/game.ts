@@ -627,6 +627,7 @@ export function startGame() {
 	focusGame();
 	// Clamp long frames: tab suspension must not teleport the horse through barriers.
 	let previousTime = performance.now();
+	let wasNudging = false;
 	renderer.setAnimationLoop((time) => {
 		const dt = Math.min(
 			MAX_FRAME_DELTA,
@@ -637,14 +638,25 @@ export function startGame() {
 		if (!paused) {
 			elapsed += dt;
 			const turn = THREE.MathUtils.clamp(input.turn + gamepad.turn, -1, 1);
+			const nudge =
+				!transferring() &&
+				(gamepad.move !== 0 || (wasNudging && activeState().gait === 0))
+					? gamepad.move
+					: undefined;
+			wasNudging = !transferring() && gamepad.move !== 0;
+			if (!firstPerson) cameraController.adjustDistance(gamepad.zoom, dt);
 			const wasJumping = state.jump >= 0;
 			const oldGait = activeState().gait;
 			if (
 				!leading &&
-				step(state, dt, riding === 'mounted' ? turn : 0, world.obstacles, [
-					...world.solids,
-					...otherHorseSolids(),
-				])
+				step(
+					state,
+					dt,
+					riding === 'mounted' ? turn : 0,
+					world.obstacles,
+					[...world.solids, ...otherHorseSolids()],
+					riding === 'mounted' ? nudge : undefined,
+				)
 			) {
 				audio.tone(170, 0.18, 0.07, 65, 'triangle');
 				if (riding === 'mounted') gamepad.pulse(0.5, 140);
@@ -660,7 +672,8 @@ export function startGame() {
 					.filter((o) => !o.down)
 					.map((o) => ({ x: o.x, z: o.z, w: o.width, d: 0.18 })),
 			];
-			if (riding === 'on-foot') stepPerson(person, dt, turn, barriers, state);
+			if (riding === 'on-foot')
+				stepPerson(person, dt, turn, barriers, state, nudge);
 			let leadTurn = 0;
 			if (leading) {
 				const taut =
@@ -688,7 +701,9 @@ export function startGame() {
 			horse.root.rotation.y = state.heading;
 			const footfalls = horseAnimation.update(
 				dt,
-				state,
+				nudge !== undefined && riding === 'mounted'
+					? { ...state, gait: nudge > 0 ? 1 : 0 }
+					: state,
 				elapsed,
 				riding === 'mounted' ? turn : leadTurn,
 			);
@@ -754,6 +769,7 @@ export function startGame() {
 				horse: { x: state.x, z: state.z, heading: state.heading },
 				paused,
 				firstPerson,
+				cameraDistanceScale: cameraController.distanceScale,
 				obstacles: world.obstacles.map(({ z, down }) => ({ z, down })),
 				calls: renderer.info.render.calls,
 			}),

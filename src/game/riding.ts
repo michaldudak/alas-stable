@@ -76,10 +76,13 @@ export function stepPerson(
 	turn: number,
 	solids: readonly Solid[],
 	horse: GameState,
+	nudge?: number,
 ) {
 	const targetSpeed =
 		state.gait === -1 ? FOOT_REVERSE_SPEED : FOOT_SPEEDS[state.gait];
-	state.speed += (targetSpeed - state.speed) * Math.min(1, dt * 8);
+	if (nudge !== undefined)
+		state.speed = nudge * (nudge > 0 ? 1.2 : -FOOT_REVERSE_SPEED);
+	else state.speed += (targetSpeed - state.speed) * Math.min(1, dt * 8);
 	state.heading += turn * dt * 2.1;
 	const x = state.x + Math.sin(state.heading) * state.speed * dt,
 		z = state.z + Math.cos(state.heading) * state.speed * dt;

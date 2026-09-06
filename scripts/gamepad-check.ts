@@ -99,8 +99,69 @@ try {
 		await frames();
 	};
 	const snapshot = () => page.evaluate(() => window.__polana!.snapshot());
+	const start = await snapshot();
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[1] = -0.6;
+	});
+	await page.waitForTimeout(200);
+	assert.ok(
+		(await snapshot()).z < start.z,
+		'Left stick moves forward momentarily',
+	);
+	assert.equal((await snapshot()).gait, 0);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[1] = 0;
+	});
+	await frames();
+	const released = await snapshot();
+	await frames();
+	assert.equal(
+		(await snapshot()).z,
+		released.z,
+		'Release stops fine movement immediately',
+	);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[1] = 0.6;
+	});
+	await page.waitForTimeout(200);
+	assert.ok(
+		(await snapshot()).z > released.z,
+		'Left stick moves backward momentarily',
+	);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[1] = 0;
+		window.__gamepadTest.axes[3] = -1;
+	});
+	await page.waitForTimeout(200);
+	const closeZoom = (await snapshot()).cameraDistanceScale;
+	assert.ok(closeZoom < 1);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[3] = 1;
+	});
+	await page.waitForTimeout(200);
+	assert.ok((await snapshot()).cameraDistanceScale > closeZoom);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[3] = 0;
+	});
+	await frames();
+	const retainedZoom = (await snapshot()).cameraDistanceScale;
+	await frames();
+	assert.equal((await snapshot()).cameraDistanceScale, retainedZoom);
 	await press(5);
 	assert.equal((await snapshot()).gait, 1);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[1] = -1;
+	});
+	await frames();
+	assert.equal((await snapshot()).speed, 1.2);
+	await page.evaluate(() => {
+		window.__gamepadTest.axes[1] = 0;
+	});
+	await frames();
+	assert.ok(
+		(await snapshot()).speed > 1.2,
+		'Release resumes the selected gait',
+	);
 	await page.evaluate(() => {
 		window.__gamepadTest.buttons = [5];
 	});

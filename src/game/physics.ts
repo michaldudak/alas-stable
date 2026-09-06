@@ -39,10 +39,14 @@ export function step(
 	turn: number,
 	obstacles: Obstacle[] = [],
 	solids: readonly Solid[] = [],
+	nudge?: number,
 ) {
-	state.speed +=
-		((state.gait === -1 ? REVERSE_SPEED : SPEEDS[state.gait]) - state.speed) *
-		Math.min(1, dt * 4);
+	if (nudge !== undefined)
+		state.speed = nudge * (nudge > 0 ? 1.2 : -REVERSE_SPEED);
+	else
+		state.speed +=
+			((state.gait === -1 ? REVERSE_SPEED : SPEEDS[state.gait]) - state.speed) *
+			Math.min(1, dt * 4);
 	state.heading += turn * dt * (1.4 - Math.abs(state.speed) * 0.035);
 	const previous = { x: state.x, z: state.z };
 	state.x += Math.sin(state.heading) * state.speed * dt;

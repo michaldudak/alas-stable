@@ -18,6 +18,7 @@ declare global {
 				horse: { x: number; z: number; heading: number };
 				paused: boolean;
 				firstPerson: boolean;
+				cameraDistanceScale: number;
 				obstacles: { z: number; down: number }[];
 				calls: number;
 			};

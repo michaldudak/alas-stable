@@ -7,6 +7,7 @@ export function createCameraController(
 	camera: THREE.PerspectiveCamera,
 	blockers: THREE.Object3D[],
 ) {
+	let distanceScale = 1;
 	const desiredCamera = new THREE.Vector3(),
 		target = new THREE.Vector3();
 	const cameraRay = new THREE.Raycaster(),
@@ -52,6 +53,8 @@ export function createCameraController(
 				state.z + Math.cos(state.heading) * ahead,
 			);
 		}
+		if (!firstPerson)
+			desiredCamera.sub(target).multiplyScalar(distanceScale).add(target);
 		camera.position.lerp(desiredCamera, snap ? 1 : 1 - Math.exp(-dt * 7));
 		if (!firstPerson) {
 			cameraDirection.copy(camera.position).sub(target);
@@ -70,5 +73,17 @@ export function createCameraController(
 		camera.lookAt(target);
 	}
 
-	return { update };
+	return {
+		update,
+		get distanceScale() {
+			return distanceScale;
+		},
+		adjustDistance(axis: number, dt: number) {
+			distanceScale = THREE.MathUtils.clamp(
+				distanceScale + axis * dt * 0.65,
+				0.45,
+				1.8,
+			);
+		},
+	};
 }

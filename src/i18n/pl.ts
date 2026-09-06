@@ -2,7 +2,7 @@ import type { en } from './en.ts';
 export const pl = {
 	'controller.title': 'Pad',
 	'controller.controls':
-		'Lewy drążek: skręcanie. Prawy drążek: rozglądanie. LB/RB: wolniej/szybciej. A: skok. B: wsiadanie/zsiadanie. X: lonża. Y: kamera.',
+		'Lewy drążek: skręcanie; przytrzymaj góra/dół, aby powoli ruszyć przód/tył. Puść, aby wrócić do wybranego tempa. Prawy drążek: rozglądanie lewo/prawo; góra przybliża, dół oddala kamerę zza postaci. LB/RB: wolniej/szybciej. A: skok. B: wsiadanie/zsiadanie. X: lonża. Y: kamera.',
 	'controller.shortcuts':
 		'Menu/Start: pauza. View/Back: pomoc. Krzyżak góra/dół: tempo, lewo: wygląd, prawo: ustawienia. Oznaczenia przycisków jak na Steam Decku / padzie Xbox.',
 	'controller.menuHelp':

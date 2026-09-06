@@ -35,6 +35,8 @@ export function createGamepad(actions: GamepadActions) {
 	let enabled = true;
 	let turn = 0;
 	let look = 0;
+	let move = 0;
+	let zoom = 0;
 	let suspended = false;
 	let lastStatus = '';
 	let generation = 0;
@@ -47,7 +49,7 @@ export function createGamepad(actions: GamepadActions) {
 		}
 	}
 	function stop() {
-		turn = look = 0;
+		turn = look = move = zoom = 0;
 		rumbleUntil = 0;
 		try {
 			void pad?.vibrationActuator?.reset().catch(() => {});
@@ -113,6 +115,12 @@ export function createGamepad(actions: GamepadActions) {
 		get look() {
 			return look;
 		},
+		get move() {
+			return move;
+		},
+		get zoom() {
+			return zoom;
+		},
 		pulse,
 		stop,
 		setEnabled(value: boolean) {
@@ -172,7 +180,7 @@ export function createGamepad(actions: GamepadActions) {
 			// Snapshot before dispatch: opening dialogs clears other input state.
 			const edges = buttons.map((_, index) => pressed(index));
 			previous = buttons;
-			turn = look = 0;
+			turn = look = move = zoom = 0;
 			if (actions.isPaused()) {
 				if (edges[1] || edges[9]) {
 					actions.resume();
@@ -230,6 +238,8 @@ export function createGamepad(actions: GamepadActions) {
 			}
 			turn = -stickAxis(pad.axes[0]);
 			look = -stickAxis(pad.axes[2]);
+			move = -stickAxis(pad.axes[1]);
+			zoom = stickAxis(pad.axes[3]);
 			if (edges[4] || edges[13]) actions.tempo(-1);
 			if (edges[5] || edges[12]) actions.tempo(1);
 			if (edges[0]) actions.jump();
