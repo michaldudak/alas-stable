@@ -10,7 +10,7 @@ export function createMinimap(
 	},
 ) {
 	const map = context2d(canvas);
-	function draw(state: Readonly<GameState>) {
+	function draw(state: Readonly<GameState>, horse?: Readonly<GameState>) {
 		map.clearRect(0, 0, 180, 180);
 		map.fillStyle = '#aabc89';
 		map.fillRect(0, 0, 180, 180);
@@ -43,6 +43,15 @@ export function createMinimap(
 			map.beginPath();
 			map.moveTo(...point(-4, o.z));
 			map.lineTo(...point(4, o.z));
+			map.stroke();
+		}
+		if (horse) {
+			map.fillStyle = '#825632';
+			map.strokeStyle = '#fff9e9';
+			map.lineWidth = 2;
+			map.beginPath();
+			map.arc(...point(horse.x, horse.z), 5, 0, Math.PI * 2);
+			map.fill();
 			map.stroke();
 		}
 		map.save();

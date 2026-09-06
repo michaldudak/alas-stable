@@ -1,6 +1,7 @@
 import {
 	createIcons,
 	Camera,
+	Footprints,
 	Volume2,
 	VolumeX,
 	Pause,
@@ -20,6 +21,7 @@ import {
 } from 'lucide';
 export const icons = {
 	Camera,
+	Footprints,
 	Volume2,
 	VolumeX,
 	Pause,

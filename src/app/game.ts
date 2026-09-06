@@ -1,3 +1,5 @@
+import { createWalkingRider } from '../horse/walking-rider.ts';
+import { mountSide, stepPerson, MOUNT_DURATION } from '../game/riding.ts';
 import { MAX_FRAME_DELTA } from '../game/tuning.ts';
 import { disposeScene } from '../rendering/resources.ts';
 import { createCameraController } from '../rendering/camera.ts';
@@ -59,6 +61,16 @@ export function startGame() {
 	const horseAnimation = createHorseAnimation(horse);
 	const state = createState(),
 		audio = new Soundscape();
+	const person = createState();
+	const walker = createWalkingRider(horse.rider);
+	scene.add(walker.root);
+	let riding: 'mounted' | 'on-foot' | 'mounting' | 'dismounting' = 'mounted';
+	let transferTime = 0;
+	let footstepTimer = 0;
+	let transferSide = { side: -1, x: 0, z: 0 };
+	let approach = { x: 0, z: 0, heading: 0 };
+	const activeState = () => (riding === 'mounted' ? state : person);
+	const transferring = () => riding === 'mounting' || riding === 'dismounting';
 	let firstPerson = false,
 		paused = false,
 		elapsed = 0,
@@ -99,15 +111,36 @@ export function startGame() {
 		$('hint').classList.remove('hidden');
 	}
 	function updateGait() {
-		$('gait').textContent = state.gait === -1 ? 'Cofanie' : GAITS[state.gait];
+		const active = activeState();
+		requireElement('#camera span', HTMLElement).textContent = firstPerson
+			? 'Oczami jeźdźca'
+			: riding === 'mounted'
+				? 'Zza konia'
+				: 'Za jeźdźcem';
+		$('gait').textContent =
+			riding === 'mounted'
+				? state.gait === -1
+					? 'Cofanie'
+					: GAITS[state.gait]
+				: ['Postój', 'Chód', 'Bieg'][active.gait];
+		const label = riding === 'mounted' ? 'Zsiądź z konia' : 'Wsiądź na konia';
+		requireElement('#mount span', HTMLElement).textContent = label;
+		$('mount').setAttribute('aria-label', label);
+		$('mount').title = label + ' (E)';
+		requireElement('#mount', HTMLButtonElement).disabled = transferring();
+		requireElement('#jump', HTMLButtonElement).disabled = riding !== 'mounted';
 		document
 			.querySelectorAll('.gait-steps b')
-			.forEach((bar, i) => bar.classList.toggle('on', i <= state.gait));
-		requireElement('#slower', HTMLButtonElement).disabled = state.gait === -1;
-		requireElement('#faster', HTMLButtonElement).disabled = state.gait === 3;
+			.forEach((bar, i) => bar.classList.toggle('on', i <= active.gait));
+		requireElement('#slower', HTMLButtonElement).disabled =
+			transferring() || active.gait === (riding === 'mounted' ? -1 : 0);
+		requireElement('#faster', HTMLButtonElement).disabled =
+			transferring() || active.gait === (riding === 'mounted' ? 3 : 2);
 	}
 	function tempo(delta: number) {
-		changeGait(state, delta);
+		if (transferring()) return;
+		if (riding === 'mounted') changeGait(state, delta);
+		else person.gait = THREE.MathUtils.clamp(person.gait + delta, 0, 2);
 		updateGait();
 		if (!started && state.gait) {
 			started = true;
@@ -120,15 +153,111 @@ export function startGame() {
 	}
 	function toggleCamera() {
 		firstPerson = !firstPerson;
-		horse.rider.visible = !firstPerson;
+		horse.rider.visible = !firstPerson && riding === 'mounted';
+		walker.root.visible = !firstPerson && riding !== 'mounted';
 		input.resetLook();
 		requireElement('#camera span', HTMLElement).textContent = firstPerson
 			? 'Oczami jeźdźca'
-			: 'Zza konia';
+			: riding === 'mounted'
+				? 'Zza konia'
+				: 'Za jeźdźcem';
 		$('camera').setAttribute('aria-pressed', String(firstPerson));
 		updateCamera(1, true);
 	}
+	function jump() {
+		if (riding === 'mounted') requestJump(state);
+	}
+	function mount() {
+		if (transferring()) return;
+		if (
+			riding === 'mounted' &&
+			(state.gait !== 0 || Math.abs(state.speed) > 0.12 || state.jump >= 0)
+		) {
+			hint('Najpierw zatrzymaj konia', 'Zsiądziemy bezpiecznie na postoju.');
+			return;
+		}
+		if (
+			riding === 'on-foot' &&
+			Math.hypot(person.x - state.x, person.z - state.z) > 3.3
+		) {
+			hint('Podejdź bliżej konia', 'Raven czeka tam, gdzie go zostawiono.');
+			return;
+		}
+		const side = mountSide(
+			state,
+			world.solids,
+			riding === 'on-foot' ? person : undefined,
+		);
+		if (!side) {
+			hint(
+				'Tutaj jest za mało miejsca',
+				'Spróbuj po drugiej stronie lub odsuń się od ściany.',
+			);
+			return;
+		}
+		state.gait = 0;
+		state.speed = 0;
+		transferSide = side;
+		transferTime = 0;
+		approach = { x: person.x, z: person.z, heading: person.heading };
+		person.gait = 0;
+		person.speed = 0;
+		person.jump = -1;
+		person.height = 0;
+		riding = riding === 'mounted' ? 'dismounting' : 'mounting';
+		horse.rider.visible = false;
+		walker.root.visible = !firstPerson;
+		input.clear();
+		updateGait();
+	}
+	function updateTransfer(dt: number) {
+		transferTime += dt;
+		const t = Math.min(1, transferTime / MOUNT_DURATION);
+		const ease = (v: number) => {
+			v = THREE.MathUtils.clamp(v, 0, 1);
+			return v * v * (3 - 2 * v);
+		};
+		if (riding === 'mounting' && t < 0.25) {
+			const p = ease(t / 0.25);
+			person.x = THREE.MathUtils.lerp(approach.x, transferSide.x, p);
+			person.z = THREE.MathUtils.lerp(approach.z, transferSide.z, p);
+			person.height = 0;
+			person.heading =
+				approach.heading +
+				Math.atan2(
+					Math.sin(state.heading - approach.heading),
+					Math.cos(state.heading - approach.heading),
+				) *
+					p;
+			walker.pose(dt, 1.8);
+		} else {
+			const u = riding === 'mounting' ? 1 - (t - 0.25) / 0.75 : t;
+			const across = ease(u / 0.8);
+			person.x = THREE.MathUtils.lerp(state.x, transferSide.x, across);
+			person.z = THREE.MathUtils.lerp(state.z, transferSide.z, across);
+			person.heading = state.heading;
+			person.height =
+				1.4 * (1 - ease((u - 0.15) / 0.85)) + 0.18 * Math.sin(Math.PI * u);
+			walker.pose(dt, 0, 1 - ease(u), Math.sin(Math.PI * u), transferSide.side);
+		}
+		if (t >= 1) {
+			riding = riding === 'mounting' ? 'mounted' : 'on-foot';
+			person.height = 0;
+			horse.rider.visible = !firstPerson && riding === 'mounted';
+			walker.root.visible = !firstPerson && riding === 'on-foot';
+			updateGait();
+			hint(
+				riding === 'mounted' ? 'Znów w siodle' : 'Spacer po polanie',
+				riding === 'mounted'
+					? '↑ wybierz tempo'
+					: '↑ chód lub bieg · ↓ zwolnij · E wsiądź obok konia',
+			);
+		}
+	}
 	function home() {
+		riding = 'mounted';
+		walker.root.visible = false;
+		horse.rider.visible = !firstPerson;
 		Object.assign(state, createState());
 		input.resetLook();
 		updateGait();
@@ -144,8 +273,12 @@ export function startGame() {
 		tempo(-1);
 		focusGame();
 	};
+	$('mount').onclick = () => {
+		mount();
+		focusGame();
+	};
 	$('jump').onclick = () => {
-		requestJump(state);
+		jump();
 		focusGame();
 	};
 	$('camera').onclick = () => {
@@ -196,7 +329,8 @@ export function startGame() {
 			void audio.unlock();
 		},
 		tempo,
-		jump: () => requestJump(state),
+		jump,
+		mount,
 		toggleCamera,
 		pause,
 	});
@@ -214,7 +348,14 @@ export function startGame() {
 		world.stable.cameraBlockers,
 	);
 	function updateCamera(dt: number, snap = false) {
-		cameraController.update(state, dt, firstPerson, input.look, snap);
+		cameraController.update(
+			activeState(),
+			dt,
+			firstPerson,
+			input.look,
+			snap,
+			riding !== 'mounted',
+		);
 	}
 	const minimap = createMinimap(
 		requireElement('#map', HTMLCanvasElement),
@@ -235,30 +376,73 @@ export function startGame() {
 		if (!paused) {
 			elapsed += dt;
 			const turn = input.turn;
-			const oldGait = state.gait;
-			if (step(state, dt, turn, world.obstacles, world.solids)) {
+			const oldGait = activeState().gait;
+			if (
+				step(
+					state,
+					dt,
+					riding === 'mounted' ? turn : 0,
+					world.obstacles,
+					world.solids,
+				)
+			) {
 				audio.tone(170, 0.18, 0.07, 65, 'triangle');
 				hint(
 					'Poprzeczka zaraz wróci na miejsce',
 					'Spróbuj nacisnąć spację przed przeszkodą.',
 				);
 			}
-			if (state.gait !== oldGait) updateGait();
+			if (riding === 'on-foot')
+				stepPerson(
+					person,
+					dt,
+					turn,
+					[
+						...world.solids,
+						...world.obstacles
+							.filter((o) => !o.down)
+							.map((o) => ({ x: o.x, z: o.z, w: o.width, d: 0.18 })),
+					],
+					state,
+				);
+			if (transferring()) updateTransfer(dt);
+			else if (riding === 'on-foot') walker.pose(dt, person.speed);
+			if (activeState().gait !== oldGait) updateGait();
+			walker.root.position.set(person.x, person.height, person.z);
+			walker.root.rotation.y = person.heading;
 			horse.root.position.set(state.x, state.height, state.z);
 			horse.root.rotation.y = state.heading;
-			const footfalls = horseAnimation.update(dt, state, elapsed, turn);
+			const footfalls = horseAnimation.update(
+				dt,
+				state,
+				elapsed,
+				riding === 'mounted' ? turn : 0,
+			);
 			for (const obstacle of world.obstacles) {
 				obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0;
 				obstacle.rails.position.y = obstacle.down ? -0.28 : 0;
 			}
 			input.update(dt);
 			updateCamera(dt);
-			audio.tick(dt, state, isSand(state.x, state.z), footfalls);
-			$('location').textContent = locationName(state.x, state.z);
+			const active = activeState();
+			if (riding === 'on-foot' && person.speed > 0.2) {
+				footstepTimer -= dt;
+				if (footstepTimer <= 0) {
+					audio.tone(105, 0.045, 0.018, 45, 'triangle');
+					footstepTimer = person.speed > 2.5 ? 0.23 : 0.36;
+				}
+			} else footstepTimer = 0;
+			audio.tick(
+				dt,
+				active,
+				isSand(active.x, active.z),
+				riding === 'mounted' ? footfalls : 0,
+			);
+			$('location').textContent = locationName(active.x, active.z);
 			$('hint').classList.toggle('hidden', elapsed > hintUntil);
 		}
 		world.stable.update(elapsed);
-		minimap.draw(state);
+		minimap.draw(activeState(), riding === 'mounted' ? undefined : state);
 		renderer.render(scene, camera);
 		if (dialog('dress-dialog').open) preview.render();
 	});
@@ -266,7 +450,9 @@ export function startGame() {
 	if (import.meta.env.DEV)
 		window.__polana = {
 			snapshot: () => ({
-				...state,
+				...activeState(),
+				riding,
+				horse: { x: state.x, z: state.z, heading: state.heading },
 				paused,
 				firstPerson,
 				obstacles: world.obstacles.map(({ z, down }) => ({ z, down })),

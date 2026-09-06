@@ -3,6 +3,7 @@ interface InputActions {
 	unlockAudio(): void;
 	tempo(delta: number): void;
 	jump(): void;
+	mount(): void;
 	toggleCamera(): void;
 	pause(): void;
 }
@@ -18,6 +19,7 @@ const GAME_KEYS = new Set([
 	'KeyD',
 	'Space',
 	'KeyC',
+	'KeyE',
 	'Escape',
 ]);
 
@@ -51,6 +53,7 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 			if (event.repeat) return;
 			if (['ArrowUp', 'KeyW'].includes(event.code)) actions.tempo(1);
 			if (['ArrowDown', 'KeyS'].includes(event.code)) actions.tempo(-1);
+			if (event.code === 'KeyE') actions.mount();
 			if (event.code === 'Space') actions.jump();
 			if (event.code === 'KeyC') actions.toggleCamera();
 			if (event.code === 'Escape') actions.pause();

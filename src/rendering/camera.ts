@@ -17,13 +17,14 @@ export function createCameraController(
 		firstPerson: boolean,
 		look: number,
 		snap = false,
+		onFoot = false,
 	) {
 		const heading = state.heading + look;
 		const indoors = insideStable(state.x, state.z, 1.5);
 		if (firstPerson) {
 			desiredCamera.set(
 				state.x - Math.sin(state.heading) * 0.3,
-				4.1 + state.height,
+				(onFoot ? 2.15 : 4.1) + state.height,
 				state.z - Math.cos(state.heading) * 0.3,
 			);
 			target.set(
@@ -32,16 +33,16 @@ export function createCameraController(
 				desiredCamera.z + Math.cos(heading) * 15,
 			);
 		} else {
-			const distance = indoors ? 7.2 : 9;
+			const distance = onFoot ? 4.5 : indoors ? 7.2 : 9;
 			desiredCamera.set(
 				state.x - Math.sin(heading) * distance,
-				(indoors ? 5.15 : 5.7) + state.height * 0.55,
+				(onFoot ? 3.1 : indoors ? 5.15 : 5.7) + state.height * 0.55,
 				state.z - Math.cos(heading) * distance,
 			);
-			const ahead = indoors ? 0 : 2.5;
+			const ahead = onFoot ? 0.5 : indoors ? 0 : 2.5;
 			target.set(
 				state.x + Math.sin(state.heading) * ahead,
-				(indoors ? 2.2 : 1.7) + state.height * 0.65,
+				(onFoot ? 1.3 : indoors ? 2.2 : 1.7) + state.height * 0.65,
 				state.z + Math.cos(state.heading) * ahead,
 			);
 		}

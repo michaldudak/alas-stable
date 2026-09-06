@@ -210,6 +210,7 @@ export function createRider(parent: THREE.Group, eye: THREE.Material) {
 			],
 			0.007,
 		);
+		const limbStart = rider.children.length;
 		sleeve(
 			rider,
 			shirt,
@@ -276,6 +277,8 @@ export function createRider(parent: THREE.Group, eye: THREE.Material) {
 			],
 			0.006,
 		);
+		for (const part of rider.children.slice(limbStart))
+			part.name = 'seated-limb';
 		cord(
 			rider,
 			lining,

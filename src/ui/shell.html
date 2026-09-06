@@ -1,7 +1,7 @@
 <canvas
 	id="game"
 	tabindex="0"
-	aria-label="Gra jeździecka 3D. Góra i dół zmieniają tempo, lewo i prawo skręcają, spacja to skok, C zmienia kamerę, Escape zatrzymuje grę."
+	aria-label="Gra jeździecka 3D. Góra i dół zmieniają tempo, lewo i prawo skręcają, spacja to skok, E pozwala wsiąść lub zsiąść, C zmienia kamerę, Escape zatrzymuje grę."
 ></canvas>
 <header>
 	<div class="brand">
@@ -32,6 +32,15 @@
 	jazda
 </div>
 <aside class="side-tools">
+	<button
+		type="button"
+		id="mount"
+		title="Zsiądź z konia (E)"
+		aria-label="Zsiądź z konia"
+	>
+		<i data-lucide="footprints" aria-hidden="true"></i
+		><span>Zsiądź z konia</span><kbd>E</kbd>
+	</button>
 	<button
 		type="button"
 		id="camera"

@@ -47,6 +47,7 @@ try {
 	for (const script of [
 		'browser-check',
 		'appearance-check',
+		'riding-check',
 		'stable-check',
 		'gait-check',
 		'lifecycle-check',

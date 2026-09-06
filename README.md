@@ -27,9 +27,10 @@ All developer content is written in English. Player-readable strings currently r
 
 ## Controls
 
-- W/S or Up/Down: select a persistent gait (stand, walk, trot, canter), without holding the key.
+- W/S or Up/Down: select a persistent gait (reverse, stand, walk, trot, canter), without holding the key. On foot, select stand, walk, or run.
 - A/D or Left/Right: steer, including while standing still.
-- Space: jump with a forgiving timing window.
+- Space: jump with a forgiving timing window while mounted.
+- E or the mount button: dismount from a stopped horse, or mount when standing nearby. The horse waits at its location and is marked on the minimap. Both actions are animated; walls can block dismounting.
 - C: switch between third-person and first-person cameras. Drag the mouse to look around.
 - Escape: pause. Switching tabs or losing focus also pauses the game.
 - Icon buttons: sound, help, horse appearance, return to the stable, and fullscreen.
@@ -63,3 +64,5 @@ The tack room is on the right when entering through the main entrance. Players c
 The interior has a paved aisle, timber framing, a pitched roof, lamps, and windows. The third-person camera moves closer near walls and the roof, while the first-person camera looks slightly lower indoors. Wall placement and collisions share `src/world/stable-layout.ts`.
 
 `node scripts/stable-check.ts` rides from the starting position into the stable, checks both cameras, enters the tack room, exits through the rear doorway, and saves screenshots. `tests/stable.test.ts` checks aisle and doorway clearance and barriers around stalls.
+
+`node scripts/riding-check.ts` verifies mounting, dismounting, walking/running, proximity checks, pause, cameras, and reset using the local Vite server.
