@@ -7,8 +7,14 @@ export function createHorseAnimation(horse: HorseModel) {
 		target = new THREE.Vector3(),
 		inverse = new THREE.Quaternion();
 	return {
-		update(dt: number, state: MotionState, elapsed: number, turn = 0) {
-			const pose = controller.update(dt, state, turn);
+		update(
+			dt: number,
+			state: MotionState,
+			elapsed: number,
+			turn = 0,
+			paceScale = 1,
+		) {
+			const pose = controller.update(dt, state, turn, paceScale);
 			horse.body.position.y = pose.y;
 			horse.body.rotation.set(pose.pitch, 0, pose.roll);
 			inverse.copy(horse.body.quaternion).invert();

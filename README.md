@@ -77,7 +77,7 @@ In the appearance panel's Colors section, Riding offers Saddled or Bareback. Bar
 
 Standard gamepads use the browser Gamepad API. On Steam Deck, launch the browser through Steam and choose a **Gamepad** Steam Input layout (keyboard/mouse emulation does not expose analog gamepad input). Serve the game over HTTPS or localhost; an HTTP LAN address may not expose the Gamepad API. Press a controller button after opening the game. If audio stays silent, click or tap once to unlock browser audio.
 
-- Left stick: analog steering and momentary forward/back steps (up/down), up to 1.2 m/s forward and 0.9 m/s backward. Releasing the stick stops immediately when no gait is selected, or resumes the bumper-selected gait. Works mounted, on foot, and while leading; normal collisions still apply.
+- Left stick: analog steering. With a gait selected, up/down smoothly increases/reduces its speed by up to 30% without changing the gait pattern; horse animation cadence follows the adjustment. Releasing restores the selected speed. From standing, hold up/down for fine forward/back steps (up to 1.2 m/s forward and 0.9 m/s backward); release stops immediately. Works mounted, on foot, and while leading; normal collisions still apply.
 - Right stick: horizontal look, returning to center when released; up brings the third-person camera closer, down moves it farther away. Distance stays where you leave it, within 45–180% of the normal distance. Wall avoidance still applies; first-person view stays fixed.
 - LB/RB or D-pad down/up: slower/faster persistent gait.
 - A: jump; B: mount/dismount; X: attach/release lead; Y: camera.

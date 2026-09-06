@@ -7,3 +7,6 @@ export const JUMP_BUFFER = 0.22;
 export const WORLD_RADIUS = 112;
 export const HORSE_COLLISION_RADIUS = 0.7;
 export const MAX_FRAME_DELTA = 0.04;
+
+/** Full stick deflection adjusts the selected gait speed by thirty percent. */
+export const STICK_PACE_ADJUSTMENT = 0.3;

@@ -14,7 +14,7 @@ import { horseBarrier, nearbyMount } from '../game/herd.ts';
 import { createAppearanceStore } from '../platform/appearance-storage.ts';
 import { createWalkingRider } from '../horse/walking-rider.ts';
 import { mountSide, stepPerson, MOUNT_DURATION } from '../game/riding.ts';
-import { MAX_FRAME_DELTA } from '../game/tuning.ts';
+import { MAX_FRAME_DELTA, STICK_PACE_ADJUSTMENT } from '../game/tuning.ts';
 import { disposeScene } from '../rendering/resources.ts';
 import { createCameraController } from '../rendering/camera.ts';
 import { createMinimap } from '../ui/minimap.ts';
@@ -730,11 +730,12 @@ export function startGame() {
 			horse.root.rotation.y = state.heading;
 			const footfalls = horseAnimation.update(
 				dt,
-				nudge !== undefined && riding === 'mounted'
-					? { ...state, gait: nudge > 0 ? 1 : 0 }
-					: state,
+				state,
 				elapsed,
 				riding === 'mounted' ? turn : leadTurn,
+				riding === 'mounted' && state.gait !== 0
+					? 1 + (nudge ?? 0) * STICK_PACE_ADJUSTMENT
+					: 1,
 			);
 			if (riding === 'mounted' && footfalls > 0)
 				gamepad.pulse(0.08 + Math.abs(state.speed) * 0.012, 35);

@@ -1,6 +1,7 @@
 import type { GameState, Obstacle, Solid } from './types.ts';
 import {
 	SPEEDS,
+	STICK_PACE_ADJUSTMENT,
 	REVERSE_SPEED,
 	JUMP_DURATION,
 	JUMP_HEIGHT,
@@ -41,11 +42,13 @@ export function step(
 	solids: readonly Solid[] = [],
 	nudge?: number,
 ) {
-	if (nudge !== undefined)
+	if (state.gait === 0 && nudge !== undefined)
 		state.speed = nudge * (nudge > 0 ? 1.2 : -REVERSE_SPEED);
 	else
 		state.speed +=
-			((state.gait === -1 ? REVERSE_SPEED : SPEEDS[state.gait]) - state.speed) *
+			((state.gait === -1 ? REVERSE_SPEED : SPEEDS[state.gait]) *
+				(1 + (nudge ?? 0) * STICK_PACE_ADJUSTMENT) -
+				state.speed) *
 			Math.min(1, dt * 4);
 	state.heading += turn * dt * (1.4 - Math.abs(state.speed) * 0.035);
 	const previous = { x: state.x, z: state.z };

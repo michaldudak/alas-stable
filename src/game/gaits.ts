@@ -132,7 +132,7 @@ export function createGaitController() {
 	let turnPhase = 0,
 		turnAmount = 0;
 	return {
-		update(dt: number, state: MotionState, turn = 0) {
+		update(dt: number, state: MotionState, turn = 0, paceScale = 1) {
 			const target =
 				Math.abs(state.speed) < 0.08
 					? 0
@@ -152,7 +152,7 @@ export function createGaitController() {
 				(sum, weight, i) => sum + weight * (GAIT_CYCLES[i]?.frequency || 0),
 				0,
 			);
-			phase = wrap(phase + dt * frequency * motion);
+			phase = wrap(phase + dt * frequency * motion * paceScale);
 			const pose = sampleGait(0, phase);
 			for (let gait = 1; gait < 5; gait++) {
 				const sample = sampleGait(gait, phase),

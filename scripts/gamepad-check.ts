@@ -153,13 +153,15 @@ try {
 		window.__gamepadTest.axes[1] = -1;
 	});
 	await frames();
-	assert.equal((await snapshot()).speed, 1.2);
+	await page.waitForFunction(() => window.__polana!.snapshot().speed > 2.5);
+	const boostedSpeed = (await snapshot()).speed;
+	assert.equal((await snapshot()).gait, 1);
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[1] = 0;
 	});
 	await frames();
 	assert.ok(
-		(await snapshot()).speed > 1.2,
+		(await snapshot()).speed < boostedSpeed,
 		'Release resumes the selected gait',
 	);
 	await page.evaluate(() => {

@@ -1,5 +1,5 @@
 import type { GameState, Solid } from './types.ts';
-import { WORLD_RADIUS } from './tuning.ts';
+import { WORLD_RADIUS, STICK_PACE_ADJUSTMENT } from './tuning.ts';
 export const FOOT_SPEEDS = [0, 1.8, 3.8] as const;
 export const FOOT_REVERSE_SPEED = -0.9;
 export const MOUNT_DURATION = 1.6;
@@ -79,8 +79,9 @@ export function stepPerson(
 	nudge?: number,
 ) {
 	const targetSpeed =
-		state.gait === -1 ? FOOT_REVERSE_SPEED : FOOT_SPEEDS[state.gait];
-	if (nudge !== undefined)
+		(state.gait === -1 ? FOOT_REVERSE_SPEED : FOOT_SPEEDS[state.gait]) *
+		(1 + (nudge ?? 0) * STICK_PACE_ADJUSTMENT);
+	if (state.gait === 0 && nudge !== undefined)
 		state.speed = nudge * (nudge > 0 ? 1.2 : -FOOT_REVERSE_SPEED);
 	else state.speed += (targetSpeed - state.speed) * Math.min(1, dt * 8);
 	state.heading += turn * dt * 2.1;
