@@ -1,4 +1,16 @@
 export const en = {
+	'touch.startBody':
+		'Drag the movement stick, or tap + to choose a lasting pace.',
+	'touch.title': 'Touch controls',
+	'touch.menu': 'Menu',
+	'touch.move':
+		'Drag to steer and adjust pace; release to return to the selected pace',
+	'touch.moveLabel': 'Move',
+	'touch.auto': 'Automatic',
+	'touch.on': 'Always show',
+	'touch.off': 'Hide',
+	'touch.help':
+		'Left stick: steer and adjust pace; from standing, move forward/back while held. Drag the scene to look around. −/+ selects a lasting pace. Tap the arrow to jump, footprints to mount, chain to lead, or camera to change view. Menu opens settings and appearance. Using a gamepad hides automatic touch controls; touching the screen brings them back.',
 	'controller.fullscreenHelp':
 		'If your browser blocks controller fullscreen, tap or click the Fullscreen button once.',
 	'controller.title': 'Controller',

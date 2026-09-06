@@ -1,5 +1,17 @@
 import type { en } from './en.ts';
 export const pl = {
+	'touch.startBody':
+		'Przeciągnij drążek ruchu lub dotknij +, aby wybrać stałe tempo.',
+	'touch.title': 'Sterowanie dotykowe',
+	'touch.menu': 'Menu',
+	'touch.move':
+		'Przeciągnij, aby skręcać i zmieniać prędkość; puść, aby wrócić do wybranego tempa',
+	'touch.moveLabel': 'Ruch',
+	'touch.auto': 'Automatycznie',
+	'touch.on': 'Zawsze pokazuj',
+	'touch.off': 'Ukryj',
+	'touch.help':
+		'Lewy drążek: skręcanie i regulacja tempa; na postoju ruch przód/tył podczas przytrzymania. Przeciągnij widok gry, aby się rozglądać. −/+ wybiera stałe tempo. Strzałka to skok, ślady to wsiadanie, łańcuch to lonża, a kamera zmienia widok. Menu otwiera ustawienia i wygląd konia. Pad ukrywa automatyczne przyciski dotykowe; dotknięcie ekranu je przywraca.',
 	'controller.fullscreenHelp':
 		'Jeśli przeglądarka blokuje pełny ekran z pada, dotknij lub kliknij przycisk Pełny ekran.',
 	'controller.title': 'Pad',

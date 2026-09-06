@@ -88,3 +88,11 @@ Standard gamepads use the browser Gamepad API. On Steam Deck, launch the browser
 Settings contains controller status, a vibration toggle, and a test pulse. Hoof contacts produce gentle pulses; landings and knocked rails produce stronger pulses. Vibration is optional, independent of sound, and disabled for the connected device if the browser rejects it. Reconnecting retries support detection. The toggle lasts for the current session. Browser/SteamOS support for the Deck actuator must be tested on hardware; API availability alone does not prove physical feedback. Disconnecting the active controller pauses the game; keyboard and mouse remain available.
 
 `node scripts/gamepad-check.ts` tests virtual controller input, menu navigation, vibration calls and failure handling in Chrome; it cannot verify physical vibration. The standard browser suite includes this check.
+
+## Touch controls
+
+Touch-capable devices automatically show one virtual movement stick and large buttons for pace, jump, mount/dismount, leading, and camera view. Drag the scene itself to look around; movement, scene dragging, and action buttons support independent simultaneous touches. The stick uses the same fine movement and pace adjustment as the gamepad. Finger release/cancellation clears stick input; losing focus pauses the game.
+
+The compact Menu opens pause, settings, appearance, sound, home and fullscreen. Settings → Touch controls offers Automatic, Always show, or Hide, saved locally. Automatic mode uses touch capability and coarse-pointer detection, hides the overlay when a gamepad is used, and restores it when the screen is touched. Desktop keyboard/mouse controls remain available. Layouts account for screen safe areas and portrait/landscape sizes; this does not guarantee performance on every tablet.
+
+`node scripts/touch-check.ts` uses Chrome touch emulation to verify simultaneous gestures, cancellation, preference persistence, switching between touch and gamepad, and phone/tablet layouts. Real iPad/Android hardware still needs playtesting.

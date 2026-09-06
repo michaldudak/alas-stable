@@ -47,6 +47,7 @@ try {
 	for (const script of [
 		'i18n-check',
 		'gamepad-check',
+		'touch-check',
 		'browser-check',
 		'appearance-check',
 		'bareback-check',

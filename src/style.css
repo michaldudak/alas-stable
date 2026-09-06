@@ -953,3 +953,234 @@ dialog > p {
 	background: #e1edd8;
 	border-color: #557144;
 }
+
+/* Keep browser scrolling in dialogs; only the play surface captures gestures. */
+#game,
+#touch-controls {
+	touch-action: none;
+}
+
+.touch-only,
+#touch-controls[hidden] {
+	display: none;
+}
+
+#touch-controls {
+	position: fixed;
+	inset: auto max(16px, env(safe-area-inset-right))
+		max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+	gap: 24px;
+	pointer-events: none;
+	user-select: none;
+}
+
+.touch-cluster {
+	width: 144px;
+	min-width: 0;
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+}
+
+.touch-pace,
+.touch-actions {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+	width: 100%;
+	pointer-events: auto;
+}
+
+.touch-pace button,
+.touch-actions button {
+	min-width: 48px;
+	min-height: 56px;
+	padding: 12px;
+	border: 1px solid #ffffff80;
+	box-shadow: 0 3px 12px #18382420;
+}
+
+.touch-actions button svg {
+	width: 26px;
+	height: 26px;
+}
+
+.touch-stick {
+	position: relative;
+	width: 136px;
+	height: 136px;
+	border-radius: 50%;
+	border: 2px solid #fffaf0b3;
+	background: radial-gradient(circle, #fffaf05c 0 40%, #fffaf033 41% 100%);
+	box-shadow:
+		inset 0 0 0 15px #315c4714,
+		0 4px 18px #1637221a;
+	pointer-events: auto;
+}
+
+.touch-knob {
+	position: absolute;
+	left: calc(50% - 25px);
+	top: calc(50% - 25px);
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	background: #fffaf0ed;
+	border: 2px solid #65836f;
+	box-shadow: 0 3px 8px #18382430;
+	transform: translate(var(--stick-x, 0), var(--stick-y, 0));
+	pointer-events: none;
+}
+
+.touch-stick.held .touch-knob {
+	background: #d5e6c9;
+}
+
+.touch-label {
+	font-size: 16px;
+	font-weight: 600;
+	color: #244b37;
+	background: #fffaf0d9;
+	padding: 3px 10px;
+	border-radius: 12px;
+}
+
+.touch-enabled header {
+	top: max(12px, env(safe-area-inset-top));
+	left: max(16px, env(safe-area-inset-left));
+	right: max(16px, env(safe-area-inset-right));
+	align-items: center;
+}
+
+.touch-enabled .tools > button:not(#touch-menu),
+.touch-enabled .side-tools,
+.touch-enabled footer .controls,
+.touch-enabled .tempo-buttons,
+.touch-enabled .map-wrap,
+.touch-enabled .location,
+.touch-enabled .hint-key,
+.touch-enabled .brand p {
+	display: none;
+}
+
+.touch-enabled #touch-menu {
+	display: inline-flex;
+	width: auto;
+	min-height: 48px;
+	padding: 12px;
+}
+
+.touch-enabled #touch-menu span {
+	display: inline;
+	font-size: 16px;
+}
+
+.touch-enabled .brand {
+	padding: 10px 12px;
+}
+
+.touch-enabled .brand h1 {
+	font-size: 18px;
+}
+
+.touch-enabled .gait {
+	position: fixed;
+	top: calc(max(12px, env(safe-area-inset-top)) + 64px);
+	left: max(16px, env(safe-area-inset-left));
+	width: 170px;
+	padding: 10px 12px;
+}
+
+.touch-enabled .gait-steps {
+	margin: 8px 0 0;
+}
+
+.touch-enabled .gait-label {
+	font-size: 16px;
+}
+
+.touch-enabled .hint {
+	bottom: auto;
+	top: calc(max(12px, env(safe-area-inset-top)) + 64px);
+	left: 50%;
+	width: min(370px, 40vw);
+	max-width: 370px;
+	padding: 12px;
+}
+
+.touch-enabled .hint p,
+.touch-enabled .hint strong,
+.touch-enabled dialog p,
+.touch-enabled dialog button,
+.touch-enabled dialog select,
+.touch-enabled .appearance-section h3 {
+	font-size: 16px;
+}
+
+.touch-enabled dialog button {
+	min-width: 48px;
+	min-height: 48px;
+}
+
+.touch-enabled .appearance-nav {
+	display: flex;
+	overflow-x: auto;
+	padding: 3px;
+}
+
+.touch-enabled .appearance-nav button {
+	flex-shrink: 0;
+	padding: 10px 14px;
+}
+
+#touch-mode {
+	width: 100%;
+	padding: 12px;
+	border: 1px solid #8a9d8e;
+	border-radius: 10px;
+	background: #fffaf0;
+	color: #29483b;
+	font: inherit;
+}
+
+@media (width <= 700px) {
+	.touch-enabled .hint {
+		top: calc(max(12px, env(safe-area-inset-top)) + 140px);
+		width: calc(100% - 32px);
+		max-width: 400px;
+	}
+
+	.touch-cluster {
+		width: 128px;
+	}
+
+	.touch-stick {
+		width: 120px;
+		height: 120px;
+	}
+}
+
+@media (height <= 500px) {
+	.touch-enabled .hint {
+		display: none;
+	}
+
+	.touch-stick {
+		width: 100px;
+		height: 100px;
+	}
+
+	.touch-label {
+		display: none;
+	}
+
+	.touch-pace button,
+	.touch-actions button {
+		min-height: 48px;
+	}
+}

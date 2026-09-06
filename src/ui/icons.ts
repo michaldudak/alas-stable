@@ -1,6 +1,9 @@
 import {
 	createIcons,
 	Settings,
+	Menu,
+	Plus,
+	Minus,
 	Camera,
 	Footprints,
 	Link,
@@ -22,6 +25,9 @@ import {
 	Maximize,
 } from 'lucide';
 export const icons = {
+	Menu,
+	Plus,
+	Minus,
 	Settings,
 	Camera,
 	Footprints,

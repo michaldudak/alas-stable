@@ -12,6 +12,7 @@ interface GamepadActions {
 	appearance(): void;
 	settings(): void;
 	help(): void;
+	activity(): void;
 	status(connected: boolean, vibration: boolean): void;
 }
 
@@ -174,6 +175,8 @@ export function createGamepad(actions: GamepadActions) {
 			const anyPress = buttons.some(
 				(value, index) => value && !previous[index],
 			);
+			if (anyPress || pad.axes.some((axis) => Math.abs(axis) > 0.2))
+				actions.activity();
 			if (anyPress) {
 				document.documentElement.classList.add('gamepad-active');
 				actions.unlockAudio();

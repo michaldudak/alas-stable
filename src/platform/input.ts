@@ -30,11 +30,16 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 	const events = new AbortController();
 	const options = { signal: events.signal };
 	const keys = new Set<string>();
+	let cameraPointer: number | null = null;
 	let look = 0,
 		dragging = false,
 		previousMouse = 0;
 	function clear() {
 		keys.clear();
+		const pointer = cameraPointer;
+		cameraPointer = null;
+		if (pointer !== null && canvas.hasPointerCapture(pointer))
+			canvas.releasePointerCapture(pointer);
 		dragging = false;
 	}
 	window.addEventListener(
@@ -74,7 +79,10 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 	canvas.addEventListener(
 		'pointerdown',
 		(event) => {
-			if (actions.isPaused()) return;
+			if (actions.isPaused() || cameraPointer !== null || event.button !== 0)
+				return;
+			event.preventDefault();
+			cameraPointer = event.pointerId;
 			dragging = true;
 			previousMouse = event.clientX;
 			canvas.setPointerCapture(event.pointerId);
@@ -85,7 +93,7 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 	canvas.addEventListener(
 		'pointermove',
 		(event) => {
-			if (!dragging) return;
+			if (!dragging || event.pointerId !== cameraPointer) return;
 			look = Math.max(
 				-2.6,
 				Math.min(2.6, look - (event.clientX - previousMouse) * 0.006),
@@ -97,7 +105,13 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 	for (const event of ['pointerup', 'pointercancel', 'lostpointercapture'])
 		canvas.addEventListener(
 			event,
-			() => {
+			(event: Event) => {
+				if (
+					!(event instanceof PointerEvent) ||
+					event.pointerId !== cameraPointer
+				)
+					return;
+				cameraPointer = null;
 				dragging = false;
 			},
 			options,

@@ -19,6 +19,7 @@ import { disposeScene } from '../rendering/resources.ts';
 import { createCameraController } from '../rendering/camera.ts';
 import { createMinimap } from '../ui/minimap.ts';
 import { createGamepad } from '../platform/gamepad.ts';
+import { createTouchControls } from '../platform/touch.ts';
 import { createInput } from '../platform/input.ts';
 import { requireElement } from '../platform/dom.ts';
 import * as THREE from 'three';
@@ -164,6 +165,7 @@ export function startGame() {
 	function showDialog(dialog: HTMLDialogElement) {
 		input.clear();
 		gamepad.stop();
+		touch.clear();
 		paused = true;
 		dialog.showModal();
 	}
@@ -191,7 +193,10 @@ export function startGame() {
 			currentHint.parameters,
 		);
 		requireElement('#hint p', HTMLElement).textContent = t(
-			currentHint.subtitle,
+			currentHint.subtitle === 'hint.startBody' &&
+				app.classList.contains('touch-enabled')
+				? 'touch.startBody'
+				: currentHint.subtitle,
 			currentHint.parameters,
 		);
 	}
@@ -253,6 +258,7 @@ export function startGame() {
 			transferring() || active.gait === -1;
 		requireElement('#faster', HTMLButtonElement).disabled =
 			transferring() || active.gait === (riding === 'mounted' ? 3 : 2);
+		touch.sync();
 	}
 	function tempo(delta: number) {
 		if (transferring()) return;
@@ -537,6 +543,16 @@ export function startGame() {
 		pause,
 	});
 
+	const touch = createTouchControls(app, {
+		changed: renderHint,
+		isPaused: () => paused,
+		pause,
+		unlockAudio: () => {
+			void audio.unlock();
+		},
+	});
+	$('touch-menu').onclick = pause;
+	$('pause-sound').onclick = () => $('sound').click();
 	let controllerConnected = false;
 	let controllerVibration = false;
 	const renderControllerStatus = () => {
@@ -569,6 +585,7 @@ export function startGame() {
 		appearance: () => showDialog(dialog('dress-dialog')),
 		settings: () => showDialog(dialog('settings-dialog')),
 		help: () => showDialog(dialog('help-dialog')),
+		activity: () => touch.useGamepad(),
 		status: (connected, vibration) => {
 			controllerConnected = connected;
 			controllerVibration = vibration;
@@ -666,13 +683,18 @@ export function startGame() {
 		gamepad.update(dt);
 		if (!paused) {
 			elapsed += dt;
-			const turn = THREE.MathUtils.clamp(input.turn + gamepad.turn, -1, 1);
+			const turn = THREE.MathUtils.clamp(
+				input.turn + gamepad.turn + touch.turn,
+				-1,
+				1,
+			);
+			const move = THREE.MathUtils.clamp(gamepad.move + touch.move, -1, 1);
 			const nudge =
 				!transferring() &&
-				(gamepad.move !== 0 || (wasNudging && activeState().gait === 0))
-					? gamepad.move
+				(move !== 0 || (wasNudging && activeState().gait === 0))
+					? move
 					: undefined;
-			wasNudging = !transferring() && gamepad.move !== 0;
+			wasNudging = !transferring() && move !== 0;
 			if (!firstPerson) cameraController.adjustDistance(gamepad.zoom, dt);
 			const wasJumping = state.jump >= 0;
 			const oldGait = activeState().gait;
@@ -800,6 +822,7 @@ export function startGame() {
 				paused,
 				firstPerson,
 				cameraDistanceScale: cameraController.distanceScale,
+				cameraLook: input.look,
 				obstacles: world.obstacles.map(({ z, down }) => ({ z, down })),
 				calls: renderer.info.render.calls,
 			}),
@@ -813,6 +836,7 @@ export function startGame() {
 			renderer.setAnimationLoop(null);
 			events.abort();
 			unsubscribeLanguage();
+			touch.dispose();
 			input.dispose();
 			gamepad.dispose();
 			preview.dispose();

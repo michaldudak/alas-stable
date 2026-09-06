@@ -12,6 +12,14 @@
 	<div class="tools">
 		<button
 			type="button"
+			id="touch-menu"
+			class="touch-only"
+			aria-label="{{touch.menu}}"
+		>
+			<i data-lucide="menu" aria-hidden="true"></i><span>{{touch.menu}}</span>
+		</button>
+		<button
+			type="button"
 			id="settings"
 			title="{{settings.title}}"
 			aria-label="{{settings.title}}"
@@ -164,6 +172,68 @@
 		><span>{{map.title}}</span>
 	</div>
 </footer>
+<div id="touch-controls" hidden aria-label="{{touch.title}}" role="group">
+	<div class="touch-cluster">
+		<div class="touch-pace">
+			<button
+				type="button"
+				data-touch-action="slower"
+				aria-label="{{action.slower}}"
+			>
+				<i data-lucide="minus" aria-hidden="true"></i>
+			</button>
+			<button
+				type="button"
+				data-touch-action="faster"
+				aria-label="{{action.faster}}"
+			>
+				<i data-lucide="plus" aria-hidden="true"></i>
+			</button>
+		</div>
+		<div
+			id="touch-move"
+			class="touch-stick"
+			role="group"
+			aria-label="{{touch.move}}"
+		>
+			<span class="touch-knob" aria-hidden="true"></span>
+		</div>
+		<span class="touch-label">{{touch.moveLabel}}</span>
+	</div>
+	<div class="touch-cluster">
+		<div class="touch-actions">
+			<button
+				type="button"
+				class="jump"
+				data-touch-action="jump"
+				aria-label="{{action.jump}}"
+			>
+				<i data-lucide="corner-left-up" aria-hidden="true"></i>
+			</button>
+			<button
+				type="button"
+				data-touch-action="mount"
+				aria-label="{{action.dismount}}"
+			>
+				<i data-lucide="footprints" aria-hidden="true"></i>
+			</button>
+			<button
+				type="button"
+				data-touch-action="lead"
+				aria-label="{{action.attachLead}}"
+			>
+				<i data-lucide="link" aria-hidden="true"></i>
+			</button>
+			<button
+				type="button"
+				data-touch-action="camera"
+				aria-label="{{camera.horse}}"
+			>
+				<i data-lucide="camera" aria-hidden="true"></i>
+			</button>
+		</div>
+	</div>
+</div>
 <dialog id="pause-dialog">
 	<div class="dialog-top"><h2>{{pause.title}}</h2></div>
 	<p>{{pause.body}}</p>
@@ -174,6 +244,7 @@
 		<button type="button" id="pause-settings">{{settings.title}}</button>
 		<button type="button" id="pause-help">{{action.help}}</button>
 		<button type="button" id="pause-appearance">{{action.appearance}}</button>
+		<button type="button" id="pause-sound">{{action.sound}}</button>
 		<button type="button" id="pause-home">{{action.home}}</button>
 		<button type="button" id="pause-fullscreen" aria-pressed="false">
 			{{action.fullscreen}}
@@ -198,6 +269,8 @@
 			<i data-lucide="x" aria-hidden="true"></i><span>{{action.close}}</span>
 		</button>
 	</div>
+	<h3>{{touch.title}}</h3>
+	<p>{{touch.help}}</p>
 	<h3>{{controller.title}}</h3>
 	<p>{{controller.controls}}</p>
 	<p>{{controller.shortcuts}}</p>
@@ -336,4 +409,11 @@
 	<p>{{controller.controls}}</p>
 	<p>{{controller.shortcuts}}</p>
 	<p>{{controller.menuHelp}}</p>
+	<label class="language-setting" for="touch-mode">{{touch.title}}</label>
+	<select id="touch-mode">
+		<option value="auto">{{touch.auto}}</option>
+		<option value="on">{{touch.on}}</option>
+		<option value="off">{{touch.off}}</option>
+	</select>
+	<p>{{touch.help}}</p>
 </dialog>

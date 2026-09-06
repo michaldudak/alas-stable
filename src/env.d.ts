@@ -19,6 +19,7 @@ declare global {
 				paused: boolean;
 				firstPerson: boolean;
 				cameraDistanceScale: number;
+				cameraLook: number;
 				obstacles: { z: number; down: number }[];
 				calls: number;
 			};
