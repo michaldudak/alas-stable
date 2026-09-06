@@ -935,3 +935,21 @@ dialog > p {
 	color: #29483b;
 	font: inherit;
 }
+
+.controller-menu {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 16px;
+}
+
+.gamepad-active dialog button:focus,
+.gamepad-active dialog select:focus {
+	outline: 3px solid #8a572b;
+	outline-offset: 3px;
+}
+
+#controller-vibration[aria-pressed='true'] {
+	background: #e1edd8;
+	border-color: #557144;
+}

@@ -1,5 +1,22 @@
 import type { en } from './en.ts';
 export const pl = {
+	'controller.title': 'Pad',
+	'controller.controls':
+		'Lewy drążek: skręcanie. Prawy drążek: rozglądanie. LB/RB: wolniej/szybciej. A: skok. B: wsiadanie/zsiadanie. X: lonża. Y: kamera.',
+	'controller.shortcuts':
+		'Menu/Start: pauza. View/Back: pomoc. Krzyżak góra/dół: tempo, lewo: wygląd, prawo: ustawienia. Oznaczenia przycisków jak na Steam Decku / padzie Xbox.',
+	'controller.menuHelp':
+		'Menu: krzyżak lub lewy drążek wybiera, A zatwierdza, B lub Menu wraca do gry. Przy wyborze języka lewo/prawo zmienia język.',
+	'controller.disconnected':
+		'Naciśnij przycisk pada, aby go połączyć. Nie wykryto jeszcze standardowego pada.',
+	'controller.ready':
+		'Pad połączony. Wibracje są dostępne w przeglądarce; sprawdź je przyciskiem Test wibracji.',
+	'controller.noVibration':
+		'Pad połączony. Ta przeglądarka lub urządzenie nie obsługuje wibracji.',
+	'controller.setup':
+		'Na Steam Decku wybierz układ Gamepad w Steam Input. Użyj HTTPS lub localhost. Jeśli nie słychać dźwięku, dotknij lub kliknij grę.',
+	'controller.vibration': 'Wibracje',
+	'controller.test': 'Test wibracji',
 	'app.title': 'Końska Polana',
 	'app.tagline': 'Mała wyprawa. Wielka przyjaźń.',
 	'game.accessible':

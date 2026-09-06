@@ -18,6 +18,7 @@ import { MAX_FRAME_DELTA } from '../game/tuning.ts';
 import { disposeScene } from '../rendering/resources.ts';
 import { createCameraController } from '../rendering/camera.ts';
 import { createMinimap } from '../ui/minimap.ts';
+import { createGamepad } from '../platform/gamepad.ts';
 import { createInput } from '../platform/input.ts';
 import { requireElement } from '../platform/dom.ts';
 import * as THREE from 'three';
@@ -162,6 +163,7 @@ export function startGame() {
 	}
 	function showDialog(dialog: HTMLDialogElement) {
 		input.clear();
+		gamepad.stop();
 		paused = true;
 		dialog.showModal();
 	}
@@ -508,6 +510,72 @@ export function startGame() {
 		toggleCamera,
 		pause,
 	});
+
+	let controllerConnected = false;
+	let controllerVibration = false;
+	const renderControllerStatus = () => {
+		$('controller-status').textContent = t(
+			!controllerConnected
+				? 'controller.disconnected'
+				: controllerVibration
+					? 'controller.ready'
+					: 'controller.noVibration',
+		);
+	};
+	const gamepad = createGamepad({
+		isPaused: () => paused,
+		pause,
+		resume: () => {
+			const open = dialogs.find((entry) => entry.open);
+			if (open) closeDialog(open);
+		},
+		unlockAudio: () => {
+			void audio.unlock();
+		},
+		tempo,
+		jump,
+		mount,
+		lead,
+		toggleCamera,
+		appearance: () => showDialog(dialog('dress-dialog')),
+		settings: () => showDialog(dialog('settings-dialog')),
+		help: () => showDialog(dialog('help-dialog')),
+		status: (connected, vibration) => {
+			controllerConnected = connected;
+			controllerVibration = vibration;
+			renderControllerStatus();
+		},
+	});
+	const vibrationToggle = requireElement(
+		'#controller-vibration',
+		HTMLButtonElement,
+	);
+	vibrationToggle.onclick = () => {
+		const enabled = vibrationToggle.getAttribute('aria-pressed') !== 'true';
+		vibrationToggle.setAttribute('aria-pressed', String(enabled));
+		gamepad.setEnabled(enabled);
+	};
+	$('controller-test').onclick = () => gamepad.pulse(0.6, 250);
+	for (const [id, target] of [
+		['pause-settings', 'settings-dialog'],
+		['pause-help', 'help-dialog'],
+		['pause-appearance', 'dress-dialog'],
+	] as const) {
+		$(id).onclick = () => {
+			closeDialog(dialog('pause-dialog'));
+			showDialog(dialog(target));
+		};
+	}
+	$('pause-home').onclick = () => {
+		closeDialog(dialog('pause-dialog'));
+		home();
+	};
+	for (const event of ['keydown', 'pointerdown'])
+		window.addEventListener(
+			event,
+			() => document.documentElement.classList.remove('gamepad-active'),
+			{ signal: events.signal },
+		);
 	window.addEventListener(
 		'resize',
 		() => {
@@ -539,6 +607,7 @@ export function startGame() {
 
 	const unsubscribeLanguage = onLanguageChange(() => {
 		refreshShell();
+		renderControllerStatus();
 		languageSelect.value = getLanguage();
 		updateGait();
 		renderHint();
@@ -564,9 +633,11 @@ export function startGame() {
 			Math.max(0, (time - previousTime) / 1000),
 		);
 		previousTime = time;
+		gamepad.update(dt);
 		if (!paused) {
 			elapsed += dt;
-			const turn = input.turn;
+			const turn = THREE.MathUtils.clamp(input.turn + gamepad.turn, -1, 1);
+			const wasJumping = state.jump >= 0;
 			const oldGait = activeState().gait;
 			if (
 				!leading &&
@@ -576,9 +647,12 @@ export function startGame() {
 				])
 			) {
 				audio.tone(170, 0.18, 0.07, 65, 'triangle');
+				if (riding === 'mounted') gamepad.pulse(0.5, 140);
 				hint('hint.railTitle', 'hint.railBody');
 			}
 			const previousPerson = { ...person };
+			if (riding === 'mounted' && wasJumping && state.jump < 0)
+				gamepad.pulse(0.4, 120);
 			const barriers = [
 				...world.solids,
 				...otherHorseSolids(),
@@ -618,12 +692,14 @@ export function startGame() {
 				elapsed,
 				riding === 'mounted' ? turn : leadTurn,
 			);
+			if (riding === 'mounted' && footfalls > 0)
+				gamepad.pulse(0.08 + Math.abs(state.speed) * 0.012, 35);
 			for (const obstacle of world.obstacles) {
 				if (leading) obstacle.down = Math.max(0, obstacle.down - dt);
 				obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0;
 				obstacle.rails.position.y = obstacle.down ? -0.28 : 0;
 			}
-			input.update(dt);
+			input.update(dt, gamepad.look);
 			updateCamera(dt);
 			const active = activeState();
 			if (riding === 'on-foot' && Math.abs(person.speed) > 0.2) {
@@ -692,6 +768,7 @@ export function startGame() {
 			events.abort();
 			unsubscribeLanguage();
 			input.dispose();
+			gamepad.dispose();
 			preview.dispose();
 			audio.dispose();
 			for (const entry of herd) entry.model.dispose();

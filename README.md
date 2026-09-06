@@ -72,3 +72,17 @@ The interior has a paved aisle, timber framing, a pitched roof, lamps, and windo
 In the appearance panel's Colors section, Riding offers Saddled or Bareback. Bareback removes the saddle, stirrups, girth, and saddlecloth while keeping the bridle and reins. The rider sits lower, and mounting, walking, running, and jumping remain available. Equipment is saved separately for every horse; switching back restores the existing saddlecloth colors and patterns.
 
 - L or the lead button, while on foot beside a horse: attach or release a lunge line. Unmounted horses wear halters, with the line attached to the lower ring. The selected horse follows at walk/trot while the handler walks or runs, and waits when released. This is leading on a line, not circular lunging. Walls, fences, other horses, and a six-metre reach constrain movement; take a wider route if the horse gets blocked. Mounting or returning home releases the line.
+
+## Gamepad and Steam Deck
+
+Standard gamepads use the browser Gamepad API. On Steam Deck, launch the browser through Steam and choose a **Gamepad** Steam Input layout (keyboard/mouse emulation does not expose analog gamepad input). Serve the game over HTTPS or localhost; an HTTP LAN address may not expose the Gamepad API. Press a controller button after opening the game. If audio stays silent, click or tap once to unlock browser audio.
+
+- Left stick: analog steering; right stick: horizontal look, returning to center when released.
+- LB/RB or D-pad down/up: slower/faster persistent gait.
+- A: jump; B: mount/dismount; X: attach/release lead; Y: camera.
+- Menu/Start: pause; View/Back: help; D-pad left: appearance; D-pad right: settings.
+- Menus: D-pad or left stick steps through visible controls; A selects; B/Menu returns to riding. Left/right changes a focused language selection.
+
+Settings contains controller status, a vibration toggle, and a test pulse. Hoof contacts produce gentle pulses; landings and knocked rails produce stronger pulses. Vibration is optional, independent of sound, and disabled for the connected device if the browser rejects it. Reconnecting retries support detection. The toggle lasts for the current session. Browser/SteamOS support for the Deck actuator must be tested on hardware; API availability alone does not prove physical feedback. Disconnecting the active controller pauses the game; keyboard and mouse remain available.
+
+`node scripts/gamepad-check.ts` tests virtual controller input, menu navigation, vibration calls and failure handling in Chrome; it cannot verify physical vibration. The standard browser suite includes this check.

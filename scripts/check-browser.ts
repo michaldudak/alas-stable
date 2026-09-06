@@ -46,6 +46,7 @@ try {
 	});
 	for (const script of [
 		'i18n-check',
+		'gamepad-check',
 		'browser-check',
 		'appearance-check',
 		'bareback-check',

@@ -170,6 +170,13 @@
 	<button type="button" id="resume" class="primary">
 		<i data-lucide="play" aria-hidden="true"></i>{{pause.resume}}
 	</button>
+	<div class="controller-menu">
+		<button type="button" id="pause-settings">{{settings.title}}</button>
+		<button type="button" id="pause-help">{{action.help}}</button>
+		<button type="button" id="pause-appearance">{{action.appearance}}</button>
+		<button type="button" id="pause-home">{{action.home}}</button>
+	</div>
+	<p>{{controller.menuHelp}}</p>
 	<div class="mini-help">
 		<kbd>↑ ↓</kbd>{{help.paceLabel}}<kbd>← →</kbd
 		>{{help.steerLabel}}<kbd>{{key.space}}</kbd>{{help.jumpLabel}}
@@ -187,6 +194,10 @@
 			<i data-lucide="x" aria-hidden="true"></i><span>{{action.close}}</span>
 		</button>
 	</div>
+	<h3>{{controller.title}}</h3>
+	<p>{{controller.controls}}</p>
+	<p>{{controller.shortcuts}}</p>
+	<p>{{controller.menuHelp}}</p>
 	<div class="help-grid">
 		<div>
 			<kbd>L</kbd>
@@ -305,4 +316,16 @@
 		<option value="en" lang="en">{{language.en}}</option>
 		<option value="pl" lang="pl">{{language.pl}}</option>
 	</select>
+	<h3>{{controller.title}}</h3>
+	<p id="controller-status" role="status">{{controller.disconnected}}</p>
+	<p>{{controller.setup}}</p>
+	<div class="controller-menu">
+		<button type="button" id="controller-vibration" aria-pressed="true">
+			{{controller.vibration}}
+		</button>
+		<button type="button" id="controller-test">{{controller.test}}</button>
+	</div>
+	<p>{{controller.controls}}</p>
+	<p>{{controller.shortcuts}}</p>
+	<p>{{controller.menuHelp}}</p>
 </dialog>

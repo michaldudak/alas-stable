@@ -1,4 +1,21 @@
 export const en = {
+	'controller.title': 'Controller',
+	'controller.controls':
+		'Left stick: steer. Right stick: look around. LB/RB: slower/faster. A: jump. B: mount/dismount. X: lead rope. Y: camera.',
+	'controller.shortcuts':
+		'Menu/Start: pause. View/Back: help. D-pad up/down: pace, left: appearance, right: settings. Button names follow the Steam Deck / Xbox layout.',
+	'controller.menuHelp':
+		'Menus: D-pad or left stick to move, A to select, B or Menu to return. On language selection, left/right changes language.',
+	'controller.disconnected':
+		'Press a controller button to connect. No standard gamepad detected yet.',
+	'controller.ready':
+		'Controller connected. Vibration API available; use Test vibration to check your device.',
+	'controller.noVibration':
+		'Controller connected. This browser or device does not provide working vibration.',
+	'controller.setup':
+		'On Steam Deck, use a Gamepad layout in Steam Input. Use HTTPS or localhost. If audio stays silent, tap or click the game once.',
+	'controller.vibration': 'Vibrations',
+	'controller.test': 'Test vibration',
 	'app.title': 'Horse Glade',
 	'app.tagline': 'A little adventure. A great friendship.',
 	'game.accessible':

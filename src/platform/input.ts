@@ -130,8 +130,10 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 		get look() {
 			return look;
 		},
-		update(dt: number) {
-			if (!dragging) look *= Math.exp(-dt * 2.5);
+		update(dt: number, stickLook = 0) {
+			if (stickLook)
+				look = Math.max(-2.6, Math.min(2.6, look + stickLook * dt * 2.8));
+			else if (!dragging) look *= Math.exp(-dt * 2.5);
 		},
 		resetLook() {
 			look = 0;
