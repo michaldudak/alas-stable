@@ -79,7 +79,7 @@ try {
 		});
 	});
 	await page.goto(BASE_URL);
-	await page.waitForFunction(() => !!window.__polana);
+	await page.waitForFunction(() => !!window.__alasStable);
 	await page.locator('#game').click();
 	const frames = () =>
 		page.evaluate(async () => {
@@ -98,7 +98,7 @@ try {
 		});
 		await frames();
 	};
-	const snapshot = () => page.evaluate(() => window.__polana!.snapshot());
+	const snapshot = () => page.evaluate(() => window.__alasStable!.snapshot());
 	const start = await snapshot();
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[1] = -0.6;
@@ -153,7 +153,7 @@ try {
 		window.__gamepadTest.axes[1] = -1;
 	});
 	await frames();
-	await page.waitForFunction(() => window.__polana!.snapshot().speed > 2.5);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().speed > 2.5);
 	const boostedSpeed = (await snapshot()).speed;
 	assert.equal((await snapshot()).gait, 1);
 	await page.evaluate(() => {
@@ -272,7 +272,7 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.connected = false;
 	});
-	await page.waitForFunction(() => window.__polana!.snapshot().paused);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().paused);
 	const disconnected = await snapshot();
 	await page.waitForTimeout(150);
 	assert.equal(

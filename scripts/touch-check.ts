@@ -13,7 +13,7 @@ try {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.goto(BASE_URL);
-	await page.waitForFunction(() => !!window.__polana);
+	await page.waitForFunction(() => !!window.__alasStable);
 	await expect(page.locator('#touch-controls')).toBeVisible();
 	await expect(page.locator('#touch-camera')).toHaveCount(0);
 	await expect(page.locator('#hint p')).toContainText('movement stick');
@@ -25,7 +25,7 @@ try {
 					requestAnimationFrame(() => resolve()),
 				);
 		});
-	const snapshot = () => page.evaluate(() => window.__polana!.snapshot());
+	const snapshot = () => page.evaluate(() => window.__alasStable!.snapshot());
 	const bounds = await page.locator('#touch-move').boundingBox();
 	assert.ok(bounds);
 	let points = [
@@ -85,7 +85,7 @@ try {
 		0,
 		'Releasing the stick stops fine movement',
 	);
-	await page.waitForFunction(() => window.__polana!.snapshot().jump < 0);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().jump < 0);
 	const faster = page.locator('[data-touch-action="faster"]');
 	await faster.tap();
 	assert.equal((await snapshot()).gait, 1, 'Touch action fires only once');
@@ -108,7 +108,7 @@ try {
 	await page.locator('#touch-mode').selectOption('off');
 	await expect(page.locator('#touch-controls')).toBeHidden();
 	await page.reload();
-	await page.waitForFunction(() => !!window.__polana);
+	await page.waitForFunction(() => !!window.__alasStable);
 	await expect(page.locator('#touch-controls')).toBeHidden();
 	await page.locator('#settings').tap();
 	await page.locator('#touch-mode').selectOption('auto');

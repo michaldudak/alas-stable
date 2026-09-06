@@ -54,7 +54,7 @@ await test('horse appearances are stored independently and keep their own defaul
 		},
 	});
 	const raven = createAppearanceStore(storage),
-		luna = createAppearanceStore(storage, 'polana-appearance-LUNA', {
+		luna = createAppearanceStore(storage, 'alas-stable-appearance-LUNA', {
 			coat: '#e6e0d2',
 		});
 	const before = raven.load();

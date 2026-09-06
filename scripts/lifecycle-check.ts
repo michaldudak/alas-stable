@@ -29,7 +29,7 @@ try {
 			await new Promise<void>((resolve) =>
 				requestAnimationFrame(() => resolve()),
 			);
-			const snapshot = window.__polana!.snapshot;
+			const snapshot = window.__alasStable!.snapshot;
 			window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
 			window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ArrowUp' }));
 			const activeGait = snapshot().gait;
@@ -40,7 +40,7 @@ try {
 			results.push({
 				activeGait,
 				disposedGait: snapshot().gait,
-				snapshotRemoved: !window.__polana,
+				snapshotRemoved: !window.__alasStable,
 				canvasRemoved: !document.querySelector('#game'),
 			});
 		}

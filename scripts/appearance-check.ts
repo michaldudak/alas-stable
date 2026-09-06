@@ -13,7 +13,7 @@ try {
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.goto(BASE_URL);
 	await page.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	const click = (name: string) =>
 		page.getByRole('button', { name, exact: true }).click();
@@ -90,7 +90,7 @@ try {
 	const saved = await page.evaluate(
 		() =>
 			JSON.parse(
-				localStorage.getItem('polana-appearance') || '{}',
+				localStorage.getItem('alas-stable-appearance') || '{}',
 			) as Appearance,
 	);
 	assert.equal(saved.maneStyle, 'braided');
@@ -100,7 +100,7 @@ try {
 	await click('Wracamy na polanę');
 	await page.reload();
 	await page.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	await click('Wygląd konia');
 	for (const [tab, names] of [

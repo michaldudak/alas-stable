@@ -1,6 +1,6 @@
-# Końska Polana
+# Ala's Stable
 
-A browser prototype of a relaxed horse-riding game for children, built with Three.js, TypeScript 7, and Vite. Models are generated in code, and sounds are synthesized locally. The game requires no account or external services.
+**Stajnia Ali** in Polish. A browser prototype of a relaxed horse-riding game for children, built with Three.js, TypeScript 7, and Vite. Models are generated in code, and sounds are synthesized locally. The game requires no account or external services.
 
 ## Getting started
 

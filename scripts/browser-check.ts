@@ -12,49 +12,49 @@ try {
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.goto(BASE_URL);
 	await page.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	await page.screenshot({ path: 'artifacts/start.png' });
 	await page.keyboard.press('KeyS');
-	await page.waitForFunction(() => window.__polana!.snapshot().z > 24.5);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z > 24.5);
 	assert.equal(await page.locator('#gait').textContent(), 'Cofanie');
 	assert.equal(await page.locator('#slower').isDisabled(), true);
 	await page.keyboard.press('KeyW');
 	await page.waitForFunction(
-		() => Math.abs(window.__polana!.snapshot().speed) < 0.01,
+		() => Math.abs(window.__alasStable!.snapshot().speed) < 0.01,
 	);
 	assert.equal(await page.locator('#gait').textContent(), 'Postój');
 	await page.getByRole('button', { name: 'Do stajni', exact: true }).click();
-	const before = await page.evaluate(() => window.__polana!.snapshot());
+	const before = await page.evaluate(() => window.__alasStable!.snapshot());
 	await page.keyboard.press('ArrowUp');
 	await page.waitForTimeout(1100);
-	const moving = await page.evaluate(() => window.__polana!.snapshot());
+	const moving = await page.evaluate(() => window.__alasStable!.snapshot());
 	assert.equal(moving.gait, 1);
 	assert.ok(moving.z < before.z - 1);
 	await page.keyboard.down('ArrowUp');
 	await page.waitForTimeout(350);
 	await page.keyboard.up('ArrowUp');
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).gait,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).gait,
 		2,
 	);
 	await page.keyboard.press('Space');
 	await page.waitForTimeout(300);
 	assert.ok(
-		(await page.evaluate(() => window.__polana!.snapshot())).height > 0.5,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).height > 0.5,
 	);
 	await page.keyboard.press('KeyC');
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).firstPerson,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).firstPerson,
 		true,
 	);
 	await page.screenshot({ path: 'artifacts/first-person.png' });
 	await page.keyboard.press('Escape');
-	const paused = await page.evaluate(() => window.__polana!.snapshot());
+	const paused = await page.evaluate(() => window.__alasStable!.snapshot());
 	assert.equal(paused.paused, true);
 	await page.waitForTimeout(250);
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).z,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).z,
 		paused.z,
 	);
 	await page
@@ -64,7 +64,7 @@ try {
 	await page.keyboard.press('KeyC');
 	await page.getByRole('button', { name: 'Wygląd konia', exact: true }).click();
 	const previewPosition = await page.evaluate(() =>
-		window.__polana!.snapshot(),
+		window.__alasStable!.snapshot(),
 	);
 	const previewCanvas = page.locator('#horse-preview');
 	const originalPreview = await previewCanvas.screenshot();
@@ -98,7 +98,7 @@ try {
 		.click();
 	await page.screenshot({ path: 'artifacts/wardrobe.png' });
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).z,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).z,
 		previewPosition.z,
 	);
 	await page
@@ -106,7 +106,7 @@ try {
 		.click();
 	await page.reload();
 	await page.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	await page.getByRole('button', { name: 'Wygląd konia', exact: true }).click();
 	await page.getByRole('button', { name: 'Kolory', exact: true }).click();
@@ -123,24 +123,25 @@ try {
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__polana!.snapshot().z < 12);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z < 12);
 	await page.keyboard.press('Space');
-	await page.waitForFunction(() => window.__polana!.snapshot().z < 6);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z < 6);
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[0].down,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).obstacles[0]
+			.down,
 		0,
 	);
-	await page.waitForFunction(() => window.__polana!.snapshot().z < -9);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z < -9);
 	assert.ok(
-		(await page.evaluate(() => window.__polana!.snapshot())).obstacles[1].down >
-			0,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).obstacles[1]
+			.down > 0,
 	);
 	// Continue straight to the actual enclosure boundary, then jump out.
-	await page.waitForFunction(() => window.__polana!.snapshot().z < -34);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z < -34);
 	await page.keyboard.press('Space');
-	await page.waitForFunction(() => window.__polana!.snapshot().z < -41);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z < -41);
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).gait,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).gait,
 		3,
 	);
 	await page.screenshot({ path: 'artifacts/fence-jump.png' });
@@ -171,7 +172,7 @@ try {
 	);
 	await page.keyboard.press('Escape');
 	assert.equal(
-		(await page.evaluate(() => window.__polana!.snapshot())).paused,
+		(await page.evaluate(() => window.__alasStable!.snapshot())).paused,
 		false,
 	);
 	console.log(

@@ -1,10 +1,11 @@
+import { readStoredValue } from '../platform/storage.ts';
 import { en } from './en.ts';
 import { pl } from './pl.ts';
 
 export type Language = 'en' | 'pl';
 export type MessageKey = keyof typeof en;
 export type Parameters = Record<string, string>;
-export const LANGUAGE_STORAGE_KEY = 'polana.language';
+export const LANGUAGE_STORAGE_KEY = 'alas-stable.language';
 const catalogs = { en, pl };
 let language: Language = 'en';
 const listeners = new Set<() => void>();
@@ -25,7 +26,7 @@ export function detectLanguage(
 export function initializeLanguage() {
 	let saved: string | null = null;
 	try {
-		saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+		saved = readStoredValue(localStorage, LANGUAGE_STORAGE_KEY);
 	} catch {
 		/* Storage may be disabled. */
 	}

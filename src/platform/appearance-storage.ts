@@ -1,6 +1,7 @@
+import { readStoredValue } from './storage.ts';
 import { normalizeAppearance, type Appearance } from '../horse/appearance.ts';
 
-const STORAGE_KEY = 'polana-appearance';
+const STORAGE_KEY = 'alas-stable-appearance';
 type AppearanceStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 // Resolve storage lazily: some browsers throw merely when accessing localStorage.
@@ -14,7 +15,7 @@ export function createAppearanceStore(
 			try {
 				return normalizeAppearance({
 					...defaults,
-					...JSON.parse(storage().getItem(key) || '{}'),
+					...JSON.parse(readStoredValue(storage(), key) || '{}'),
 				});
 			} catch {
 				return normalizeAppearance(defaults);

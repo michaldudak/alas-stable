@@ -87,8 +87,8 @@ export function startGame() {
 		const store = createAppearanceStore(
 			undefined,
 			model === raven
-				? 'polana-appearance'
-				: 'polana-appearance-' + model.root.name,
+				? 'alas-stable-appearance'
+				: 'alas-stable-appearance-' + model.root.name,
 			model === raven ? {} : model.getAppearance(),
 		);
 		model.setAppearance(store.load());
@@ -804,7 +804,7 @@ export function startGame() {
 	});
 	// A read-only snapshot helps repeatable browser checks without altering gameplay.
 	if (import.meta.env.DEV)
-		window.__polana = {
+		window.__alasStable = {
 			snapshot: () => ({
 				...activeState(),
 				riding,
@@ -844,7 +844,7 @@ export function startGame() {
 			for (const entry of herd) entry.model.dispose();
 			disposeScene(scene);
 			renderer.dispose();
-			delete window.__polana;
+			delete window.__alasStable;
 			for (const dialog of dialogs) dialog.close();
 			app.replaceChildren();
 		},

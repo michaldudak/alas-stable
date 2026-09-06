@@ -9,25 +9,25 @@ try {
 	const errors: string[] = [];
 	page.on('pageerror', (e) => errors.push(e.message));
 	await page.goto(BASE_URL);
-	await page.waitForFunction(() => window.__polana?.snapshot().calls);
-	const state = () => page.evaluate(() => window.__polana!.snapshot());
+	await page.waitForFunction(() => window.__alasStable?.snapshot().calls);
+	const state = () => page.evaluate(() => window.__alasStable!.snapshot());
 	assert.equal(await page.locator('#lead').isDisabled(), true);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'on-foot',
+		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	assert.equal((await state()).horses[0].halter, true);
 	await page.keyboard.press('KeyL');
 	assert.equal((await state()).leading, true);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'mounted',
+		() => window.__alasStable!.snapshot().riding === 'mounted',
 	);
 	assert.equal((await state()).leading, false);
 	assert.equal((await state()).horses[0].halter, false);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'on-foot',
+		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	await page.keyboard.press('KeyL');
 	const start = await state();
@@ -61,7 +61,7 @@ try {
 	await page.locator('#home').click();
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'on-foot',
+		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	await page.locator('#lead').click();
 	assert.equal((await state()).leading, true);

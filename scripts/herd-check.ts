@@ -9,13 +9,13 @@ try {
 	const errors: string[] = [];
 	page.on('pageerror', (e) => errors.push(e.message));
 	await page.goto(BASE_URL);
-	await page.waitForFunction(() => window.__polana?.snapshot().calls);
-	const state = () => page.evaluate(() => window.__polana!.snapshot());
+	await page.waitForFunction(() => window.__alasStable?.snapshot().calls);
+	const state = () => page.evaluate(() => window.__alasStable!.snapshot());
 	async function stop() {
 		const gait = (await state()).gait;
 		for (let i = 0; i < gait; i++) await page.keyboard.press('ArrowDown');
 		await page.waitForFunction(
-			() => Math.abs(window.__polana!.snapshot().speed) < 0.01,
+			() => Math.abs(window.__alasStable!.snapshot().speed) < 0.01,
 		);
 	}
 	async function turn(angle: number) {
@@ -29,7 +29,7 @@ try {
 		await page.keyboard.down(key);
 		await page.waitForFunction(
 			({ angle }) => {
-				const h = window.__polana!.snapshot().heading;
+				const h = window.__alasStable!.snapshot().heading;
 				return (
 					Math.abs(Math.atan2(Math.sin(angle - h), Math.cos(angle - h))) < 0.035
 				);
@@ -45,7 +45,7 @@ try {
 		try {
 			await page.waitForFunction(
 				({ x, z, dx, dz, braking }) => {
-					const current = window.__polana!.snapshot();
+					const current = window.__alasStable!.snapshot();
 					return (
 						((x - current.x) * dx + (z - current.z) * dz) / Math.hypot(dx, dz) <
 						braking
@@ -73,7 +73,7 @@ try {
 	await go(-38, 6, 2);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'on-foot',
+		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	const parked = (await state()).horses.find((h) => h.name === 'Raven')!;
 	await go(-38, 2, 2);
@@ -81,7 +81,7 @@ try {
 	await go(-43, -3.15, 1);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'mounted',
+		() => window.__alasStable!.snapshot().riding === 'mounted',
 	);
 	assert.equal((await state()).activeHorse, 'FUKS');
 	assert.deepEqual(
@@ -105,7 +105,7 @@ try {
 	await page.screenshot({ path: 'artifacts/fuks-riding.jpg' });
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'on-foot',
+		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	const fuks = (await state()).horses.find((h) => h.name === 'FUKS')!;
 	// Approach the other side of Raven without passing through either horse.
@@ -113,7 +113,7 @@ try {
 	await go(parked.x + 1.65, parked.z, 1);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
-		() => window.__polana!.snapshot().riding === 'mounted',
+		() => window.__alasStable!.snapshot().riding === 'mounted',
 	);
 	assert.equal((await state()).activeHorse, 'Raven');
 	assert.deepEqual(
@@ -121,7 +121,7 @@ try {
 		fuks,
 	);
 	await page.reload();
-	await page.waitForFunction(() => window.__polana?.snapshot().calls);
+	await page.waitForFunction(() => window.__alasStable?.snapshot().calls);
 	assert.equal(
 		(await state()).horses.find((h) => h.name === 'FUKS')!.appearance.coat,
 		'#e6e0d2',

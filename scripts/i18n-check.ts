@@ -12,16 +12,16 @@ try {
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.goto(BASE_URL);
 	await page.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	assert.equal(await page.locator('html').getAttribute('lang'), 'en');
-	assert.equal(await page.title(), 'Horse Glade');
+	assert.equal(await page.title(), "Ala's Stable");
 	await page.keyboard.press('ArrowUp');
 	await page.getByRole('button', { name: 'Settings', exact: true }).click();
-	const before = await page.evaluate(() => window.__polana!.snapshot());
+	const before = await page.evaluate(() => window.__alasStable!.snapshot());
 	assert.equal(before.paused, true);
 	await page.getByLabel('Language', { exact: true }).selectOption('pl');
-	assert.equal(await page.title(), 'Końska Polana');
+	assert.equal(await page.title(), 'Stajnia Ali');
 	assert.equal(await page.locator('#gait').textContent(), 'Stęp');
 	assert.equal(
 		await page.locator('#hint strong').textContent(),
@@ -31,7 +31,7 @@ try {
 		await page.locator('#camera').getAttribute('aria-label'),
 		'Zza konia',
 	);
-	const after = await page.evaluate(() => window.__polana!.snapshot());
+	const after = await page.evaluate(() => window.__alasStable!.snapshot());
 	assert.equal(after.x, before.x);
 	assert.equal(after.z, before.z);
 	assert.deepEqual(after.horses, before.horses);
@@ -43,7 +43,7 @@ try {
 	);
 	await page.reload();
 	await page.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	assert.equal(await page.locator('html').getAttribute('lang'), 'pl');
 	await page.locator('#sound').click();
@@ -93,7 +93,7 @@ try {
 		const fresh = await browser.newPage({ locale });
 		await fresh.goto(BASE_URL);
 		await fresh.waitForFunction(
-			() => (window.__polana?.snapshot().calls ?? 0) > 0,
+			() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 		);
 		assert.equal(await fresh.locator('html').getAttribute('lang'), expected);
 		await fresh.close();
@@ -108,7 +108,7 @@ try {
 	});
 	await restricted.goto(BASE_URL);
 	await restricted.waitForFunction(
-		() => (window.__polana?.snapshot().calls ?? 0) > 0,
+		() => (window.__alasStable?.snapshot().calls ?? 0) > 0,
 	);
 	await restricted.locator('#settings').click();
 	await restricted.locator('#language').selectOption('en');

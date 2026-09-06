@@ -1,3 +1,4 @@
+import { readStoredValue } from './storage.ts';
 import { requireElement } from './dom.ts';
 import { stickAxis } from './gamepad.ts';
 
@@ -16,12 +17,12 @@ export function createTouchControls(root: HTMLElement, actions: TouchActions) {
 	const overlay = requireElement('#touch-controls', HTMLElement, root);
 	const modeSelect = requireElement('#touch-mode', HTMLSelectElement, root);
 	const coarse = matchMedia('(any-pointer: coarse)');
-	const storageKey = 'polana.touchControls';
+	const storageKey = 'alas-stable.touchControls';
 	let mode: TouchMode = 'auto';
 	let usingGamepad = false;
 	let touched = false;
 	try {
-		const saved = localStorage.getItem(storageKey);
+		const saved = readStoredValue(localStorage, storageKey);
 		if (saved === 'auto' || saved === 'on' || saved === 'off') mode = saved;
 	} catch {
 		/* Touch controls also work without storage. */

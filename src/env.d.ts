@@ -2,7 +2,7 @@ import type { Appearance } from './horse/appearance.ts';
 import type { GameState } from './game/types.ts';
 declare global {
 	interface Window {
-		__polana?: {
+		__alasStable?: {
 			snapshot: () => GameState & {
 				activeHorse: string;
 				leading: boolean;
