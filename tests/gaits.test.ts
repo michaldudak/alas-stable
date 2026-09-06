@@ -215,3 +215,32 @@ await test('hoof fore-aft velocity remains continuous at lift-off and touchdown'
 		}
 	}
 });
+
+await test('supporting forelegs stay nearly straight while airborne forelegs can fold', () => {
+	const horse = createHorse(),
+		animation = createHorseAnimation(horse),
+		controller = createGaitController();
+	let checked = 0;
+	for (const [gait, speed] of [
+		[1, 2.5],
+		[2, 5.5],
+		[3, 9],
+	])
+		for (let i = 0; i < 360; i++) {
+			const state = { gait, speed, jump: -1 };
+			const pose = controller.update(1 / 120, state);
+			animation.update(1 / 120, state, i / 120);
+			if (i < 120) continue;
+			for (const leg of [1, 3])
+				if (pose.feet[leg].lift < 0.0001) {
+					assert.ok(
+						horse.knees[leg].rotation.x < 0.43,
+						`Foreleg ${leg} should not crouch during support`,
+					);
+					checked++;
+				}
+		}
+	assert.ok(checked > 100);
+	animation.update(1 / 120, { gait: 2, speed: 5.5, jump: 0.45 }, 4);
+	assert.ok(horse.knees[1].rotation.x > 0.8);
+});

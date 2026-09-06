@@ -14,6 +14,7 @@ export function createHorseAnimation(horse: HorseModel) {
 			inverse.copy(horse.body.quaternion).invert();
 			horse.legs.forEach((leg, i) => {
 				const front = i % 2 === 1;
+				leg.position.y = 1.81;
 				const restZ = (front ? -0.01 : 0.13) + 0.035;
 				target.set(
 					leg.position.x + pose.feet[i].x,
@@ -24,6 +25,19 @@ export function createHorseAnimation(horse: HorseModel) {
 					.sub(horse.body.position)
 					.applyQuaternion(inverse)
 					.sub(leg.position);
+				if (front) {
+					// The shoulder slides with a supporting foreleg instead of forcing the carpus into a crouch.
+					const lift = THREE.MathUtils.clamp(pose.feet[i].lift / 0.22, 0, 1);
+					const support = 1 - lift * lift * (3 - 2 * lift);
+					const relaxedLength = 1.665;
+					const vertical = Math.sqrt(
+						Math.max(0, relaxedLength ** 2 - target.z ** 2 - target.x ** 2),
+					);
+					const shoulderRise =
+						THREE.MathUtils.clamp(vertical + target.y, 0, 0.32) * support;
+					leg.position.y += shoulderRise;
+					target.y -= shoulderRise;
+				}
 				const angles = solveLeg(
 					-Math.hypot(target.x, target.y),
 					target.z,
