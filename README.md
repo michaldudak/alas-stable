@@ -23,7 +23,7 @@ With a server running on port 5173, `node scripts/browser-check.ts` runs checks 
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries, model replacement, resource ownership, and development commands. See [DESIGN.md](DESIGN.md) for the design decisions and [AGENTS.md](AGENTS.md) for contributor workflow and language requirements.
 
-All developer content is written in English. Player-readable strings currently remain in Polish.
+All developer content is written in English. Player-readable content is available in Polish and English. On first launch the game chooses the first supported browser language, falling back to English. The Settings button opens a language selector; changes apply immediately without resetting the game and are remembered separately from horse appearances. If browser storage is unavailable, the choice lasts for the current session.
 
 ## Controls
 
@@ -33,7 +33,7 @@ All developer content is written in English. Player-readable strings currently r
 - E or the mount button: dismount from a stopped horse, or mount any nearby horse from its side. All five horses are rideable; the others wait at their locations and remain marked on the minimap. Both actions are animated; walls can block dismounting.
 - C: switch between third-person and first-person cameras. Drag the mouse to look around.
 - Escape: pause. Switching tabs or losing focus also pauses the game.
-- Icon buttons: sound, help, horse appearance, return to the stable, and fullscreen.
+- Icon buttons: settings, sound, help, horse appearance, return to the stable, and fullscreen.
 
 Audio starts after the first click or key press, as required by browsers. Each horse has its own appearance saved in localStorage; if storage is unavailable, changes still work for the current session.
 

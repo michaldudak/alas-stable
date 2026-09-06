@@ -7,6 +7,7 @@ await mkdir('artifacts', { recursive: true });
 const browser = await launchBrowser();
 try {
 	const page = await browser.newPage({
+		locale: 'pl-PL',
 		viewport: { width: 1440, height: 990 },
 	});
 	await page.route('**/gait-inspection', (route) =>

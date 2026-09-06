@@ -135,8 +135,8 @@ export function createWorld(scene: THREE.Scene) {
 		obstacles.push({ x, z, width, rails, down: 0 });
 	}
 	const stable = createStable(scene, solids);
-	sign(scene, 'TOR  →', -9, 26);
-	sign(scene, 'LAS  →', 39, 34, -0.3);
+	sign(scene, 'sign.arena', -9, 26);
+	sign(scene, 'sign.forest', 39, 34, -0.3);
 	let seed = 521;
 	const random = () => {
 		seed = (seed * 1664525 + 1013904223) >>> 0;

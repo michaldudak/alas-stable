@@ -1,119 +1,156 @@
-<canvas
-	id="game"
-	tabindex="0"
-	aria-label="Gra jeździecka 3D. Góra i dół zmieniają tempo, lewo i prawo skręcają, spacja to skok, E pozwala wsiąść lub zsiąść, L przypina i odpina lonżę, C zmienia kamerę, Escape zatrzymuje grę."
-></canvas>
+<canvas id="game" tabindex="0" aria-label="{{game.accessible}}"></canvas>
 <header>
 	<div class="brand">
 		<div class="brand-mark">
 			<i data-lucide="trees" aria-hidden="true"></i>
 		</div>
 		<div>
-			<h1>Końska Polana</h1>
-			<p>Mała wyprawa. Wielka przyjaźń.</p>
+			<h1>{{app.title}}</h1>
+			<p>{{app.tagline}}</p>
 		</div>
 	</div>
 	<div class="tools">
-		<button type="button" id="sound" title="Dźwięk" aria-label="Dźwięk">
+		<button
+			type="button"
+			id="settings"
+			title="{{settings.title}}"
+			aria-label="{{settings.title}}"
+		>
+			<i data-lucide="settings" aria-hidden="true"></i
+			><span>{{settings.title}}</span>
+		</button>
+		<button
+			type="button"
+			id="sound"
+			title="{{action.sound}}"
+			aria-label="{{action.sound}}"
+		>
 			<i data-lucide="volume-2" aria-hidden="true"></i
-			><span>Dźwięk</span></button
-		><button type="button" id="help" title="Pomoc" aria-label="Pomoc">
+			><span>{{action.sound}}</span></button
+		><button
+			type="button"
+			id="help"
+			title="{{action.help}}"
+			aria-label="{{action.help}}"
+		>
 			<i data-lucide="help-circle" aria-hidden="true"></i
-			><span>Pomoc</span></button
-		><button type="button" id="pause" title="Pauza (Esc)" aria-label="Pauza">
-			<i data-lucide="pause" aria-hidden="true"></i><span>Pauza</span
+			><span>{{action.help}}</span></button
+		><button
+			type="button"
+			id="pause"
+			title="{{action.pauseShortcut}}"
+			aria-label="{{action.pause}}"
+		>
+			<i data-lucide="pause" aria-hidden="true"></i><span>{{action.pause}}</span
 			><kbd>Esc</kbd>
 		</button>
 	</div>
 </header>
 <div class="location">
 	<i data-lucide="trees" aria-hidden="true"></i
-	><span id="location">Przy stadninie</span><span class="dot"></span> Swobodna
-	jazda
+	><span id="location">{{location.nearStable}}</span
+	><span class="dot"></span>{{game.freeRide}}
 </div>
 <aside class="side-tools">
 	<button
 		type="button"
 		id="lead"
-		title="Przypnij lonżę (L)"
-		aria-label="Przypnij lonżę"
+		title="{{action.attachLeadShortcut}}"
+		aria-label="{{action.attachLead}}"
 	>
-		<i data-lucide="link" aria-hidden="true"></i><span>Przypnij lonżę</span
-		><kbd>L</kbd>
+		<i data-lucide="link" aria-hidden="true"></i
+		><span>{{action.attachLead}}</span><kbd>L</kbd>
 	</button>
 	<button
 		type="button"
 		id="mount"
-		title="Zsiądź z konia (E)"
-		aria-label="Zsiądź z konia"
+		title="{{action.dismountShortcut}}"
+		aria-label="{{action.dismount}}"
 	>
 		<i data-lucide="footprints" aria-hidden="true"></i
-		><span>Zsiądź z konia</span><kbd>E</kbd>
+		><span>{{action.dismount}}</span><kbd>E</kbd>
 	</button>
 	<button
 		type="button"
 		id="camera"
-		title="Zza konia (C)"
-		aria-label="Zza konia"
+		title="{{camera.horseShortcut}}"
+		aria-label="{{camera.horse}}"
 	>
-		<i data-lucide="camera" aria-hidden="true"></i><span>Zza konia</span
+		<i data-lucide="camera" aria-hidden="true"></i><span>{{camera.horse}}</span
 		><kbd>C</kbd></button
 	><button
 		type="button"
 		id="wardrobe"
-		title="Wygląd konia"
-		aria-label="Wygląd konia"
+		title="{{action.appearance}}"
+		aria-label="{{action.appearance}}"
 	>
 		<i data-lucide="palette" aria-hidden="true"></i
-		><span>Wygląd konia</span></button
-	><button type="button" id="home" title="Do stajni" aria-label="Do stajni">
+		><span>{{action.appearance}}</span></button
+	><button
+		type="button"
+		id="home"
+		title="{{action.home}}"
+		aria-label="{{action.home}}"
+	>
 		<i data-lucide="rotate-ccw" aria-hidden="true"></i
-		><span>Do stajni</span></button
+		><span>{{action.home}}</span></button
 	><button
 		type="button"
 		id="fullscreen"
-		title="Pełny ekran"
-		aria-label="Pełny ekran"
+		title="{{action.fullscreen}}"
+		aria-label="{{action.fullscreen}}"
 	>
-		<i data-lucide="maximize" aria-hidden="true"></i><span>Pełny ekran</span>
+		<i data-lucide="maximize" aria-hidden="true"></i
+		><span>{{action.fullscreen}}</span>
 	</button>
 </aside>
 <div id="hint" class="hint">
 	<div class="hint-key">↑</div>
 	<div>
-		<strong>Ruszaj na małą wyprawę</strong>
-		<p>Naciśnij ↑ lub W. Koń sam utrzyma tempo.</p>
+		<strong>{{hint.startTitle}}</strong>
+		<p>{{hint.startBody}}</p>
 	</div>
 </div>
 <footer>
 	<div class="gait">
 		<div class="gait-label">
-			<span>Tempo</span><strong id="gait">Postój</strong>
+			<span>{{game.pace}}</span><strong id="gait">{{gait.stand}}</strong>
 		</div>
 		<div class="gait-steps" aria-hidden="true">
 			<b></b><b></b><b></b><b></b>
 		</div>
 		<div class="tempo-buttons">
-			<button type="button" id="slower" title="Wolniej" aria-label="Wolniej">
+			<button
+				type="button"
+				id="slower"
+				title="{{action.slower}}"
+				aria-label="{{action.slower}}"
+			>
 				<i data-lucide="arrow-down" aria-hidden="true"></i
-				><span>Wolniej</span></button
-			><button type="button" id="faster" title="Szybciej" aria-label="Szybciej">
-				<i data-lucide="arrow-up" aria-hidden="true"></i><span>Szybciej</span>
+				><span>{{action.slower}}</span></button
+			><button
+				type="button"
+				id="faster"
+				title="{{action.faster}}"
+				aria-label="{{action.faster}}"
+			>
+				<i data-lucide="arrow-up" aria-hidden="true"></i
+				><span>{{action.faster}}</span>
 			</button>
 		</div>
 	</div>
 	<div class="controls">
 		<div>
 			<div class="keys"><kbd>←</kbd><kbd>→</kbd></div>
-			<span>Skręcaj</span>
+			<span>{{action.steer}}</span>
 		</div>
 		<div>
 			<div class="keys"><kbd>↑</kbd><kbd>↓</kbd></div>
-			<span>Zmieniaj tempo</span>
+			<span>{{action.pace}}</span>
 		</div>
 		<button type="button" class="jump" id="jump">
-			<i data-lucide="corner-left-up" aria-hidden="true"></i><span>Skok</span
-			><kbd>Spacja</kbd>
+			<i data-lucide="corner-left-up" aria-hidden="true"></i
+			><span>{{action.jump}}</span><kbd>{{key.space}}</kbd>
 		</button>
 	</div>
 	<div class="map-wrap">
@@ -122,123 +159,150 @@
 			role="img"
 			width="180"
 			height="180"
-			aria-label="Mapa okolicy z pozycją konia"
+			aria-label="{{map.accessible}}"
 		></canvas
-		><span>Twoja okolica</span>
+		><span>{{map.title}}</span>
 	</div>
 </footer>
 <dialog id="pause-dialog">
-	<div class="dialog-top"><h2>Chwila odpoczynku</h2></div>
-	<p>Polana poczeka na Ciebie.</p>
+	<div class="dialog-top"><h2>{{pause.title}}</h2></div>
+	<p>{{pause.body}}</p>
 	<button type="button" id="resume" class="primary">
-		<i data-lucide="play" aria-hidden="true"></i> Wracamy do jazdy
+		<i data-lucide="play" aria-hidden="true"></i>{{pause.resume}}
 	</button>
 	<div class="mini-help">
-		<kbd>↑ ↓</kbd> tempo <kbd>← →</kbd> skręcanie <kbd>Spacja</kbd> skok
+		<kbd>↑ ↓</kbd>{{help.paceLabel}}<kbd>← →</kbd
+		>{{help.steerLabel}}<kbd>{{key.space}}</kbd>{{help.jumpLabel}}
 	</div>
 </dialog>
 <dialog id="help-dialog">
 	<div class="dialog-top">
-		<h2>Wskakuj na siodło</h2>
-		<button type="button" id="close-help" title="Zamknij" aria-label="Zamknij">
-			<i data-lucide="x" aria-hidden="true"></i><span>Zamknij</span>
+		<h2>{{help.title}}</h2>
+		<button
+			type="button"
+			id="close-help"
+			title="{{action.close}}"
+			aria-label="{{action.close}}"
+		>
+			<i data-lucide="x" aria-hidden="true"></i><span>{{action.close}}</span>
 		</button>
 	</div>
 	<div class="help-grid">
 		<div>
 			<kbd>L</kbd>
-			<h3>Poprowadź konia</h3>
-			<p>
-				Zsiądź i podejdź do boku konia. L przypina lonżę do kantara. Ruszaj, a
-				koń pójdzie za tobą. Ponowne L odpina linę.
-			</p>
+			<h3>{{help.leadTitle}}</h3>
+			<p>{{help.leadBody}}</p>
 		</div>
 		<div>
 			<kbd>↑</kbd><kbd>↓</kbd>
-			<h3>Wybierz tempo</h3>
-			<p>
-				Naciśnij i puść. Na postoju ↓ lub S włącza powolne cofanie. ↑ lub W
-				zatrzymuje cofanie.
-			</p>
+			<h3>{{help.paceTitle}}</h3>
+			<p>{{help.paceBody}}</p>
 		</div>
 		<div>
 			<kbd>←</kbd><kbd>→</kbd>
-			<h3>Skręcaj</h3>
-			<p>Przytrzymaj, żeby skręcić. Działa też WASD.</p>
+			<h3>{{action.steer}}</h3>
+			<p>{{help.steerBody}}</p>
 		</div>
 		<div>
-			<kbd>Spacja</kbd>
-			<h3>Przeskocz przeszkodę</h3>
-			<p>Skocz chwilę przed poprzeczką. Nie musisz trafić idealnie.</p>
+			<kbd>{{key.space}}</kbd>
+			<h3>{{help.jumpTitle}}</h3>
+			<p>{{help.jumpBody}}</p>
 		</div>
 		<div>
 			<kbd>C</kbd>
-			<h3>Rozejrzyj się</h3>
-			<p>Zmieniaj widok. Przeciągnij myszą po świecie, żeby się rozglądać.</p>
+			<h3>{{help.cameraTitle}}</h3>
+			<p>{{help.cameraBody}}</p>
 		</div>
 	</div>
 	<button type="button" id="help-play" class="primary">
-		<i data-lucide="play" aria-hidden="true"></i> Jedziemy
+		<i data-lucide="play" aria-hidden="true"></i>{{action.play}}
 	</button>
 </dialog>
 <dialog id="dress-dialog">
 	<div class="dialog-top">
 		<h2>Raven</h2>
-		<button type="button" id="close-dress" title="Zamknij" aria-label="Zamknij">
-			<i data-lucide="x" aria-hidden="true"></i><span>Zamknij</span>
+		<button
+			type="button"
+			id="close-dress"
+			title="{{action.close}}"
+			aria-label="{{action.close}}"
+		>
+			<i data-lucide="x" aria-hidden="true"></i><span>{{action.close}}</span>
 		</button>
 	</div>
-	<p>Obejrzyj z każdej strony i wybierz kolory.</p>
+	<p>{{appearance.body}}</p>
 	<div class="dress-layout">
 		<div class="horse-preview">
 			<canvas
 				id="horse-preview"
 				tabindex="0"
-				aria-label="Podgląd konia 3D. Przeciągnij, aby obrócić, użyj kółka myszy, aby przybliżyć. Strzałki również obracają i przybliżają."
+				aria-label="{{preview.accessible}}"
 			></canvas>
 			<div class="preview-tools">
 				<button
 					type="button"
 					id="preview-left"
-					title="Obróć w lewo"
-					aria-label="Obróć w lewo"
+					title="{{preview.left}}"
+					aria-label="{{preview.left}}"
 				>
 					<i data-lucide="arrow-left" aria-hidden="true"></i
-					><span>Obróć w lewo</span></button
+					><span>{{preview.left}}</span></button
 				><button
 					type="button"
 					id="preview-right"
-					title="Obróć w prawo"
-					aria-label="Obróć w prawo"
+					title="{{preview.right}}"
+					aria-label="{{preview.right}}"
 				>
 					<i data-lucide="arrow-right" aria-hidden="true"></i
-					><span>Obróć w prawo</span></button
-				><button type="button" id="preview-in" aria-label="Przybliż">+</button
-				><button type="button" id="preview-out" aria-label="Oddal">−</button
+					><span>{{preview.right}}</span></button
+				><button type="button" id="preview-in" aria-label="{{preview.in}}">
+					+</button
+				><button type="button" id="preview-out" aria-label="{{preview.out}}">
+					−</button
 				><button
 					type="button"
 					id="preview-reset"
-					title="Cały koń"
-					aria-label="Cały koń"
+					title="{{preview.reset}}"
+					aria-label="{{preview.reset}}"
 				>
 					<i data-lucide="rotate-ccw" aria-hidden="true"></i
-					><span>Cały koń</span>
+					><span>{{preview.reset}}</span>
 				</button>
 			</div>
-			<p>Przeciągnij, żeby obrócić · Kółko myszy przybliża</p>
+			<p>{{preview.help}}</p>
 			<button type="button" id="preview-rider" aria-pressed="false">
-				<i data-lucide="check" aria-hidden="true"></i> Pokaż jeźdźca
+				<i data-lucide="check" aria-hidden="true"></i>{{preview.rider}}
 			</button>
 		</div>
 		<div class="dress-options">
 			<div id="swatches"></div>
 			<button type="button" id="dress-play" class="primary">
-				<i data-lucide="play" aria-hidden="true"></i> Wracamy na polanę
+				<i data-lucide="play" aria-hidden="true"></i>{{appearance.back}}
 			</button>
 		</div>
 	</div>
 </dialog>
 <div id="error" hidden>
-	<h2>Nie udało się otworzyć świata 3D</h2>
-	<p>Spróbuj w aktualnej przeglądarce z włączoną akceleracją grafiki.</p>
+	<h2>{{error.title}}</h2>
+	<p>{{error.body}}</p>
 </div>
+
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+	<div class="dialog-top">
+		<h2 id="settings-title">{{settings.title}}</h2>
+		<button
+			type="button"
+			id="close-settings"
+			aria-label="{{action.close}}"
+			title="{{action.close}}"
+		>
+			<i data-lucide="x" aria-hidden="true"></i>
+		</button>
+	</div>
+	<p>{{settings.body}}</p>
+	<label class="language-setting" for="language">{{settings.language}}</label
+	><select id="language">
+		<option value="en" lang="en">{{language.en}}</option>
+		<option value="pl" lang="pl">{{language.pl}}</option>
+	</select>
+</dialog>

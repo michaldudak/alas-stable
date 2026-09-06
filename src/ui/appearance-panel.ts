@@ -1,3 +1,4 @@
+import { t, type MessageKey } from '../i18n/index.ts';
 import { createAppearanceStore } from '../platform/appearance-storage.ts';
 import type { HorseModel } from '../horse/types.ts';
 import type { Appearance } from '../horse/appearance.ts';
@@ -183,20 +184,20 @@ export function setupAppearancePanel(
 	}
 	const nav = document.createElement('div');
 	nav.className = 'appearance-nav';
-	nav.setAttribute('aria-label', 'Sekcje wyglądu konia');
+	nav.setAttribute('aria-label', t('appearance.sections'));
 	const panels: Record<
 		string,
 		{ panel: HTMLDivElement; button: HTMLButtonElement }
 	> = {};
 	for (const [id, label] of [
-		['colors', 'Kolory'],
-		['hair', 'Fryzury'],
-		['ornaments', 'Ozdoby'],
-		['cloth', 'Czaprak'],
-	]) {
+		['colors', 'appearance.colors'],
+		['hair', 'appearance.hair'],
+		['ornaments', 'appearance.ornaments'],
+		['cloth', 'appearance.cloth'],
+	] as const) {
 		const button = document.createElement('button');
 		button.type = 'button';
-		button.textContent = label;
+		button.textContent = t(label);
 		button.setAttribute('aria-pressed', String(id === 'colors'));
 		button.setAttribute('aria-controls', `appearance-${id}`);
 		const panel = document.createElement('div');
@@ -213,10 +214,10 @@ export function setupAppearancePanel(
 		panels[id] = { panel, button };
 	}
 	container.append(nav, ...Object.values(panels).map((entry) => entry.panel));
-	function section(panel: string, title: string) {
+	function section(panel: string, title: MessageKey) {
 		const group = document.createElement('section'),
 			heading = document.createElement('h3');
-		heading.textContent = title;
+		heading.textContent = t(title);
 		group.append(heading);
 		panels[panel].panel.append(group);
 		return group;
@@ -230,16 +231,20 @@ export function setupAppearancePanel(
 		controls.push([button, key, value]);
 		return button;
 	}
-	const ridingGroup = section('colors', 'Jazda');
+	const ridingGroup = section('colors', 'appearance.riding');
 	const ridingOptions = document.createElement('div');
 	ridingOptions.className = 'picture-options';
 	for (const [value, name] of styleOptions.equipment) {
-		const button = optionControl('equipment', value, 'Jazda: ' + name);
+		const button = optionControl(
+			'equipment',
+			value,
+			`${t('appearance.riding')}: ${t(name)}`,
+		);
 		const canvas = document.createElement('canvas'),
 			label = document.createElement('span');
 		canvas.setAttribute('aria-hidden', 'true');
 		thumbnail(canvas, 'equipment', value);
-		label.textContent = name;
+		label.textContent = t(name);
 		button.append(canvas, label);
 		ridingOptions.append(button);
 	}
@@ -256,30 +261,30 @@ export function setupAppearancePanel(
 		const row = document.createElement('div');
 		row.className = 'swatch-row';
 		colors.forEach((color, i) => {
-			const button = optionControl(key, color, `${label}: ${names[i]}`);
+			const button = optionControl(key, color, `${t(label)}: ${t(names[i])}`);
 			button.className = 'swatch';
 			button.style.setProperty('--swatch', color);
-			button.title = names[i];
+			button.title = t(names[i]);
 			row.append(button);
 		});
 		group.append(row);
 	}
 	for (const [key, label, panel] of [
-		['maneStyle', 'Grzywa', 'hair'],
-		['tailStyle', 'Ogon', 'hair'],
-		['ornament', 'Ozdoba', 'ornaments'],
-		['pattern', 'Wzór czapraka', 'cloth'],
+		['maneStyle', 'appearance.mane', 'hair'],
+		['tailStyle', 'appearance.tail', 'hair'],
+		['ornament', 'appearance.ornament', 'ornaments'],
+		['pattern', 'appearance.pattern', 'cloth'],
 	] as const) {
 		const group = section(panel, label),
 			row = document.createElement('div');
 		row.className = 'picture-options';
 		for (const [value, title] of styleOptions[key]) {
-			const button = optionControl(key, value, `${label}: ${title}`),
+			const button = optionControl(key, value, `${t(label)}: ${t(title)}`),
 				canvas = document.createElement('canvas'),
 				text = document.createElement('span');
 			canvas.setAttribute('aria-hidden', 'true');
 			thumbnail(canvas, key, value);
-			text.textContent = title;
+			text.textContent = t(title);
 			button.append(canvas, text);
 			row.append(button);
 		}

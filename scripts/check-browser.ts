@@ -45,6 +45,7 @@ try {
 		});
 	});
 	for (const script of [
+		'i18n-check',
 		'browser-check',
 		'appearance-check',
 		'bareback-check',

@@ -1,31 +1,32 @@
+import type { MessageKey } from '../i18n/index.ts';
 export const styleOptions = {
 	equipment: [
-		['saddled', 'W siodle'],
-		['bareback', 'Na oklep'],
+		['saddled', 'equipment.saddled'],
+		['bareback', 'equipment.bareback'],
 	],
 	maneStyle: [
-		['short', 'Krótka'],
-		['long', 'Długa'],
-		['braided', 'Zapleciona'],
+		['short', 'mane.short'],
+		['long', 'mane.long'],
+		['braided', 'mane.braided'],
 	],
 	tailStyle: [
-		['short', 'Krótki'],
-		['long', 'Długi'],
-		['braided', 'Zapleciony'],
+		['short', 'tail.short'],
+		['long', 'tail.long'],
+		['braided', 'tail.braided'],
 	],
 	ornament: [
-		['none', 'Bez ozdoby'],
-		['flower', 'Kwiaty'],
-		['bow', 'Kokarda'],
-		['ribbons', 'Wstążki'],
+		['none', 'ornament.none'],
+		['flower', 'ornament.flower'],
+		['bow', 'ornament.bow'],
+		['ribbons', 'ornament.ribbons'],
 	],
 	pattern: [
-		['plain', 'Gładki'],
-		['dots', 'Kropki'],
-		['stripes', 'Paski'],
-		['stars', 'Gwiazdki'],
+		['plain', 'pattern.plain'],
+		['dots', 'pattern.dots'],
+		['stripes', 'pattern.stripes'],
+		['stars', 'pattern.stars'],
 	],
-};
+} as const;
 export type ColorKey = 'coat' | 'hair' | 'cloth' | 'leather' | 'ornamentColor';
 export type StyleKey = keyof typeof styleOptions;
 export interface Appearance extends Record<ColorKey, string> {
@@ -35,36 +36,36 @@ export interface Appearance extends Record<ColorKey, string> {
 	pattern: 'plain' | 'dots' | 'stripes' | 'stars';
 	equipment: 'saddled' | 'bareback';
 }
-export const colorOptions: [ColorKey, string, string[], string[]][] = [
+export const colorOptions: [ColorKey, MessageKey, string[], MessageKey[]][] = [
 	[
 		'coat',
-		'Maść',
+		'appearance.coat',
 		['#aa6941', '#e1c39a', '#665046', '#e6e0d2', '#343330'],
-		['Kasztanowa', 'Jasna', 'Gniada', 'Siwa', 'Kara'],
+		['coat.chestnut', 'coat.light', 'coat.bay', 'coat.gray', 'coat.black'],
 	],
 	[
 		'hair',
-		'Grzywa i ogon',
+		'appearance.hairColor',
 		['#47332d', '#d7b879', '#e9e3d1', '#8d5236'],
-		['Ciemna', 'Złota', 'Biała', 'Ruda'],
+		['hair.dark', 'hair.gold', 'hair.white', 'hair.red'],
 	],
 	[
 		'cloth',
-		'Czaprak',
+		'appearance.cloth',
 		['#437f79', '#b75f59', '#b3a45a', '#7275a3', '#d5ba94'],
-		['Morski', 'Czerwony', 'Oliwkowy', 'Fioletowy', 'Kremowy'],
+		['color.teal', 'color.red', 'color.olive', 'color.purple', 'color.cream'],
 	],
 	[
 		'leather',
-		'Siodło',
+		'appearance.saddle',
 		['#60432c', '#343330', '#a17448'],
-		['Brązowe', 'Czarne', 'Jasne'],
+		['leather.brown', 'leather.black', 'leather.light'],
 	],
 	[
 		'ornamentColor',
-		'Kolor ozdób',
+		'appearance.ornamentColor',
 		['#e9be5f', '#c55e6e', '#7296bb', '#9982b6', '#eee4ce'],
-		['Złoty', 'Różowy', 'Niebieski', 'Fioletowy', 'Kremowy'],
+		['color.gold', 'color.pink', 'color.blue', 'color.purple', 'color.cream'],
 	],
 ];
 

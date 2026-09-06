@@ -4,7 +4,7 @@ import { BASE_URL, launchBrowser } from './browser-support.ts';
 
 const browser = await launchBrowser();
 try {
-	const page = await browser.newPage();
+	const page = await browser.newPage({ locale: 'pl-PL' });
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(error.message));
 	await page.route('**/lifecycle-inspection', (route) =>

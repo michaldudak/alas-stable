@@ -8,7 +8,12 @@ import {
 	WORLD_RADIUS,
 	HORSE_COLLISION_RADIUS,
 } from './tuning.ts';
-export const GAITS = ['Postój', 'Stęp', 'Kłus', 'Galop'];
+export const GAITS = [
+	'gait.stand',
+	'gait.walk',
+	'gait.trot',
+	'gait.canter',
+] as const;
 export function createState(): GameState {
 	return {
 		x: 0,

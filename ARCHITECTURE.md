@@ -71,3 +71,11 @@ Oxlint and `oxlint-tsgolint` provide native type-aware linting; there is no TS 6
 CI installs the pinned pnpm version, caches its store, uses a frozen lockfile, and runs the checks, build and browser suite with Chromium on Node 24, and uploads screenshots. Unit tests cover gameplay, rig motion, camera collision, storage failure/migration and resource disposal. Browser checks cover movement, jumps, pause, cameras, all appearance variants, persistence, stable navigation, compact layouts and repeated start/dispose cycles.
 
 The production Three.js chunk currently exceeds Vite's default 500 kB warning threshold, as it did in the prototype. Keep the warning visible and profile real loading/rendering costs before adding code splitting or increasing the limit.
+
+## Localization
+
+`src/i18n/en.ts` and `src/i18n/pl.ts` contain player-readable messages. Add matching semantic keys to both catalogs; TypeScript enforces Polish catalog coverage. Use `t(key, parameters)` for dynamic text and `{{key}}` placeholders in `src/ui/shell.html`. Interpolated values are written as text rather than HTML. Horse names and saved appearance IDs remain language-independent.
+
+`src/i18n/index.ts` selects a supported browser language on first launch, uses English as fallback, and stores explicit Settings choices under `polana.language`. Language changes refresh shell text, dynamic hints, appearance controls, document metadata and canvas signs without restarting gameplay. Sign textures unsubscribe when disposed; the application removes its language listener during teardown. The initial HTML title comes from the English catalog through Vite.
+
+`tests/i18n.test.ts` checks locale matching, catalog coverage and message parameters. `scripts/i18n-check.ts` covers live switching, preserved state, reload persistence, storage failure and compact Settings layout. Existing gameplay browser fixtures explicitly select Polish.

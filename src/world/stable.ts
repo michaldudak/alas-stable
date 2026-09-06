@@ -1,3 +1,4 @@
+import { t, onLanguageChange, type MessageKey } from '../i18n/index.ts';
 import type { HorseModel } from '../horse/types.ts';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import type { Solid } from '../game/types.ts';
@@ -77,18 +78,31 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		canvas.width = 512;
 		canvas.height = 128;
 		const ctx = context2d(canvas);
-		ctx.fillStyle = '#344b40';
-		ctx.fillRect(0, 0, 512, 128);
-		ctx.strokeStyle = '#cfb47b';
-		ctx.lineWidth = 7;
-		ctx.strokeRect(9, 9, 494, 110);
-		ctx.fillStyle = '#fff2d4';
-		ctx.font = '600 42px sans-serif';
-		ctx.textAlign = 'center';
-		ctx.textBaseline = 'middle';
-		ctx.fillText(text, 256, 66);
+		const draw = () => {
+			ctx.fillStyle = '#344b40';
+			ctx.fillRect(0, 0, 512, 128);
+			ctx.strokeStyle = '#cfb47b';
+			ctx.lineWidth = 7;
+			ctx.strokeRect(9, 9, 494, 110);
+			ctx.fillStyle = '#fff2d4';
+			ctx.font = '600 42px sans-serif';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(
+				text.startsWith('sign.') ? t(text as MessageKey) : text,
+				256,
+				66,
+				470,
+			);
+		};
+		draw();
 		const texture = new THREE.CanvasTexture(canvas);
 		texture.colorSpace = THREE.SRGBColorSpace;
+		const unsubscribe = onLanguageChange(() => {
+			draw();
+			texture.needsUpdate = true;
+		});
+		texture.addEventListener('dispose', unsubscribe);
 		const object = new THREE.Mesh(
 			new THREE.BoxGeometry(width, width / 4, 0.06),
 			new THREE.MeshStandardMaterial({ map: texture }),
@@ -313,7 +327,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		label(name, [side * 3.53, 2.05, z + 2.8], 1.6, (-side * Math.PI) / 2);
 	}
 	// Tack room: wall-mounted saddle racks, bridles, folded pads and grooming kit.
-	label('SIODLARNIA', [3.55, 4.1, 7], 3.2, -Math.PI / 2);
+	label('sign.tack', [3.55, 4.1, 7], 3.2, -Math.PI / 2);
 	box('#d0c2a5', [7.9, 0.035, 9.6], [7.8, -0.005, 8]);
 	for (const z of [4.8, 7.8, 10.6]) {
 		box('#6b5139', [0.15, 0.6, 0.15], [11.55, 2.7, z]);
@@ -349,8 +363,8 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 	for (let i = 0; i < 4; i++)
 		box('#bc995d', [0.14, 0.25, 0.13], [4.65 + i * 0.22, 0.61, 4]);
 	solids.push({ x: STABLE.x + 5, z: STABLE.z + 4, w: 1.1, d: 0.65 });
-	label('KOŃSKA POLANA', [0, 6.55, 13.23], 6.5);
-	label('SIODLARNIA  →', [0, 4.7, 4], 3.4);
+	label('sign.glade', [0, 6.55, 13.23], 6.5);
+	label('sign.tackDirection', [0, 4.7, 4], 3.4);
 	// Hay storage outside the entrance, clear of the driveway.
 	for (let i = 0; i < 4; i++)
 		box(

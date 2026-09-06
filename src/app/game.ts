@@ -1,3 +1,13 @@
+import {
+	t,
+	initializeLanguage,
+	bindTranslations,
+	getLanguage,
+	setLanguage,
+	onLanguageChange,
+	type MessageKey,
+	type Parameters,
+} from '../i18n/index.ts';
 import { stepLedHorse, leadPathClear, LEAD_LENGTH } from '../game/leading.ts';
 import { createLeadRope } from '../rendering/lead-rope.ts';
 import { horseBarrier, nearbyMount } from '../game/herd.ts';
@@ -31,7 +41,9 @@ import { locationName, isSand } from '../world/locations.ts';
 export function startGame() {
 	const events = new AbortController();
 	const app = requireElement('#app', HTMLElement);
+	initializeLanguage();
 	app.innerHTML = shell;
+	const refreshShell = bindTranslations(app);
 	refreshIcons();
 	const canvas = requireElement('#game', HTMLCanvasElement);
 	let renderer;
@@ -143,6 +155,7 @@ export function startGame() {
 		dialog('pause-dialog'),
 		dialog('help-dialog'),
 		dialog('dress-dialog'),
+		dialog('settings-dialog'),
 	];
 	function focusGame() {
 		canvas.focus({ preventScroll: true });
@@ -165,14 +178,36 @@ export function startGame() {
 	function pause() {
 		if (!dialogs.some((d) => d.open)) showDialog(dialog('pause-dialog'));
 	}
-	function hint(title: string, subtitle: string, duration = 4) {
-		requireElement('#hint strong', HTMLElement).textContent = title;
-		requireElement('#hint p', HTMLElement).textContent = subtitle;
+	let currentHint: {
+		title: MessageKey;
+		subtitle: MessageKey;
+		parameters: Parameters;
+	} = { title: 'hint.startTitle', subtitle: 'hint.startBody', parameters: {} };
+	function renderHint() {
+		requireElement('#hint strong', HTMLElement).textContent = t(
+			currentHint.title,
+			currentHint.parameters,
+		);
+		requireElement('#hint p', HTMLElement).textContent = t(
+			currentHint.subtitle,
+			currentHint.parameters,
+		);
+	}
+	function hint(
+		title: MessageKey,
+		subtitle: MessageKey,
+		duration = 4,
+		parameters: Parameters = {},
+	) {
+		currentHint = { title, subtitle, parameters };
+		renderHint();
 		hintUntil = elapsed + duration;
 		$('hint').classList.remove('hidden');
 	}
 	function updateGait() {
-		const leadLabel = leading ? 'Odepnij lonżę' : 'Przypnij lonżę';
+		const leadLabel = leading
+			? t('action.releaseLead')
+			: t('action.attachLead');
 		requireElement('#lead span', HTMLElement).textContent = leadLabel;
 		$('lead').setAttribute('aria-label', leadLabel);
 		$('lead').setAttribute('aria-pressed', String(leading));
@@ -180,19 +215,30 @@ export function startGame() {
 		requireElement('#lead', HTMLButtonElement).disabled = riding !== 'on-foot';
 		const active = activeState();
 		requireElement('#camera span', HTMLElement).textContent = firstPerson
-			? 'Oczami jeźdźca'
+			? t('camera.firstPerson')
 			: riding === 'mounted'
-				? 'Zza konia'
-				: 'Za jeźdźcem';
+				? t('camera.horse')
+				: t('camera.rider');
+		const cameraLabel = requireElement(
+			'#camera span',
+			HTMLElement,
+		).textContent!;
+		$('camera').setAttribute('aria-label', cameraLabel);
+		$('camera').title = cameraLabel + ' (C)';
 		$('gait').textContent =
 			riding === 'mounted'
 				? state.gait === -1
-					? 'Cofanie'
-					: GAITS[state.gait]
+					? t('gait.reverse')
+					: t(GAITS[state.gait])
 				: active.gait === -1
-					? 'Cofanie'
-					: ['Postój', 'Chód', 'Bieg'][active.gait];
-		const label = riding === 'mounted' ? 'Zsiądź z konia' : 'Wsiądź na konia';
+					? t('gait.reverse')
+					: t(
+							(['gait.stand', 'gait.personWalk', 'gait.run'] as const)[
+								active.gait
+							],
+						);
+		const label =
+			riding === 'mounted' ? t('action.dismount') : t('action.mount');
 		requireElement('#mount span', HTMLElement).textContent = label;
 		$('mount').setAttribute('aria-label', label);
 		$('mount').title = label + ' (E)';
@@ -213,11 +259,7 @@ export function startGame() {
 		updateGait();
 		if (!started && riding === 'mounted' && state.gait) {
 			started = true;
-			hint(
-				'Świetnie! Teraz wybierz swoją drogę.',
-				'← → skręcaj · Spacja — skok',
-				6,
-			);
+			hint('hint.startedTitle', 'hint.startedBody', 6);
 		}
 	}
 	function toggleCamera() {
@@ -226,11 +268,12 @@ export function startGame() {
 		walker.root.visible = !firstPerson && riding !== 'mounted';
 		input.resetLook();
 		requireElement('#camera span', HTMLElement).textContent = firstPerson
-			? 'Oczami jeźdźca'
+			? t('camera.firstPerson')
 			: riding === 'mounted'
-				? 'Zza konia'
-				: 'Za jeźdźcem';
+				? t('camera.horse')
+				: t('camera.rider');
 		$('camera').setAttribute('aria-pressed', String(firstPerson));
+		updateGait();
 		updateCamera(1, true);
 	}
 	function jump() {
@@ -248,15 +291,12 @@ export function startGame() {
 		if (leading) {
 			releaseLead();
 			updateGait();
-			hint('Lonża odpięta', selected.name + ' czeka tutaj.');
+			hint('hint.released', 'hint.waiting', 4, { name: selected.name });
 			return;
 		}
 		const target = nearbyMount(herd, person, world.solids);
 		if (!target) {
-			hint(
-				'Podejdź do boku konia',
-				'Naciśnij L, żeby przypiąć lonżę do kantara.',
-			);
+			hint('hint.approach', 'hint.attach');
 			return;
 		}
 		selectHorse(target.horse);
@@ -264,10 +304,7 @@ export function startGame() {
 		state.gait = 0;
 		state.speed = 0;
 		updateGait();
-		hint(
-			'Na lonży: ' + selected.name,
-			'Ruszaj, a koń pójdzie za tobą. L — odepnij lonżę.',
-		);
+		hint('hint.leading', 'hint.follow', 4, { name: selected.name });
 	}
 	function mount() {
 		if (transferring()) return;
@@ -275,16 +312,13 @@ export function startGame() {
 			riding === 'mounted' &&
 			(state.gait !== 0 || Math.abs(state.speed) > 0.12 || state.jump >= 0)
 		) {
-			hint('Najpierw zatrzymaj konia', 'Zsiądziemy bezpiecznie na postoju.');
+			hint('hint.stopTitle', 'hint.stopBody');
 			return;
 		}
 		if (riding === 'on-foot') {
 			const target = nearbyMount(herd, person, world.solids);
 			if (!target) {
-				hint(
-					'Podejdź do boku konia',
-					'Wybierz konia w stajni lub wróć do tego, którego zostawiono.',
-				);
+				hint('hint.approach', 'hint.chooseHorse');
 				return;
 			}
 			releaseLead();
@@ -296,10 +330,7 @@ export function startGame() {
 			riding === 'on-foot' ? person : undefined,
 		);
 		if (!side) {
-			hint(
-				'Tutaj jest za mało miejsca',
-				'Spróbuj po drugiej stronie lub odsuń się od ściany.',
-			);
+			hint('hint.spaceTitle', 'hint.spaceBody');
 			return;
 		}
 		releaseLead();
@@ -357,12 +388,10 @@ export function startGame() {
 			walker.root.visible = !firstPerson && riding === 'on-foot';
 			updateGait();
 			hint(
-				riding === 'mounted'
-					? 'Na koniu: ' + selected.name
-					: 'Spacer po polanie',
-				riding === 'mounted'
-					? '↑ wybierz tempo'
-					: '↑ chód lub bieg · ↓ cofaj · E wsiądź · L lonża',
+				riding === 'mounted' ? 'hint.mounted' : 'hint.walkTitle',
+				riding === 'mounted' ? 'hint.mountedBody' : 'hint.walkBody',
+				4,
+				{ name: selected.name },
 			);
 		}
 	}
@@ -390,7 +419,7 @@ export function startGame() {
 		updateGait();
 		updateCamera(1, true);
 		focusGame();
-		hint('Z powrotem przy stajni', 'Dokąd teraz pojedziemy?');
+		hint('hint.homeTitle', 'hint.homeBody');
 	}
 	$('faster').onclick = () => {
 		tempo(1);
@@ -419,6 +448,14 @@ export function startGame() {
 	$('home').onclick = home;
 	$('pause').onclick = pause;
 	$('resume').onclick = () => closeDialog(dialog('pause-dialog'));
+	$('settings').onclick = () => showDialog(dialog('settings-dialog'));
+	$('close-settings').onclick = () => closeDialog(dialog('settings-dialog'));
+	const languageSelect = requireElement('#language', HTMLSelectElement);
+	languageSelect.value = getLanguage();
+	languageSelect.onchange = () => {
+		if (languageSelect.value === 'en' || languageSelect.value === 'pl')
+			setLanguage(languageSelect.value);
+	};
 	$('help').onclick = () => showDialog(dialog('help-dialog'));
 	for (const id of ['close-help', 'help-play'])
 		$(id).onclick = () => closeDialog(dialog('help-dialog'));
@@ -438,7 +475,7 @@ export function startGame() {
 	$('sound').onclick = () => {
 		audio.enabled = !audio.enabled;
 		$('sound').innerHTML =
-			`${icon(audio.enabled ? 'volume-2' : 'volume-x')}<span>Dźwięk</span>`;
+			`${icon(audio.enabled ? 'volume-2' : 'volume-x')}<span>${t('action.sound')}</span>`;
 		$('sound').setAttribute('aria-pressed', String(audio.enabled));
 		refreshIcons();
 		focusGame();
@@ -449,7 +486,7 @@ export function startGame() {
 			if (document.fullscreenElement) await document.exitFullscreen();
 			else await document.documentElement.requestFullscreen();
 		} catch {
-			hint('Pełny ekran jest niedostępny', 'Możesz dalej jeździć w tym oknie.');
+			hint('hint.fullscreenTitle', 'hint.fullscreenBody');
 		}
 		focusGame();
 	};
@@ -500,6 +537,22 @@ export function startGame() {
 		world,
 	);
 
+	const unsubscribeLanguage = onLanguageChange(() => {
+		refreshShell();
+		languageSelect.value = getLanguage();
+		updateGait();
+		renderHint();
+		$('location').textContent = t(
+			locationName(activeState().x, activeState().z),
+		);
+		requireElement('#sound span', HTMLElement).textContent = t('action.sound');
+		setupAppearancePanel(
+			$('swatches'),
+			horse,
+			selected.store,
+			horse.getAppearance(),
+		);
+	});
 	updateGait();
 	updateCamera(1, true);
 	focusGame();
@@ -523,10 +576,7 @@ export function startGame() {
 				])
 			) {
 				audio.tone(170, 0.18, 0.07, 65, 'triangle');
-				hint(
-					'Poprzeczka zaraz wróci na miejsce',
-					'Spróbuj nacisnąć spację przed przeszkodą.',
-				);
+				hint('hint.railTitle', 'hint.railBody');
 			}
 			const previousPerson = { ...person };
 			const barriers = [
@@ -549,11 +599,7 @@ export function startGame() {
 						gait: 0,
 						speed: 0,
 					});
-					if (!leadBlocked)
-						hint(
-							'Poczekaj na konia',
-							'Omiń przeszkodę szerzej lub wróć kilka kroków.',
-						);
+					if (!leadBlocked) hint('hint.waitTitle', 'hint.waitBody');
 				}
 				leadBlocked = taut;
 				leadTurn = stepLedHorse(state, person, dt, barriers);
@@ -593,7 +639,7 @@ export function startGame() {
 				isSand(active.x, active.z),
 				riding === 'mounted' ? footfalls : 0,
 			);
-			$('location').textContent = locationName(active.x, active.z);
+			$('location').textContent = t(locationName(active.x, active.z));
 			$('hint').classList.toggle('hidden', elapsed > hintUntil);
 		}
 		for (const entry of herd) {
@@ -644,6 +690,7 @@ export function startGame() {
 			disposed = true;
 			renderer.setAnimationLoop(null);
 			events.abort();
+			unsubscribeLanguage();
 			input.dispose();
 			preview.dispose();
 			audio.dispose();

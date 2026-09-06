@@ -1,3 +1,4 @@
+import { t, onLanguageChange, type MessageKey } from '../i18n/index.ts';
 import * as THREE from 'three';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import { context2d } from '../platform/dom.ts';
@@ -79,18 +80,31 @@ export function sign(
 	canvas.width = 512;
 	canvas.height = 128;
 	const ctx = context2d(canvas);
-	ctx.fillStyle = '#f5ebcf';
-	ctx.fillRect(0, 0, 512, 128);
-	ctx.strokeStyle = '#755334';
-	ctx.lineWidth = 10;
-	ctx.strokeRect(5, 5, 502, 118);
-	ctx.fillStyle = '#35503c';
-	ctx.font = '600 43px sans-serif';
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-	ctx.fillText(text, 256, 66);
+	const draw = () => {
+		ctx.fillStyle = '#f5ebcf';
+		ctx.fillRect(0, 0, 512, 128);
+		ctx.strokeStyle = '#755334';
+		ctx.lineWidth = 10;
+		ctx.strokeRect(5, 5, 502, 118);
+		ctx.fillStyle = '#35503c';
+		ctx.font = '600 43px sans-serif';
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'middle';
+		ctx.fillText(
+			text.startsWith('sign.') ? t(text as MessageKey) : text,
+			256,
+			66,
+			470,
+		);
+	};
+	draw();
 	const texture = new THREE.CanvasTexture(canvas);
 	texture.colorSpace = THREE.SRGBColorSpace;
+	const unsubscribe = onLanguageChange(() => {
+		draw();
+		texture.needsUpdate = true;
+	});
+	texture.addEventListener('dispose', unsubscribe);
 	const mesh = new THREE.Mesh(
 		new THREE.BoxGeometry(5, 1.25, 0.15),
 		new THREE.MeshStandardMaterial({ map: texture }),

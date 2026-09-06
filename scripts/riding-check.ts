@@ -3,6 +3,7 @@ import { BASE_URL, launchBrowser } from './browser-support.ts';
 const browser = await launchBrowser();
 try {
 	const page = await browser.newPage({
+		locale: 'pl-PL',
 		viewport: { width: 1440, height: 900 },
 	});
 	const errors: string[] = [];
