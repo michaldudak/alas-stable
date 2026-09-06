@@ -483,15 +483,41 @@ export function startGame() {
 		focusGame();
 	};
 	$('sound').setAttribute('aria-pressed', 'true');
-	$('fullscreen').onclick = async () => {
+	const fullscreenButtons = [
+		'fullscreen',
+		'pause-fullscreen',
+		'settings-fullscreen',
+	];
+	const fullscreenStatuses = [
+		'pause-fullscreen-status',
+		'settings-fullscreen-status',
+	];
+	async function toggleFullscreen() {
 		try {
 			if (document.fullscreenElement) await document.exitFullscreen();
 			else await document.documentElement.requestFullscreen();
+			for (const id of fullscreenStatuses) $(id).hidden = true;
 		} catch {
 			hint('hint.fullscreenTitle', 'hint.fullscreenBody');
+			for (const id of fullscreenStatuses) {
+				$(id).textContent = t('controller.fullscreenHelp');
+				$(id).hidden = false;
+			}
 		}
-		focusGame();
+		if (!paused) focusGame();
+	}
+	for (const id of fullscreenButtons)
+		$(id).onclick = () => {
+			void toggleFullscreen();
+		};
+	const syncFullscreen = () => {
+		for (const id of fullscreenButtons)
+			$(id).setAttribute('aria-pressed', String(!!document.fullscreenElement));
 	};
+	document.addEventListener('fullscreenchange', syncFullscreen, {
+		signal: events.signal,
+	});
+	syncFullscreen();
 	setupAppearancePanel(
 		$('swatches'),
 		horse,
@@ -537,6 +563,9 @@ export function startGame() {
 		mount,
 		lead,
 		toggleCamera,
+		fullscreen: () => {
+			void toggleFullscreen();
+		},
 		appearance: () => showDialog(dialog('dress-dialog')),
 		settings: () => showDialog(dialog('settings-dialog')),
 		help: () => showDialog(dialog('help-dialog')),

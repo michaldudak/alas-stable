@@ -1,9 +1,11 @@
 export const en = {
+	'controller.fullscreenHelp':
+		'If your browser blocks controller fullscreen, tap or click the Fullscreen button once.',
 	'controller.title': 'Controller',
 	'controller.controls':
 		'Left stick: steer and hold up/down for small forward/back steps; release to resume the selected pace. Right stick: look left/right, up to zoom in, down to zoom out (third person). LB/RB: slower/faster. A: jump. B: mount/dismount. X: lead rope. Y: camera.',
 	'controller.shortcuts':
-		'Menu/Start: pause. View/Back: help. D-pad up/down: pace, left: appearance, right: settings. Button names follow the Steam Deck / Xbox layout.',
+		'Right-stick click (R3): fullscreen. Menu/Start: pause. View/Back: help. D-pad up/down: pace, left: appearance, right: settings. Button names follow the Steam Deck / Xbox layout.',
 	'controller.menuHelp':
 		'Menus: D-pad or left stick to move, A to select, B or Menu to return. On language selection, left/right changes language.',
 	'controller.disconnected':

@@ -81,6 +81,7 @@ Standard gamepads use the browser Gamepad API. On Steam Deck, launch the browser
 - Right stick: horizontal look, returning to center when released; up brings the third-person camera closer, down moves it farther away. Distance stays where you leave it, within 45–180% of the normal distance. Wall avoidance still applies; first-person view stays fixed.
 - LB/RB or D-pad down/up: slower/faster persistent gait.
 - A: jump; B: mount/dismount; X: attach/release lead; Y: camera.
+- Right-stick click (R3): toggle fullscreen, also available as a button in Pause and Settings. If the browser requires a direct user gesture, tap/click the Fullscreen button.
 - Menu/Start: pause; View/Back: help; D-pad left: appearance; D-pad right: settings.
 - Menus: D-pad or left stick steps through visible controls; A selects; B/Menu returns to riding. Left/right changes a focused language selection.
 

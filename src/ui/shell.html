@@ -175,7 +175,11 @@
 		<button type="button" id="pause-help">{{action.help}}</button>
 		<button type="button" id="pause-appearance">{{action.appearance}}</button>
 		<button type="button" id="pause-home">{{action.home}}</button>
+		<button type="button" id="pause-fullscreen" aria-pressed="false">
+			{{action.fullscreen}}
+		</button>
 	</div>
+	<p id="pause-fullscreen-status" role="status" hidden></p>
 	<p>{{controller.menuHelp}}</p>
 	<div class="mini-help">
 		<kbd>↑ ↓</kbd>{{help.paceLabel}}<kbd>← →</kbd
@@ -324,7 +328,11 @@
 			{{controller.vibration}}
 		</button>
 		<button type="button" id="controller-test">{{controller.test}}</button>
+		<button type="button" id="settings-fullscreen" aria-pressed="false">
+			{{action.fullscreen}}
+		</button>
 	</div>
+	<p id="settings-fullscreen-status" role="status" hidden></p>
 	<p>{{controller.controls}}</p>
 	<p>{{controller.shortcuts}}</p>
 	<p>{{controller.menuHelp}}</p>

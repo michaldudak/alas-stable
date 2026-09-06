@@ -8,6 +8,7 @@ interface GamepadActions {
 	mount(): void;
 	lead(): void;
 	toggleCamera(): void;
+	fullscreen(): void;
 	appearance(): void;
 	settings(): void;
 	help(): void;
@@ -180,6 +181,7 @@ export function createGamepad(actions: GamepadActions) {
 			// Snapshot before dispatch: opening dialogs clears other input state.
 			const edges = buttons.map((_, index) => pressed(index));
 			previous = buttons;
+			if (edges[11]) actions.fullscreen();
 			turn = look = move = zoom = 0;
 			if (actions.isPaused()) {
 				if (edges[1] || edges[9]) {

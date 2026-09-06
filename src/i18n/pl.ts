@@ -1,10 +1,12 @@
 import type { en } from './en.ts';
 export const pl = {
+	'controller.fullscreenHelp':
+		'Jeśli przeglądarka blokuje pełny ekran z pada, dotknij lub kliknij przycisk Pełny ekran.',
 	'controller.title': 'Pad',
 	'controller.controls':
 		'Lewy drążek: skręcanie; przytrzymaj góra/dół, aby powoli ruszyć przód/tył. Puść, aby wrócić do wybranego tempa. Prawy drążek: rozglądanie lewo/prawo; góra przybliża, dół oddala kamerę zza postaci. LB/RB: wolniej/szybciej. A: skok. B: wsiadanie/zsiadanie. X: lonża. Y: kamera.',
 	'controller.shortcuts':
-		'Menu/Start: pauza. View/Back: pomoc. Krzyżak góra/dół: tempo, lewo: wygląd, prawo: ustawienia. Oznaczenia przycisków jak na Steam Decku / padzie Xbox.',
+		'Kliknięcie prawego drążka (R3): pełny ekran. Menu/Start: pauza. View/Back: pomoc. Krzyżak góra/dół: tempo, lewo: wygląd, prawo: ustawienia. Oznaczenia przycisków jak na Steam Decku / padzie Xbox.',
 	'controller.menuHelp':
 		'Menu: krzyżak lub lewy drążek wybiera, A zatwierdza, B lub Menu wraca do gry. Przy wyborze języka lewo/prawo zmienia język.',
 	'controller.disconnected':
