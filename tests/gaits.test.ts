@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { sampleGait, createGaitController } from '../src/game/gaits.ts';
+import {
+	sampleGait,
+	createGaitController,
+	GAIT_CYCLES,
+} from '../src/game/gaits.ts';
 import { createHorse } from '../src/horse/model.ts';
 import { createHorseAnimation } from '../src/horse/animation.ts';
 
@@ -170,4 +174,44 @@ await test('reverse steps in diagonal pairs and moves planted feet forward relat
 			jump: -1,
 		}).footfalls;
 	assert.ok(footfalls >= 6);
+});
+
+await test('all four hooves follow their targets without overextending in steady forward gaits', () => {
+	for (const [gait, speed] of [
+		[1, 2.5],
+		[2, 5.5],
+		[3, 9],
+	]) {
+		const horse = createHorse(),
+			animation = createHorseAnimation(horse),
+			controller = createGaitController();
+		for (let frame = 0; frame < 720; frame++) {
+			const state = { gait, speed, jump: -1 };
+			const pose = controller.update(1 / 120, state);
+			animation.update(1 / 120, state, frame / 120);
+			horse.root.updateMatrixWorld(true);
+			if (frame < 240) continue;
+			horse.hooves.forEach((hoof, index) => {
+				const actual = hoof.getWorldPosition(new THREE.Vector3());
+				assert.ok(
+					Math.abs(actual.y - (0.12 + pose.feet[index].lift)) < 0.001,
+					`Gait ${gait}, leg ${index} must reach its ground or swing target`,
+				);
+			});
+		}
+	}
+});
+await test('hoof fore-aft velocity remains continuous at lift-off and touchdown', () => {
+	const epsilon = 1e-6;
+	for (const gait of [1, 2, 3, 4]) {
+		const stance = GAIT_CYCLES[gait]!.stance;
+		for (const phase of [stance, 1]) {
+			const before = sampleGait(gait, phase - epsilon).feet[0].z;
+			const at = sampleGait(gait, phase).feet[0].z;
+			const after = sampleGait(gait, phase + epsilon).feet[0].z;
+			assert.ok(
+				Math.abs((at - before) / epsilon - (after - at) / epsilon) < 0.001,
+			);
+		}
+	}
 });

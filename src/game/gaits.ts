@@ -9,22 +9,22 @@ export const GAIT_CYCLES = [
 		offsets: [0, 0.25, 0.5, 0.75],
 		stance: 0.7,
 		frequency: 1.35,
-		reach: 0.51,
+		reach: 0.43,
 		lift: 0.15,
 	},
 	{
 		offsets: [0, 0.5, 0.5, 0],
 		stance: 0.4,
 		frequency: 1.7,
-		reach: 0.62,
-		lift: 0.34,
+		reach: 0.52,
+		lift: 0.25,
 	},
 	{
 		offsets: [0, 0.28, 0.28, 0.55],
 		stance: 0.3,
 		frequency: 1.8,
-		reach: 0.7,
-		lift: 0.48,
+		reach: 0.6,
+		lift: 0.35,
 	},
 	{
 		offsets: [0, 0.5, 0.5, 0],
@@ -63,8 +63,10 @@ export function sampleGait(gait: number, phase: number) {
 			x: 0,
 			z: contact
 				? cycle.reach * (1 - (2 * local) / cycle.stance)
-				: -cycle.reach * Math.cos(Math.PI * swing),
-			lift: contact ? 0 : cycle.lift * Math.sin(Math.PI * swing) ** 1.3,
+				: cycle.reach * (-1 + 6 * swing ** 2 - 4 * swing ** 3) -
+					((2 * cycle.reach * (1 - cycle.stance)) / cycle.stance) *
+						(2 * swing ** 3 - 3 * swing ** 2 + swing),
+			lift: contact ? 0 : cycle.lift * Math.sin(Math.PI * swing) ** 2,
 			contact,
 		};
 	});
@@ -72,9 +74,9 @@ export function sampleGait(gait: number, phase: number) {
 	if (gait === 1 || gait === 4)
 		return {
 			feet,
-			y: -0.13 + 0.015 * Math.cos(tau * p * 2),
-			pitch: 0.018 * Math.sin(tau * p * 2),
-			roll: 0.016 * Math.sin(tau * p),
+			y: -0.17 + 0.006 * Math.cos(tau * p * 2),
+			pitch: 0.006 * Math.sin(tau * p * 2),
+			roll: 0.005 * Math.sin(tau * p),
 			riderY: 0,
 			riderPitch: 0.015 * Math.sin(tau * p),
 		};
@@ -82,8 +84,8 @@ export function sampleGait(gait: number, phase: number) {
 		const bounce = Math.sin(tau * (p - 0.2)) ** 2;
 		return {
 			feet,
-			y: -0.18 + 0.12 * bounce,
-			pitch: 0.012 * Math.sin(tau * p * 2),
+			y: -0.23 + 0.04 * bounce,
+			pitch: 0,
 			roll: 0,
 			riderY: 0.035 * bounce,
 			riderPitch: 0.035,
@@ -92,8 +94,8 @@ export function sampleGait(gait: number, phase: number) {
 	const flight = p > 0.85 ? Math.sin((Math.PI * (p - 0.85)) / 0.15) : 0;
 	return {
 		feet,
-		y: -0.2 + 0.05 * Math.sin(tau * p) + 0.14 * flight,
-		pitch: 0.075 * Math.sin(tau * (p - 0.1)),
+		y: -0.29 + 0.02 * Math.sin(tau * p) + 0.045 * flight,
+		pitch: 0.035 * Math.sin(tau * (p - 0.1)),
 		roll: 0.01 * Math.sin(tau * p),
 		riderY: 0.025 + 0.025 * Math.sin(tau * p),
 		riderPitch: 0.1 - 0.045 * Math.sin(tau * p),
