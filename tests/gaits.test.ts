@@ -154,3 +154,20 @@ await test('lateral stepping keeps the rig above the floor in both turn directio
 			}
 		}
 });
+
+await test('reverse steps in diagonal pairs and moves planted feet forward relative to the body', () => {
+	const a = sampleGait(4, 0.1),
+		b = sampleGait(4, 0.2);
+	assert.equal(a.feet[0].contact, a.feet[3].contact);
+	assert.equal(a.feet[1].contact, a.feet[2].contact);
+	assert.ok(b.feet[0].z > a.feet[0].z);
+	const controller = createGaitController();
+	let footfalls = 0;
+	for (let i = 0; i < 360; i++)
+		footfalls += controller.update(1 / 120, {
+			gait: -1,
+			speed: -0.9,
+			jump: -1,
+		}).footfalls;
+	assert.ok(footfalls >= 6);
+});

@@ -99,11 +99,11 @@ export function startGame() {
 		$('hint').classList.remove('hidden');
 	}
 	function updateGait() {
-		$('gait').textContent = GAITS[state.gait];
+		$('gait').textContent = state.gait === -1 ? 'Cofanie' : GAITS[state.gait];
 		document
 			.querySelectorAll('.gait-steps b')
 			.forEach((bar, i) => bar.classList.toggle('on', i <= state.gait));
-		requireElement('#slower', HTMLButtonElement).disabled = state.gait === 0;
+		requireElement('#slower', HTMLButtonElement).disabled = state.gait === -1;
 		requireElement('#faster', HTMLButtonElement).disabled = state.gait === 3;
 	}
 	function tempo(delta: number) {

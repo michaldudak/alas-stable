@@ -25,6 +25,13 @@ export const GAIT_CYCLES = [
 		reach: 0.7,
 		lift: 0.48,
 	},
+	{
+		offsets: [0, 0.5, 0.5, 0],
+		stance: 0.72,
+		frequency: 0.9,
+		reach: 0.36,
+		lift: 0.12,
+	},
 ];
 const tau = Math.PI * 2;
 const wrap = (value: number) => ((value % 1) + 1) % 1;
@@ -60,7 +67,8 @@ export function sampleGait(gait: number, phase: number) {
 			contact,
 		};
 	});
-	if (gait === 1)
+	if (gait === 4) for (const foot of feet) foot.z *= -1;
+	if (gait === 1 || gait === 4)
 		return {
 			feet,
 			y: -0.13 + 0.015 * Math.cos(tau * p * 2),
@@ -114,26 +122,35 @@ export function solveLeg(y: number, z: number, front: boolean) {
 }
 export function createGaitController() {
 	let phase = 0,
-		weights = [1, 0, 0, 0],
+		weights = [1, 0, 0, 0, 0],
 		oldContacts = [true, true, true, true];
 	let jumping = false;
 	let turnPhase = 0,
 		turnAmount = 0;
 	return {
 		update(dt: number, state: MotionState, turn = 0) {
-			const target = state.speed < 0.08 ? 0 : state.gait || 1;
+			const target =
+				Math.abs(state.speed) < 0.08
+					? 0
+					: state.speed < 0
+						? 4
+						: Math.max(1, state.gait);
 			const blend = 1 - Math.exp(-dt * 8);
 			weights = weights.map(
 				(weight, i) => weight + (Number(i === target) - weight) * blend,
 			);
-			const motion = clamp(state.speed / 1.5, 0, 1);
+			const motion = clamp(
+				Math.abs(state.speed) / (state.speed < 0 ? 0.9 : 1.5),
+				0,
+				1,
+			);
 			const frequency = weights.reduce(
 				(sum, weight, i) => sum + weight * (GAIT_CYCLES[i]?.frequency || 0),
 				0,
 			);
 			phase = wrap(phase + dt * frequency * motion);
 			const pose = sampleGait(0, phase);
-			for (let gait = 1; gait < 4; gait++) {
+			for (let gait = 1; gait < 5; gait++) {
 				const sample = sampleGait(gait, phase),
 					weight = weights[gait] * motion;
 				for (const key of [

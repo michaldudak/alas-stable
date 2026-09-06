@@ -14,6 +14,16 @@ try {
 		() => (window.__polana?.snapshot().calls ?? 0) > 0,
 	);
 	await page.screenshot({ path: 'artifacts/start.png' });
+	await page.keyboard.press('KeyS');
+	await page.waitForFunction(() => window.__polana!.snapshot().z > 24.5);
+	assert.equal(await page.locator('#gait').textContent(), 'Cofanie');
+	assert.equal(await page.locator('#slower').isDisabled(), true);
+	await page.keyboard.press('KeyW');
+	await page.waitForFunction(
+		() => Math.abs(window.__polana!.snapshot().speed) < 0.01,
+	);
+	assert.equal(await page.locator('#gait').textContent(), 'Postój');
+	await page.getByRole('button', { name: 'Do stajni', exact: true }).click();
 	const before = await page.evaluate(() => window.__polana!.snapshot());
 	await page.keyboard.press('ArrowUp');
 	await page.waitForTimeout(1100);

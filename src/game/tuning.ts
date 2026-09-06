@@ -1,4 +1,5 @@
 /** Gameplay tuning uses metres and seconds, independent of the horse mesh. */
+export const REVERSE_SPEED = -0.9;
 export const SPEEDS = [0, 2.5, 5.5, 9] as const;
 export const JUMP_DURATION = 1.45;
 export const JUMP_HEIGHT = 2.1;

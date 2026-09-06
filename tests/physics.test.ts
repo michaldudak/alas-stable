@@ -16,7 +16,7 @@ await test('a single key press selects a persistent gait, clamped to safe limits
 	changeGait(s, 20);
 	assert.equal(s.gait, 3);
 	changeGait(s, -20);
-	assert.equal(s.gait, 0);
+	assert.equal(s.gait, -1);
 });
 await test('early and late jumps both clear a rail, while a missed jump knocks it down', () => {
 	for (const advance of [0.04, 0.35, 0.85, 1.3]) {
@@ -106,4 +106,23 @@ await test('fences still stop a grounded horse and buildings still stop a jumpin
 		assert.ok(s.z >= 0.8);
 		assert.equal(s.gait, 0);
 	}
+});
+
+await test('reverse is slow and persistent, stops on command and respects walls', () => {
+	const s = createState();
+	changeGait(s, -1);
+	for (let i = 0; i < 120; i++) step(s, 1 / 60, 0);
+	assert.equal(s.gait, -1);
+	assert.ok(s.z > 25);
+	assert.ok(s.speed >= -0.9 && s.speed < -0.8);
+	changeGait(s, 1);
+	assert.equal(s.gait, 0);
+	for (let i = 0; i < 180; i++) step(s, 1 / 60, 0);
+	assert.ok(Math.abs(s.speed) < 0.001);
+	changeGait(s, -1);
+	const wall = { x: s.x, z: s.z + 1.2, w: 3, d: 0.3 };
+	for (let i = 0; i < 180; i++) step(s, 1 / 60, 0, [], [wall]);
+	assert.equal(s.gait, 0);
+	assert.equal(s.speed, 0);
+	assert.ok(s.z < wall.z - 0.8);
 });

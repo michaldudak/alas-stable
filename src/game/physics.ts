@@ -1,6 +1,7 @@
 import type { GameState, Obstacle, Solid } from './types.ts';
 import {
 	SPEEDS,
+	REVERSE_SPEED,
 	JUMP_DURATION,
 	JUMP_HEIGHT,
 	JUMP_BUFFER,
@@ -21,7 +22,7 @@ export function createState(): GameState {
 	};
 }
 export function changeGait(state: GameState, delta: number) {
-	state.gait = Math.max(0, Math.min(3, state.gait + delta));
+	state.gait = Math.max(-1, Math.min(3, state.gait + delta));
 }
 export function requestJump(state: GameState) {
 	if (state.jump < 0) state.jump = 0;
@@ -34,8 +35,10 @@ export function step(
 	obstacles: Obstacle[] = [],
 	solids: readonly Solid[] = [],
 ) {
-	state.speed += (SPEEDS[state.gait] - state.speed) * Math.min(1, dt * 4);
-	state.heading += turn * dt * (1.4 - state.speed * 0.035);
+	state.speed +=
+		((state.gait === -1 ? REVERSE_SPEED : SPEEDS[state.gait]) - state.speed) *
+		Math.min(1, dt * 4);
+	state.heading += turn * dt * (1.4 - Math.abs(state.speed) * 0.035);
 	const previous = { x: state.x, z: state.z };
 	state.x += Math.sin(state.heading) * state.speed * dt;
 	state.z += Math.cos(state.heading) * state.speed * dt;
