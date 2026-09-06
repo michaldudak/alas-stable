@@ -9,7 +9,12 @@ const catalogs = { en, pl };
 let language: Language = 'en';
 const listeners = new Set<() => void>();
 
-export function detectLanguage(preferences: readonly string[]): Language {
+export function detectLanguage(
+	preferences: readonly string[],
+	hostname = '',
+): Language {
+	if (hostname === 'stajnia.ali.dudak.pl') return 'pl';
+	if (hostname === 'alas-stable.dudak.pl') return 'en';
 	for (const preference of preferences) {
 		const base = preference.toLowerCase().split('-')[0];
 		if (base === 'pl' || base === 'en') return base;
@@ -31,6 +36,7 @@ export function initializeLanguage() {
 					navigator.languages.length
 						? navigator.languages
 						: [navigator.language],
+					window.location.hostname,
 				);
 	updateDocument();
 }
