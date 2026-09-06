@@ -92,39 +92,49 @@ export function createRider(parent: THREE.Group, eye: THREE.Material) {
 	const head = new THREE.Group();
 	head.position.set(0, 3.62, -0.065);
 	rider.add(head);
-	form(
+	const face = form(
 		head,
 		skin,
 		[
-			[[0, -0.255, 0.008], 0.036, 0.045],
-			[[0, -0.218, 0.004], 0.099, 0.102],
-			[[0, -0.13, -0.015], 0.158, 0.146],
+			[[0, -0.23, -0.005], 0.06, 0.067],
+			[[0, -0.192, -0.008], 0.123, 0.119],
+			[[0, -0.11, -0.02], 0.178, 0.164],
 			[[0, -0.025, -0.025], 0.186, 0.18],
 			[[0, 0.1, -0.025], 0.181, 0.18],
 			[[0, 0.21, -0.03], 0.145, 0.145],
 			[[0, 0.265, -0.035], 0.012, 0.018],
 		],
 		'y',
+		96,
 	);
-	// A narrow bridge and shaped tip replace the round button nose.
-	form(
-		head,
-		skin,
-		[
-			[[0, -0.128, 0.155], 0.033, 0.022],
-			[[0, -0.1, 0.176], 0.03, 0.034],
-			[[0, -0.02, 0.157], 0.021, 0.022],
-			[[0, 0.04, 0.146], 0.027, 0.012],
-		],
-		'y',
-	);
+	// Sculpt the nose and cheeks into the face rather than attaching a separate wedge.
+	const vertices = face.geometry.getAttribute('position');
+	for (let i = 0; i < vertices.count; i++) {
+		const x = vertices.getX(i),
+			y = vertices.getY(i),
+			z = vertices.getZ(i);
+		if (z <= 0) continue;
+		const front = Math.min(1, z / 0.1);
+		const nose =
+			0.039 * Math.exp(-((x / 0.033) ** 2) - ((y + 0.063) / 0.039) ** 2);
+		const bridge =
+			0.012 * Math.exp(-((x / 0.023) ** 2) - ((y + 0.006) / 0.065) ** 2);
+		const cheeks =
+			0.009 *
+			Math.exp(
+				-(((Math.abs(x) - 0.105) / 0.055) ** 2) - ((y + 0.074) / 0.05) ** 2,
+			);
+		vertices.setZ(i, z + (nose + bridge + cheeks) * front);
+	}
+	face.geometry.computeVertexNormals();
+
 	cord(
 		head,
 		lip,
 		[
-			[-0.045, -0.17, 0.108],
-			[0, -0.181, 0.127],
-			[0.045, -0.17, 0.108],
+			[-0.047, -0.148, 0.126],
+			[0, -0.156, 0.136],
+			[0.047, -0.148, 0.126],
 		],
 		0.005,
 	);
@@ -143,15 +153,15 @@ export function createRider(parent: THREE.Group, eye: THREE.Material) {
 	);
 	oval(head, helmet, [0.198, 0.018, 0.14], [0, 0.107, 0.155]);
 	for (const side of [-1, 1]) {
-		oval(head, lining, [0.03, 0.013, 0.008], [side * 0.071, 0.008, 0.146]);
-		oval(head, iris, [0.01, 0.011, 0.006], [side * 0.07, 0.007, 0.154]);
-		oval(head, eye, [0.005, 0.007, 0.004], [side * 0.07, 0.007, 0.159]);
+		oval(head, lining, [0.031, 0.015, 0.009], [side * 0.071, 0.008, 0.146]);
+		oval(head, iris, [0.012, 0.013, 0.006], [side * 0.07, 0.007, 0.154]);
+		oval(head, eye, [0.006, 0.008, 0.004], [side * 0.07, 0.007, 0.159]);
 		cord(
 			head,
 			skin,
 			[
 				[side * 0.039, 0.011, 0.143],
-				[side * 0.07, 0.023, 0.15],
+				[side * 0.07, 0.026, 0.151],
 				[side * 0.103, 0.01, 0.135],
 			],
 			0.007,
@@ -174,8 +184,8 @@ export function createRider(parent: THREE.Group, eye: THREE.Material) {
 			[
 				[side * 0.2, 0.11, 0.013],
 				[side * 0.19, -0.095, 0.01],
-				[side * 0.1, -0.247, 0.061],
-				[0, -0.257, 0.061],
+				[side * 0.1, -0.228, 0.06],
+				[0, -0.241, 0.093],
 			],
 			0.008,
 		);
