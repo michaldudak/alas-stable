@@ -43,3 +43,35 @@ await test('walking and running are persistent and stop at walls and the waiting
 	assert.equal(person.gait, 0);
 	assert.ok(person.z > 22.35);
 });
+
+await test('backward walking is slow, persistent, keeps facing forward and stops on command', () => {
+	const horse = createState(),
+		person = { ...createState(), x: 3, heading: 0, gait: -1 };
+	for (let i = 0; i < 120; i++) stepPerson(person, 1 / 60, 0, [], horse);
+	assert.ok(person.z < 23 && person.z > 22);
+	assert.ok(person.speed >= -0.9 && person.speed < -0.85);
+	assert.equal(person.heading, 0);
+	person.gait = 0;
+	for (let i = 0; i < 120; i++) stepPerson(person, 1 / 60, 0, [], horse);
+	assert.ok(Math.abs(person.speed) < 0.001);
+	person.gait = 1;
+	for (let i = 0; i < 120; i++) stepPerson(person, 1 / 60, 0, [], horse);
+	assert.ok(person.speed > 1.7);
+});
+await test('backward walking respects walls, waiting horses and the world boundary', () => {
+	const horse = { ...createState(), x: 0, z: 0 };
+	for (const kind of ['wall', 'horse', 'boundary']) {
+		const person = {
+			...createState(),
+			x: kind === 'horse' ? 0 : 3,
+			z: kind === 'boundary' ? 111 : 3,
+			heading: kind === 'boundary' ? Math.PI : 0,
+			gait: -1,
+		};
+		const solids = kind === 'wall' ? [{ x: 3, z: 1, w: 2, d: 0.2 }] : [];
+		for (let i = 0; i < 300; i++) stepPerson(person, 1 / 60, 0, solids, horse);
+		assert.equal(person.gait, 0, kind);
+		assert.equal(person.speed, 0, kind);
+		assert.ok(Number.isFinite(person.x + person.z));
+	}
+});

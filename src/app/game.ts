@@ -178,7 +178,9 @@ export function startGame() {
 				? state.gait === -1
 					? 'Cofanie'
 					: GAITS[state.gait]
-				: ['Postój', 'Chód', 'Bieg'][active.gait];
+				: active.gait === -1
+					? 'Cofanie'
+					: ['Postój', 'Chód', 'Bieg'][active.gait];
 		const label = riding === 'mounted' ? 'Zsiądź z konia' : 'Wsiądź na konia';
 		requireElement('#mount span', HTMLElement).textContent = label;
 		$('mount').setAttribute('aria-label', label);
@@ -189,14 +191,14 @@ export function startGame() {
 			.querySelectorAll('.gait-steps b')
 			.forEach((bar, i) => bar.classList.toggle('on', i <= active.gait));
 		requireElement('#slower', HTMLButtonElement).disabled =
-			transferring() || active.gait === (riding === 'mounted' ? -1 : 0);
+			transferring() || active.gait === -1;
 		requireElement('#faster', HTMLButtonElement).disabled =
 			transferring() || active.gait === (riding === 'mounted' ? 3 : 2);
 	}
 	function tempo(delta: number) {
 		if (transferring()) return;
 		if (riding === 'mounted') changeGait(state, delta);
-		else person.gait = THREE.MathUtils.clamp(person.gait + delta, 0, 2);
+		else person.gait = THREE.MathUtils.clamp(person.gait + delta, -1, 2);
 		updateGait();
 		if (!started && state.gait) {
 			started = true;
@@ -314,7 +316,7 @@ export function startGame() {
 					: 'Spacer po polanie',
 				riding === 'mounted'
 					? '↑ wybierz tempo'
-					: '↑ chód lub bieg · ↓ zwolnij · E wsiądź obok konia',
+					: '↑ chód lub bieg · ↓ zwolnij / cofaj · E wsiądź obok konia',
 			);
 		}
 	}
@@ -506,11 +508,11 @@ export function startGame() {
 			input.update(dt);
 			updateCamera(dt);
 			const active = activeState();
-			if (riding === 'on-foot' && person.speed > 0.2) {
+			if (riding === 'on-foot' && Math.abs(person.speed) > 0.2) {
 				footstepTimer -= dt;
 				if (footstepTimer <= 0) {
 					audio.tone(105, 0.045, 0.018, 45, 'triangle');
-					footstepTimer = person.speed > 2.5 ? 0.23 : 0.36;
+					footstepTimer = Math.abs(person.speed) > 2.5 ? 0.23 : 0.36;
 				}
 			} else footstepTimer = 0;
 			audio.tick(

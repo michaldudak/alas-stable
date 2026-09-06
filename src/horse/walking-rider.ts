@@ -52,19 +52,25 @@ export function createWalkingRider(source: THREE.Group) {
 	}
 	let phase = 0;
 	function pose(dt: number, speed: number, seated = 0, swing = 0, side = -1) {
+		const pace = Math.abs(speed);
 		phase +=
-			dt * (speed > 2.5 ? 2.3 : 1.35) * Math.PI * 2 * Math.min(1, speed / 1.8);
-		const amount = Math.min(1, speed / 1.8) * (1 - seated);
-		const compression = (speed > 2.5 ? 0.11 : 0.06) * amount;
+			dt *
+			(pace > 2.5 ? 2.3 : 1.35) *
+			Math.PI *
+			2 *
+			Math.min(1, pace / 1.8) *
+			Math.sign(speed);
+		const amount = Math.min(1, pace / 1.8) * (1 - seated);
+		const compression = (pace > 2.5 ? 0.11 : 0.06) * amount;
 		body.position.y = -compression;
 		upper.position.y = -1.4 + Math.abs(Math.sin(phase)) * 0.018 * amount;
 		legs.forEach((leg, i) => {
 			const wave = phase + i * Math.PI;
 			const x = (i ? 1 : -1) * 0.45 * seated;
 			const z =
-				Math.sin(wave) * (speed > 2.5 ? 0.46 : 0.32) * amount + 0.32 * seated;
+				Math.sin(wave) * (pace > 2.5 ? 0.46 : 0.32) * amount + 0.32 * seated;
 			const lift =
-				Math.max(0, Math.cos(wave)) * (speed > 2.5 ? 0.23 : 0.1) * amount +
+				Math.max(0, Math.cos(wave)) * (pace > 2.5 ? 0.23 : 0.1) * amount +
 				0.12 * seated +
 				(i === (side < 0 ? 1 : 0) ? swing * 1.3 : 0);
 			const y = -1.18 + lift + compression;
@@ -90,7 +96,7 @@ export function createWalkingRider(source: THREE.Group) {
 			arms[i].rotation.x =
 				-Math.sin(wave) * 0.38 * amount - 0.75 * seated - 0.25 * swing;
 			elbows[i].rotation.x =
-				-0.18 - 0.65 * seated - (speed > 2.5 ? 0.65 : 0.12) * amount;
+				-0.18 - 0.65 * seated - (pace > 2.5 ? 0.65 : 0.12) * amount;
 		});
 	}
 	pose(0, 0);

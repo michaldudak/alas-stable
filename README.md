@@ -27,7 +27,7 @@ All developer content is written in English. Player-readable strings currently r
 
 ## Controls
 
-- W/S or Up/Down: select a persistent gait (reverse, stand, walk, trot, canter), without holding the key. On foot, select stand, walk, or run.
+- W/S or Up/Down: select a persistent gait (reverse, stand, walk, trot, canter), without holding the key. On foot, select slow reverse, stand, walk, or run. Press Down/S once more from stand to walk backwards; Up/W stops reversing.
 - A/D or Left/Right: steer, including while standing still.
 - Space: jump with a forgiving timing window while mounted.
 - E or the mount button: dismount from a stopped horse, or mount any nearby horse from its side. All five horses are rideable; the others wait at their locations and remain marked on the minimap. Both actions are animated; walls can block dismounting.

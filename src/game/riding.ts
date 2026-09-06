@@ -1,6 +1,7 @@
 import type { GameState, Solid } from './types.ts';
 import { WORLD_RADIUS } from './tuning.ts';
 export const FOOT_SPEEDS = [0, 1.8, 3.8] as const;
+export const FOOT_REVERSE_SPEED = -0.9;
 export const MOUNT_DURATION = 1.6;
 export function clearForPerson(x: number, z: number, solids: readonly Solid[]) {
 	return (
@@ -76,7 +77,9 @@ export function stepPerson(
 	solids: readonly Solid[],
 	horse: GameState,
 ) {
-	state.speed += (FOOT_SPEEDS[state.gait] - state.speed) * Math.min(1, dt * 8);
+	const targetSpeed =
+		state.gait === -1 ? FOOT_REVERSE_SPEED : FOOT_SPEEDS[state.gait];
+	state.speed += (targetSpeed - state.speed) * Math.min(1, dt * 8);
 	state.heading += turn * dt * 2.1;
 	const x = state.x + Math.sin(state.heading) * state.speed * dt,
 		z = state.z + Math.cos(state.heading) * state.speed * dt;
