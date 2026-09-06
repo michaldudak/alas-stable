@@ -72,3 +72,16 @@ The interior has a paved aisle, timber framing, a pitched roof, lamps, and windo
 In the appearance panel's Colors section, Riding offers Saddled or Bareback. Bareback removes the saddle, stirrups, girth, and saddlecloth while keeping the bridle and reins. The rider sits lower, and mounting, walking, running, and jumping remain available. Equipment is saved separately for every horse; switching back restores the existing saddlecloth colors and patterns.
 
 - L or the lead button, while on foot beside a horse: attach or release a lunge line. Unmounted horses wear halters, with the line attached to the lower ring. The selected horse follows at walk/trot while the handler walks or runs, and waits when released. This is leading on a line, not circular lunging. Walls, fences, other horses, and a six-metre reach constrain movement; take a wider route if the horse gets blocked. Mounting or returning home releases the line.
+
+## Deployment
+
+GitHub Actions deploys the static production build to the `konska-gra` Cloudflare Worker after all checks (including the browser suite) pass on `master`. Pull requests and other branches only run checks. You can also run the Checks workflow manually on `master` to retry deployment.
+
+Before the first deployment, add these repository secrets under **Settings > Secrets and variables > Actions**:
+
+- `CLOUDFLARE_API_TOKEN`: a Cloudflare API token using the **Edit Cloudflare Workers** template, restricted to the target account. Keep the template's account permissions, including Workers Scripts edit and Account Settings read. No custom domain or zone permissions are needed for the default workers.dev address.
+- `CLOUDFLARE_ACCOUNT_ID`: the target account ID from the Cloudflare dashboard.
+
+Ensure the account has a workers.dev subdomain configured in **Workers & Pages**. The deployment log prints the public game URL. The GitHub repository remains private; the deployed game is publicly accessible.
+
+For a local deployment, authenticate with `pnpm exec wrangler login`, then run `pnpm run deploy`. To validate the deployment bundle without publishing, run `pnpm run deploy:check`. Both commands build the production assets first. Wrangler uploads only `dist`, as configured in `wrangler.jsonc`.

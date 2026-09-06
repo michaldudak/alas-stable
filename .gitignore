@@ -2,3 +2,9 @@ node_modules/
 dist/
 test-results/
 artifacts/
+
+.wrangler/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
