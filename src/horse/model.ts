@@ -1,3 +1,4 @@
+import { createSaddle } from './saddle.ts';
 import { attachSkin } from './skin.ts';
 import { createRider } from './rider.ts';
 import { surface, mesh, oval, cord } from './geometry.ts';
@@ -200,28 +201,6 @@ export function createHorse(): HorseModel {
 			],
 			0.022,
 		);
-		oval(tack, leather, [0.07, 0.34, 0.31], [side * 0.52, 2.24, 0.09]);
-		cord(
-			tack,
-			leather,
-			[
-				[side * 0.39, 2.57, 0.16],
-				[side * 0.6, 2.21, 0.19],
-				[side * 0.65, 1.71, 0.2],
-			],
-			0.035,
-		);
-		cord(
-			tack,
-			metal,
-			[
-				[side * 0.65, 1.77, 0.2],
-				[side * 0.69, 1.55, 0.08],
-				[side * 0.69, 1.53, 0.33],
-				[side * 0.65, 1.77, 0.2],
-			],
-			0.025,
-		);
 		// Bridle cheek pieces, noseband and reins connect to the rider's hands.
 		cord(
 			tack,
@@ -261,9 +240,7 @@ export function createHorse(): HorseModel {
 		],
 		0.028,
 	);
-	oval(tack, leather, [0.4, 0.12, 0.47], [0, 2.6, -0.1]);
-	oval(tack, leather, [0.41, 0.19, 0.13], [0, 2.66, -0.48]);
-	oval(tack, leather, [0.32, 0.14, 0.1], [0, 2.66, 0.28]);
+	createSaddle(tack, leather, metal, trim);
 
 	// A visible girth, saddle stitching and buckles give the tack a constructed finish.
 	const girthPoints: Vector3Tuple[] = Array.from({ length: 25 }, (_, i) => {
@@ -272,17 +249,6 @@ export function createHorse(): HorseModel {
 	});
 	cord(tack, leather, girthPoints, 0.065);
 	for (const side of [-1, 1]) {
-		cord(
-			tack,
-			trim,
-			[
-				[side * 0.574, 2.47, -0.065],
-				[side * 0.595, 2.27, -0.18],
-				[side * 0.578, 2.0, 0.04],
-				[side * 0.572, 2.21, 0.32],
-			],
-			0.006,
-		);
 		for (const [y, z] of [
 			[2.18, 0.32],
 			[3.23, 1.33],
