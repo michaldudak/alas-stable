@@ -154,6 +154,9 @@ export function createHorse(): HorseModel {
 	const tack = new THREE.Group();
 	tack.name = 'tack';
 	body.add(tack);
+	const equipment = new THREE.Group();
+	equipment.name = 'choice:equipment:saddled';
+	tack.add(equipment);
 	// A draped pad follows the back and hangs naturally along both flanks.
 	const padVertices = [],
 		padIndices = [],
@@ -183,17 +186,17 @@ export function createHorse(): HorseModel {
 	padGeometry.computeVertexNormals();
 	padGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(padUVs, 2));
 	cloth.side = THREE.DoubleSide;
-	mesh(tack, padGeometry, cloth);
+	mesh(equipment, padGeometry, cloth);
 	for (const z of [-0.68, 0.54]) {
 		const points: Vector3Tuple[] = Array.from({ length: 23 }, (_, i) => {
 			const a = -1.32 + (i / 22) * 2.64;
 			return [Math.sin(a) * 0.677, 1.91 + Math.cos(a) * 0.659, z];
 		});
-		cord(tack, trim, points, 0.022);
+		cord(equipment, trim, points, 0.022);
 	}
 	for (const side of [-1, 1]) {
 		cord(
-			tack,
+			equipment,
 			trim,
 			[
 				[side * 0.65, 2.073, -0.68],
@@ -240,21 +243,21 @@ export function createHorse(): HorseModel {
 		],
 		0.028,
 	);
-	createSaddle(tack, leather, metal, trim);
+	createSaddle(equipment, leather, metal, trim);
 
 	// A visible girth, saddle stitching and buckles give the tack a constructed finish.
 	const girthPoints: Vector3Tuple[] = Array.from({ length: 25 }, (_, i) => {
 		const a = (i / 24) * Math.PI * 2;
 		return [Math.sin(a) * 0.615, 1.83 + Math.cos(a) * 0.65, 0.32];
 	});
-	cord(tack, leather, girthPoints, 0.065);
+	cord(equipment, leather, girthPoints, 0.065);
 	for (const side of [-1, 1]) {
 		for (const [y, z] of [
 			[2.18, 0.32],
 			[3.23, 1.33],
 		]) {
 			const buckle = mesh(
-				tack,
+				y < 3 ? equipment : tack,
 				new THREE.TorusGeometry(0.034, 0.008, 6, 12),
 				metal,
 				[side * (y < 3 ? 0.623 : 0.326), y, z],
@@ -272,7 +275,10 @@ export function createHorse(): HorseModel {
 		],
 		0.022,
 	);
-	const rider = createRider(body, eye);
+	const seat = new THREE.Group();
+	seat.name = 'rider-seat';
+	body.add(seat);
+	const rider = createRider(seat, eye);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
 	decoration.position.set(0.3, 3.4, 1.05);
@@ -421,6 +427,8 @@ export function createHorse(): HorseModel {
 	let appearance = normalizeAppearance({});
 	function setAppearance(value: unknown) {
 		const settings = normalizeAppearance(value);
+		equipment.visible = settings.equipment === 'saddled';
+		seat.position.y = settings.equipment === 'bareback' ? -0.08 : 0;
 		for (const [key, channel] of Object.entries(channels))
 			channel.color.set(settings[key as keyof Appearance]);
 		for (const [key, groups] of Object.entries(variants))

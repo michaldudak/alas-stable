@@ -146,6 +146,8 @@ export function createHorsePreview(
 				lastWidth = width;
 				lastHeight = height;
 			}
+			model.getObjectByName('rider-seat')!.position.y =
+				horse.getAppearance().equipment === 'bareback' ? -0.08 : 0;
 			for (const [original, copy] of variantPairs)
 				copy.visible = original.visible;
 			controls.update();

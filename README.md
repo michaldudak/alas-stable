@@ -68,3 +68,5 @@ The interior has a paved aisle, timber framing, a pitched roof, lamps, and windo
 `node scripts/riding-check.ts` verifies mounting, dismounting, walking/running, proximity checks, pause, cameras, and reset using the local Vite server.
 
 `node scripts/herd-check.ts` verifies switching from Raven to Fuks, riding out of a stall, independent decorations, returning to Raven, and saved appearance after reloading. Horse positions reset on reload.
+
+In the appearance panel's Colors section, Riding offers Saddled or Bareback. Bareback removes the saddle, stirrups, girth, and saddlecloth while keeping the bridle and reins. The rider sits lower, and mounting, walking, running, and jumping remain available. Equipment is saved separately for every horse; switching back restores the existing saddlecloth colors and patterns.

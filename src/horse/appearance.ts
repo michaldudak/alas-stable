@@ -1,4 +1,8 @@
 export const styleOptions = {
+	equipment: [
+		['saddled', 'W siodle'],
+		['bareback', 'Na oklep'],
+	],
 	maneStyle: [
 		['short', 'Krótka'],
 		['long', 'Długa'],
@@ -29,6 +33,7 @@ export interface Appearance extends Record<ColorKey, string> {
 	tailStyle: 'short' | 'long' | 'braided';
 	ornament: 'none' | 'flower' | 'bow' | 'ribbons';
 	pattern: 'plain' | 'dots' | 'stripes' | 'stars';
+	equipment: 'saddled' | 'bareback';
 }
 export const colorOptions: [ColorKey, string, string[], string[]][] = [
 	[
@@ -78,6 +83,7 @@ export function normalizeAppearance(value: unknown): Appearance {
 		tailStyle: 'long',
 		ornament: input.flower === true ? 'flower' : 'none',
 		pattern: 'plain',
+		equipment: 'saddled',
 	};
 	for (const [key, , colors] of colorOptions) {
 		const candidate = input[key];
@@ -96,5 +102,6 @@ export function normalizeAppearance(value: unknown): Appearance {
 	result.tailStyle = readStyle('tailStyle');
 	result.ornament = readStyle('ornament');
 	result.pattern = readStyle('pattern');
+	result.equipment = readStyle('equipment');
 	return result;
 }

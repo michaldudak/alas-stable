@@ -297,7 +297,9 @@ export function startGame() {
 			person.z = THREE.MathUtils.lerp(state.z, transferSide.z, across);
 			person.heading = state.heading;
 			person.height =
-				1.4 * (1 - ease((u - 0.15) / 0.85)) + 0.18 * Math.sin(Math.PI * u);
+				(horse.getAppearance().equipment === 'bareback' ? 1.32 : 1.4) *
+					(1 - ease((u - 0.15) / 0.85)) +
+				0.18 * Math.sin(Math.PI * u);
 			walker.pose(dt, 0, 1 - ease(u), Math.sin(Math.PI * u), transferSide.side);
 		}
 		if (t >= 1) {
@@ -308,7 +310,7 @@ export function startGame() {
 			updateGait();
 			hint(
 				riding === 'mounted'
-					? 'W siodle: ' + selected.name
+					? 'Na koniu: ' + selected.name
 					: 'Spacer po polanie',
 				riding === 'mounted'
 					? '↑ wybierz tempo'

@@ -13,7 +13,31 @@ function thumbnail(canvas: HTMLCanvasElement, key: string, value: string) {
 	ctx.lineJoin = 'round';
 	ctx.fillStyle = '#68503a';
 	ctx.strokeStyle = '#68503a';
-	if (key === 'pattern') {
+	if (key === 'equipment') {
+		ctx.fillStyle = '#b9845b';
+		ctx.beginPath();
+		ctx.ellipse(40, 32, 28, 13, 0, 0, Math.PI * 2);
+		ctx.fill();
+		if (value === 'saddled') {
+			ctx.fillStyle = '#437f79';
+			ctx.fillRect(25, 21, 29, 19);
+			ctx.fillStyle = '#60432c';
+			ctx.beginPath();
+			ctx.roundRect(28, 16, 23, 18, 5);
+			ctx.fill();
+			ctx.strokeStyle = '#d7ba85';
+			ctx.lineWidth = 2;
+			ctx.stroke();
+		} else {
+			ctx.strokeStyle = '#fff2d4';
+			ctx.lineWidth = 3;
+			ctx.beginPath();
+			ctx.moveTo(28, 12);
+			ctx.lineTo(36, 18);
+			ctx.lineTo(51, 6);
+			ctx.stroke();
+		}
+	} else if (key === 'pattern') {
 		ctx.fillStyle = '#7d9e8c';
 		ctx.beginPath();
 		ctx.roundRect(12, 6, 56, 38, 6);
@@ -206,6 +230,20 @@ export function setupAppearancePanel(
 		controls.push([button, key, value]);
 		return button;
 	}
+	const ridingGroup = section('colors', 'Jazda');
+	const ridingOptions = document.createElement('div');
+	ridingOptions.className = 'picture-options';
+	for (const [value, name] of styleOptions.equipment) {
+		const button = optionControl('equipment', value, 'Jazda: ' + name);
+		const canvas = document.createElement('canvas'),
+			label = document.createElement('span');
+		canvas.setAttribute('aria-hidden', 'true');
+		thumbnail(canvas, 'equipment', value);
+		label.textContent = name;
+		button.append(canvas, label);
+		ridingOptions.append(button);
+	}
+	ridingGroup.append(ridingOptions);
 	for (const [key, label, colors, names] of colorOptions) {
 		const group = section(
 			key === 'ornamentColor'

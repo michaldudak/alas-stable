@@ -32,3 +32,22 @@ await test('invalid saved selections fall back safely and valid styles remain in
 	assert.equal(settings.ornament, 'none');
 	assert.equal(settings.pattern, 'stars');
 });
+
+await test('bareback equipment is explicit and old or invalid saves keep a saddle', () => {
+	assert.equal(normalizeAppearance({}).equipment, 'saddled');
+	assert.equal(
+		normalizeAppearance({ equipment: 'invalid' }).equipment,
+		'saddled',
+	);
+	const settings = normalizeAppearance({
+		equipment: 'bareback',
+		cloth: '#7275a3',
+		pattern: 'stars',
+	});
+	assert.equal(settings.equipment, 'bareback');
+	assert.equal(settings.cloth, '#7275a3');
+	assert.equal(
+		normalizeAppearance({ ...settings, equipment: 'saddled' }).pattern,
+		'stars',
+	);
+});
