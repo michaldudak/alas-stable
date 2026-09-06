@@ -5,6 +5,7 @@ import type { Solid, Obstacle } from '../game/types.ts';
 import * as THREE from 'three';
 import { createStable } from './stable.ts';
 import { insideStable } from './stable-layout.ts';
+import { createSun } from './sun.ts';
 
 export function createWorld(scene: THREE.Scene) {
 	const solids: Solid[] = [],
@@ -12,20 +13,7 @@ export function createWorld(scene: THREE.Scene) {
 	scene.background = new THREE.Color('#c4d6df');
 	scene.fog = new THREE.Fog('#c4d6df', 85, 230);
 	scene.add(new THREE.HemisphereLight('#e6eff8', '#77735a', 1.65));
-	const sun = new THREE.DirectionalLight('#fff1dd', 2.6);
-	sun.position.set(-35, 65, 25);
-	sun.castShadow = true;
-	sun.shadow.mapSize.set(2048, 2048);
-	Object.assign(sun.shadow.camera, {
-		left: -70,
-		right: 70,
-		top: 70,
-		bottom: -70,
-		far: 180,
-	});
-	sun.shadow.bias = -0.0003;
-	sun.shadow.normalBias = 0.035;
-	scene.add(sun);
+	scene.add(createSun());
 	const ground = new THREE.Mesh(
 		new THREE.CircleGeometry(260, 96),
 		terrainMaterial('#849468', 32, 32),
