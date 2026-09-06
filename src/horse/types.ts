@@ -14,6 +14,9 @@ export interface HorseModel {
 	tail: THREE.Group;
 	rider: THREE.Group;
 	tack: THREE.Group;
+	halter: THREE.Group;
+	bridle: THREE.Group;
+	leadAnchor: THREE.Group;
 	mane: THREE.Group;
 	decoration: THREE.Group;
 	coat: THREE.MeshStandardMaterial;

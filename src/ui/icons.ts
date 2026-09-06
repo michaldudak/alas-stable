@@ -2,6 +2,7 @@ import {
 	createIcons,
 	Camera,
 	Footprints,
+	Link,
 	Volume2,
 	VolumeX,
 	Pause,
@@ -22,6 +23,7 @@ import {
 export const icons = {
 	Camera,
 	Footprints,
+	Link,
 	Volume2,
 	VolumeX,
 	Pause,

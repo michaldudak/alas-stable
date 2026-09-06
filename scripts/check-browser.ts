@@ -50,6 +50,7 @@ try {
 		'bareback-check',
 		'riding-check',
 		'herd-check',
+		'leading-check',
 		'stable-check',
 		'gait-check',
 		'lifecycle-check',

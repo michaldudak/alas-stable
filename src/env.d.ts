@@ -5,11 +5,13 @@ declare global {
 		__polana?: {
 			snapshot: () => GameState & {
 				activeHorse: string;
+				leading: boolean;
 				horses: {
 					name: string;
 					x: number;
 					z: number;
 					heading: number;
+					halter: boolean;
 					appearance: Appearance;
 				}[];
 				riding: 'mounted' | 'on-foot' | 'mounting' | 'dismounting';

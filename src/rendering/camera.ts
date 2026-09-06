@@ -18,6 +18,7 @@ export function createCameraController(
 		look: number,
 		snap = false,
 		onFoot = false,
+		leading = false,
 	) {
 		const heading = state.heading + look;
 		const indoors = insideStable(state.x, state.z, 1.5);
@@ -33,13 +34,18 @@ export function createCameraController(
 				desiredCamera.z + Math.cos(heading) * 15,
 			);
 		} else {
-			const distance = onFoot ? 4.5 : indoors ? 7.2 : 9;
+			const distance = onFoot ? (leading ? 8.5 : 4.5) : indoors ? 7.2 : 9;
 			desiredCamera.set(
 				state.x - Math.sin(heading) * distance,
-				(onFoot ? 3.1 : indoors ? 5.15 : 5.7) + state.height * 0.55,
+				(onFoot ? (leading ? 4.7 : 3.1) : indoors ? 5.15 : 5.7) +
+					state.height * 0.55,
 				state.z - Math.cos(heading) * distance,
 			);
-			const ahead = onFoot ? 0.5 : indoors ? 0 : 2.5;
+			if (onFoot && leading) {
+				desiredCamera.x += Math.cos(heading) * 5;
+				desiredCamera.z -= Math.sin(heading) * 5;
+			}
+			const ahead = onFoot ? (leading ? -1.5 : 0.5) : indoors ? 0 : 2.5;
 			target.set(
 				state.x + Math.sin(state.heading) * ahead,
 				(onFoot ? 1.3 : indoors ? 2.2 : 1.7) + state.height * 0.65,

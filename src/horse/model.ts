@@ -1,3 +1,4 @@
+import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
 import { attachSkin } from './skin.ts';
 import { createRider } from './rider.ts';
@@ -275,6 +276,13 @@ export function createHorse(): HorseModel {
 		],
 		0.022,
 	);
+	const bridle = new THREE.Group();
+	bridle.name = 'choice:headgear:bridle';
+	for (const part of [...tack.children])
+		if (part !== equipment) bridle.add(part);
+	tack.add(bridle);
+	const { halter, leadAnchor } = createHalter(body);
+	halter.visible = false;
 	const seat = new THREE.Group();
 	seat.name = 'rider-seat';
 	body.add(seat);
@@ -457,6 +465,9 @@ export function createHorse(): HorseModel {
 		tail,
 		rider,
 		tack,
+		halter,
+		bridle,
+		leadAnchor,
 		coat,
 		hair,
 		cloth,

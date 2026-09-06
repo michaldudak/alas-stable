@@ -1,3 +1,5 @@
+import { stepLedHorse, leadPathClear, LEAD_LENGTH } from '../game/leading.ts';
+import { createLeadRope } from '../rendering/lead-rope.ts';
 import { horseBarrier, nearbyMount } from '../game/herd.ts';
 import { createAppearanceStore } from '../platform/appearance-storage.ts';
 import { createWalkingRider } from '../horse/walking-rider.ts';
@@ -96,13 +98,13 @@ export function startGame() {
 	const otherHorseSolids = () =>
 		herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state));
 	function selectHorse(next: typeof selected) {
+		next.model.tack.visible = true;
 		if (selected === next) return;
 		horse.rider.visible = false;
 		selected = next;
 		horse = next.model;
 		state = next.state;
 		horseAnimation = next.animation;
-		horse.tack.visible = true;
 		preview.dispose();
 		preview = createHorsePreview(
 			requireElement('#horse-preview', HTMLCanvasElement),
@@ -120,6 +122,9 @@ export function startGame() {
 	const person = createState();
 	const walker = createWalkingRider(horse.rider);
 	scene.add(walker.root);
+	const rope = createLeadRope(scene);
+	let leading = false;
+	let leadBlocked = false;
 	let riding: 'mounted' | 'on-foot' | 'mounting' | 'dismounting' = 'mounted';
 	let transferTime = 0;
 	let footstepTimer = 0;
@@ -167,6 +172,12 @@ export function startGame() {
 		$('hint').classList.remove('hidden');
 	}
 	function updateGait() {
+		const leadLabel = leading ? 'Odepnij lonżę' : 'Przypnij lonżę';
+		requireElement('#lead span', HTMLElement).textContent = leadLabel;
+		$('lead').setAttribute('aria-label', leadLabel);
+		$('lead').setAttribute('aria-pressed', String(leading));
+		$('lead').title = leadLabel + ' (L)';
+		requireElement('#lead', HTMLButtonElement).disabled = riding !== 'on-foot';
 		const active = activeState();
 		requireElement('#camera span', HTMLElement).textContent = firstPerson
 			? 'Oczami jeźdźca'
@@ -200,7 +211,7 @@ export function startGame() {
 		if (riding === 'mounted') changeGait(state, delta);
 		else person.gait = THREE.MathUtils.clamp(person.gait + delta, -1, 2);
 		updateGait();
-		if (!started && state.gait) {
+		if (!started && riding === 'mounted' && state.gait) {
 			started = true;
 			hint(
 				'Świetnie! Teraz wybierz swoją drogę.',
@@ -225,6 +236,39 @@ export function startGame() {
 	function jump() {
 		if (riding === 'mounted') requestJump(state);
 	}
+	function releaseLead() {
+		if (!leading) return;
+		leading = false;
+		leadBlocked = false;
+		state.gait = 0;
+		state.speed = 0;
+	}
+	function lead() {
+		if (riding !== 'on-foot') return;
+		if (leading) {
+			releaseLead();
+			updateGait();
+			hint('Lonża odpięta', selected.name + ' czeka tutaj.');
+			return;
+		}
+		const target = nearbyMount(herd, person, world.solids);
+		if (!target) {
+			hint(
+				'Podejdź do boku konia',
+				'Naciśnij L, żeby przypiąć lonżę do kantara.',
+			);
+			return;
+		}
+		selectHorse(target.horse);
+		leading = true;
+		state.gait = 0;
+		state.speed = 0;
+		updateGait();
+		hint(
+			'Na lonży: ' + selected.name,
+			'Ruszaj, a koń pójdzie za tobą. L — odepnij lonżę.',
+		);
+	}
 	function mount() {
 		if (transferring()) return;
 		if (
@@ -243,6 +287,7 @@ export function startGame() {
 				);
 				return;
 			}
+			releaseLead();
 			selectHorse(target.horse);
 		}
 		const side = mountSide(
@@ -257,6 +302,7 @@ export function startGame() {
 			);
 			return;
 		}
+		releaseLead();
 		state.gait = 0;
 		state.speed = 0;
 		transferSide = side;
@@ -316,11 +362,12 @@ export function startGame() {
 					: 'Spacer po polanie',
 				riding === 'mounted'
 					? '↑ wybierz tempo'
-					: '↑ chód lub bieg · ↓ zwolnij / cofaj · E wsiądź obok konia',
+					: '↑ chód lub bieg · ↓ cofaj · E wsiądź · L lonża',
 			);
 		}
 	}
 	function home() {
+		releaseLead();
 		riding = 'mounted';
 		walker.root.visible = false;
 		horse.rider.visible = !firstPerson;
@@ -351,6 +398,10 @@ export function startGame() {
 	};
 	$('slower').onclick = () => {
 		tempo(-1);
+		focusGame();
+	};
+	$('lead').onclick = () => {
+		lead();
 		focusGame();
 	};
 	$('mount').onclick = () => {
@@ -416,6 +467,7 @@ export function startGame() {
 		tempo,
 		jump,
 		mount,
+		lead,
 		toggleCamera,
 		pause,
 	});
@@ -440,6 +492,7 @@ export function startGame() {
 			input.look,
 			snap,
 			riding !== 'mounted',
+			leading,
 		);
 	}
 	const minimap = createMinimap(
@@ -463,6 +516,7 @@ export function startGame() {
 			const turn = input.turn;
 			const oldGait = activeState().gait;
 			if (
+				!leading &&
 				step(state, dt, riding === 'mounted' ? turn : 0, world.obstacles, [
 					...world.solids,
 					...otherHorseSolids(),
@@ -474,22 +528,39 @@ export function startGame() {
 					'Spróbuj nacisnąć spację przed przeszkodą.',
 				);
 			}
-			if (riding === 'on-foot')
-				stepPerson(
-					person,
-					dt,
-					turn,
-					[
-						...world.solids,
-						...otherHorseSolids(),
-						...world.obstacles
-							.filter((o) => !o.down)
-							.map((o) => ({ x: o.x, z: o.z, w: o.width, d: 0.18 })),
-					],
-					state,
-				);
+			const previousPerson = { ...person };
+			const barriers = [
+				...world.solids,
+				...otherHorseSolids(),
+				...world.obstacles
+					.filter((o) => !o.down)
+					.map((o) => ({ x: o.x, z: o.z, w: o.width, d: 0.18 })),
+			];
+			if (riding === 'on-foot') stepPerson(person, dt, turn, barriers, state);
+			let leadTurn = 0;
+			if (leading) {
+				const taut =
+					Math.hypot(person.x - state.x, person.z - state.z) > LEAD_LENGTH ||
+					!leadPathClear(state, person, barriers);
+				if (taut) {
+					Object.assign(person, {
+						x: previousPerson.x,
+						z: previousPerson.z,
+						gait: 0,
+						speed: 0,
+					});
+					if (!leadBlocked)
+						hint(
+							'Poczekaj na konia',
+							'Omiń przeszkodę szerzej lub wróć kilka kroków.',
+						);
+				}
+				leadBlocked = taut;
+				leadTurn = stepLedHorse(state, person, dt, barriers);
+			}
 			if (transferring()) updateTransfer(dt);
-			else if (riding === 'on-foot') walker.pose(dt, person.speed);
+			else if (riding === 'on-foot')
+				walker.pose(dt, person.speed, 0, 0, -1, leading);
 			if (activeState().gait !== oldGait) updateGait();
 			walker.root.position.set(person.x, person.height, person.z);
 			walker.root.rotation.y = person.heading;
@@ -499,9 +570,10 @@ export function startGame() {
 				dt,
 				state,
 				elapsed,
-				riding === 'mounted' ? turn : 0,
+				riding === 'mounted' ? turn : leadTurn,
 			);
 			for (const obstacle of world.obstacles) {
+				if (leading) obstacle.down = Math.max(0, obstacle.down - dt);
 				obstacle.rails.rotation.x = obstacle.down ? 1.4 : 0;
 				obstacle.rails.position.y = obstacle.down ? -0.28 : 0;
 			}
@@ -524,6 +596,13 @@ export function startGame() {
 			$('location').textContent = locationName(active.x, active.z);
 			$('hint').classList.toggle('hidden', elapsed > hintUntil);
 		}
+		for (const entry of herd) {
+			const mounted = entry === selected && riding === 'mounted';
+			entry.model.halter.visible = !mounted;
+			entry.model.bridle.visible = mounted;
+		}
+		scene.updateMatrixWorld(true);
+		rope.update(walker.leadHand, horse.leadAnchor, leading);
 		world.stable.update(elapsed, horse);
 		minimap.draw(
 			activeState(),
@@ -541,11 +620,13 @@ export function startGame() {
 				...activeState(),
 				riding,
 				activeHorse: selected.name,
+				leading,
 				horses: herd.map((h) => ({
 					name: h.name,
 					x: h.state.x,
 					z: h.state.z,
 					heading: h.state.heading,
+					halter: h.model.halter.visible,
 					appearance: h.model.getAppearance(),
 				})),
 				horse: { x: state.x, z: state.z, heading: state.heading },

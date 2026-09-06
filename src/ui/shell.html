@@ -1,7 +1,7 @@
 <canvas
 	id="game"
 	tabindex="0"
-	aria-label="Gra jeździecka 3D. Góra i dół zmieniają tempo, lewo i prawo skręcają, spacja to skok, E pozwala wsiąść lub zsiąść, C zmienia kamerę, Escape zatrzymuje grę."
+	aria-label="Gra jeździecka 3D. Góra i dół zmieniają tempo, lewo i prawo skręcają, spacja to skok, E pozwala wsiąść lub zsiąść, L przypina i odpina lonżę, C zmienia kamerę, Escape zatrzymuje grę."
 ></canvas>
 <header>
 	<div class="brand">
@@ -32,6 +32,15 @@
 	jazda
 </div>
 <aside class="side-tools">
+	<button
+		type="button"
+		id="lead"
+		title="Przypnij lonżę (L)"
+		aria-label="Przypnij lonżę"
+	>
+		<i data-lucide="link" aria-hidden="true"></i><span>Przypnij lonżę</span
+		><kbd>L</kbd>
+	</button>
 	<button
 		type="button"
 		id="mount"
@@ -136,6 +145,14 @@
 		</button>
 	</div>
 	<div class="help-grid">
+		<div>
+			<kbd>L</kbd>
+			<h3>Poprowadź konia</h3>
+			<p>
+				Zsiądź i podejdź do boku konia. L przypina lonżę do kantara. Ruszaj, a
+				koń pójdzie za tobą. Ponowne L odpina linę.
+			</p>
+		</div>
 		<div>
 			<kbd>↑</kbd><kbd>↓</kbd>
 			<h3>Wybierz tempo</h3>

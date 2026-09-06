@@ -50,8 +50,18 @@ export function createWalkingRider(source: THREE.Group) {
 		limb(elbow, shirt, [0, 0, 0], [0, -0.3, 0], 0.073, 0.053);
 		oval(elbow, glove, [0.055, 0.065, 0.07], [0, -0.34, 0]);
 	}
+	const leadHand = new THREE.Group();
+	leadHand.position.set(0, -0.34, 0);
+	elbows[1].add(leadHand);
 	let phase = 0;
-	function pose(dt: number, speed: number, seated = 0, swing = 0, side = -1) {
+	function pose(
+		dt: number,
+		speed: number,
+		seated = 0,
+		swing = 0,
+		side = -1,
+		leading = false,
+	) {
 		const pace = Math.abs(speed);
 		phase +=
 			dt *
@@ -93,13 +103,19 @@ export function createWalkingRider(source: THREE.Group) {
 				.copy(leg.quaternion)
 				.multiply(knees[i].quaternion)
 				.invert();
+			arms[i].rotation.z = 0;
 			arms[i].rotation.x =
 				-Math.sin(wave) * 0.38 * amount - 0.75 * seated - 0.25 * swing;
 			elbows[i].rotation.x =
 				-0.18 - 0.65 * seated - (pace > 2.5 ? 0.65 : 0.12) * amount;
 		});
+		if (leading) {
+			arms[1].rotation.x = 0.2;
+			arms[1].rotation.z = -0.25;
+			elbows[1].rotation.x = -0.35;
+		}
 	}
 	pose(0, 0);
 	root.visible = false;
-	return { root, pose };
+	return { root, pose, leadHand };
 }
