@@ -87,6 +87,38 @@ try {
 			}
 			scene.remove(horse.root);
 		}
+		camera.position.set(7, 2.9, 1.4);
+		camera.lookAt(0, 1.85, 0.1);
+		for (const progress of [0.05, 0.15, 0.3, 0.5, 0.7, 0.88, 1, 1.1]) {
+			const horse = createHorse();
+			scene.add(horse.root);
+			const anim = createHorseAnimation(horse);
+			for (let i = 0; i < 120; i++)
+				anim.update(1 / 120, { gait: 2, speed: 5.5, jump: -1 }, i / 120);
+			anim.update(
+				1 / 120,
+				{ gait: 2, speed: 5.5, jump: Math.min(progress, 1) * 1.45 },
+				2,
+			);
+			if (progress > 1)
+				for (let i = 0; i < 12; i++)
+					anim.update(1 / 120, { gait: 2, speed: 5.5, jump: -1 }, 2 + i / 120);
+			renderer.render(scene, camera);
+			const cell = document.createElement('div');
+			cell.style.cssText = 'height:330px;text-align:center';
+			const title = document.createElement('p');
+			title.textContent =
+				progress > 1
+					? 'Landing recovery'
+					: 'Jump ' + Math.round(progress * 100) + '%';
+			title.style.margin = '8px';
+			const image = document.createElement('img');
+			image.src = renderer.domElement.toDataURL();
+			image.width = 360;
+			cell.append(title, image);
+			document.querySelector('main')!.append(cell);
+			scene.remove(horse.root);
+		}
 	});
 	await page.screenshot({
 		path: 'artifacts/gait-phases.png',
@@ -96,6 +128,11 @@ try {
 		path: 'artifacts/turn-phases.png',
 		fullPage: true,
 		clip: { x: 0, y: 990, width: 1440, height: 660 },
+	});
+	await page.screenshot({
+		path: 'artifacts/jump-phases.png',
+		fullPage: true,
+		clip: { x: 0, y: 1650, width: 1440, height: 660 },
 	});
 	console.log('Saved phase sheets for locomotion and turning in place.');
 } finally {

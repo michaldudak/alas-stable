@@ -1,3 +1,4 @@
+import { sampleJump } from './jump-pose.ts';
 import { JUMP_DURATION } from './tuning.ts';
 import type { MotionState } from './types.ts';
 // Rig order: left hind, left fore, right hind, right fore.
@@ -125,6 +126,7 @@ export function createGaitController() {
 		weights = [1, 0, 0, 0, 0],
 		oldContacts = [true, true, true, true];
 	let jumping = false;
+	let landing = 1;
 	let turnPhase = 0,
 		turnAmount = 0;
 	return {
@@ -204,24 +206,47 @@ export function createGaitController() {
 					: sampleGait(target, phase).feet.map((foot) => foot.contact);
 			let footfalls = 0;
 			if (state.jump >= 0) {
-				const progress = clamp(state.jump / JUMP_DURATION, 0, 1),
-					tuck = Math.sin(Math.PI * progress);
-				pose.pitch = Math.cos(Math.PI * progress) * 0.12;
-				pose.y *= 1 - tuck;
-				pose.roll *= 1 - tuck;
-				pose.riderPitch = 0.22 * tuck;
-				pose.riderY = 0.025 * tuck;
+				const progress = clamp(state.jump / JUMP_DURATION, 0, 1);
+				const jump = sampleJump(progress);
+				const entry = clamp(progress / 0.1, 0, 1);
+				const blend = entry * entry * (3 - 2 * entry);
+				pose.pitch += (jump.pitch - pose.pitch) * blend;
+				pose.y *= 1 - blend;
+				pose.roll *= 1 - blend;
+				pose.riderPitch += (jump.riderPitch - pose.riderPitch) * blend;
+				pose.riderY += (jump.riderY - pose.riderY) * blend;
 				pose.feet.forEach((foot, i) => {
 					const front = i % 2 === 1;
-					foot.x *= 1 - tuck;
-					foot.z = foot.z * (1 - tuck) + (front ? 0.22 : -0.2) * tuck;
-					foot.lift = foot.lift * (1 - tuck) + (front ? 0.85 : 0.42) * tuck;
+					foot.x *= 1 - blend;
+					foot.z += ((front ? jump.frontZ : jump.hindZ) - foot.z) * blend;
+					foot.lift +=
+						((front ? jump.frontLift : jump.hindLift) - foot.lift) * blend;
 				});
+				landing = 1;
 				oldContacts.fill(false);
 				jumping = true;
 			} else {
-				if (jumping) footfalls = 2;
-				else if (motion > 0.1 || turnWeight > 0.1)
+				if (jumping) {
+					landing = 0;
+					footfalls = 2;
+				}
+				const previousLanding = landing;
+				landing = Math.min(1, landing + dt / 0.3);
+				if (landing < 1) {
+					const recovery = landing * landing * (3 - 2 * landing);
+					const compression = Math.sin(Math.PI * landing);
+					pose.y = pose.y * recovery - 0.11 * compression;
+					pose.pitch = pose.pitch * recovery + 0.055 * compression;
+					pose.riderY = pose.riderY * recovery - 0.025 * compression;
+					pose.riderPitch = pose.riderPitch * recovery + 0.03 * (1 - recovery);
+					pose.feet.forEach((foot, i) => {
+						foot.x *= recovery;
+						foot.z = 0.02 * (1 - recovery) + foot.z * recovery;
+						foot.lift =
+							(i % 2 ? 0 : 0.08) * (1 - recovery) + foot.lift * recovery;
+					});
+					if (previousLanding < 0.4 && landing >= 0.4) footfalls += 2;
+				} else if (!jumping && (motion > 0.1 || turnWeight > 0.1))
 					footfalls = contacts.filter(
 						(contact, i) => contact && !oldContacts[i],
 					).length;
