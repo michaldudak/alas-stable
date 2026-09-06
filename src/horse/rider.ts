@@ -1,188 +1,293 @@
 import * as THREE from 'three';
 import type { Vector3Tuple } from '../rendering/types.ts';
-import { surface, oval, limb, cord, form, mesh } from './geometry.ts';
+import { surface, oval, cord, form, mesh } from './geometry.ts';
+
+/** A tapered fabric surface follows the entire limb without separate joint spheres. */
+function sleeve(
+	parent: THREE.Group,
+	material: THREE.Material,
+	points: Vector3Tuple[],
+	radii: number[],
+) {
+	const path = new THREE.CatmullRomCurve3(
+		points.map((p) => new THREE.Vector3(...p)),
+	);
+	const frames = path.computeFrenetFrames(32, false);
+	const positions: number[] = [],
+		indices: number[] = [];
+	for (let i = 0; i <= 32; i++) {
+		const t = i / 32,
+			p = path.getPointAt(t);
+		const r = t * (radii.length - 1),
+			section = Math.min(radii.length - 2, Math.floor(r));
+		const blend = r - section;
+		const radius = THREE.MathUtils.lerp(
+			radii[section],
+			radii[section + 1],
+			blend * blend * (3 - 2 * blend),
+		);
+		for (let j = 0; j <= 20; j++) {
+			const angle = (j / 20) * Math.PI * 2;
+			const vertex = p
+				.clone()
+				.addScaledVector(frames.normals[i], Math.cos(angle) * radius)
+				.addScaledVector(frames.binormals[i], Math.sin(angle) * radius * 0.92);
+			positions.push(vertex.x, vertex.y, vertex.z);
+			if (i && j < 20) {
+				const a = i * 21 + j,
+					b = a - 21;
+				indices.push(b, b + 1, a, b + 1, a + 1, a);
+			}
+		}
+	}
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute(
+		'position',
+		new THREE.Float32BufferAttribute(positions, 3),
+	);
+	geometry.setIndex(indices);
+	geometry.computeVertexNormals();
+	return mesh(parent, geometry, material);
+}
 
 export function createRider(parent: THREE.Group, eye: THREE.Material) {
 	const rider = new THREE.Group();
 	rider.name = 'rider';
 	parent.add(rider);
-	const shirt = surface('#cb7956'),
-		pants = surface('#e6dbc1'),
-		boots = surface('#303d3b', 0.6);
-	const skin = surface('#edbd96'),
-		helmet = surface('#35534b', 0.5),
-		riderHair = surface('#66442e');
-	oval(rider, pants, [0.32, 0.19, 0.26], [0, 2.72, -0.12]);
+	const shirt = surface('#bd7759'),
+		pants = surface('#d9ceb5'),
+		boots = surface('#303a37', 0.52);
+	const skin = surface('#e6b795'),
+		helmet = surface('#35534b', 0.48),
+		hair = surface('#624532');
+	const seam = surface('#965f49'),
+		lip = surface('#ad7768'),
+		lining = surface('#e7dfcf'),
+		glove = surface('#50453a', 0.67);
+	const iris = surface('#594732', 0.3);
+	// A fitted torso has a waist, ribcage and sloping shoulders.
 	form(
 		rider,
 		shirt,
 		[
-			[[0, 2.75, -0.14], 0.23, 0.16],
-			[[0, 2.89, -0.12], 0.24, 0.17],
-			[[0, 3.16, -0.12], 0.29, 0.18],
-			[[0, 3.28, -0.1], 0.22, 0.14],
+			[[0, 2.73, -0.13], 0.218, 0.145],
+			[[0, 2.84, -0.12], 0.21, 0.145],
+			[[0, 3.04, -0.11], 0.253, 0.17],
+			[[0, 3.18, -0.105], 0.27, 0.15],
+			[[0, 3.26, -0.095], 0.19, 0.118],
+			[[0, 3.285, -0.085], 0.086, 0.085],
 		],
 		'y',
 	);
-	limb(rider, skin, [0, 3.24, -0.1], [0, 3.43, -0.08], 0.095);
+	oval(rider, pants, [0.28, 0.16, 0.235], [0, 2.7, -0.12]);
 	form(
 		rider,
 		skin,
 		[
-			[[0, 3.335, -0.04], 0.045, 0.055],
-			[[0, 3.39, -0.035], 0.125, 0.13],
-			[[0, 3.49, -0.055], 0.19, 0.185],
-			[[0, 3.61, -0.07], 0.216, 0.21],
-			[[0, 3.73, -0.08], 0.204, 0.195],
-			[[0, 3.83, -0.09], 0.105, 0.105],
+			[[0, 3.23, -0.08], 0.086, 0.082],
+			[[0, 3.4, -0.065], 0.078, 0.075],
 		],
 		'y',
 	);
-	oval(rider, riderHair, [0.239, 0.22, 0.16], [0, 3.63, -0.16]);
-	oval(rider, helmet, [0.277, 0.2, 0.26], [0, 3.79, -0.08]);
-	oval(rider, helmet, [0.27, 0.035, 0.22], [0, 3.72, 0.09]);
-	oval(rider, skin, [0.04, 0.045, 0.05], [0, 3.57, 0.155]);
-	for (const side of [-1, 1]) {
-		oval(rider, eye, [0.022, 0.029, 0.012], [side * 0.09, 3.63, 0.13]);
-		oval(rider, skin, [0.045, 0.07, 0.045], [side * 0.226, 3.58, -0.06]);
-		cord(
-			rider,
-			boots,
-			[
-				[side * 0.24, 3.72, -0.04],
-				[side * 0.2, 3.42, 0.025],
-				[0, 3.38, 0.04],
-			],
-			0.012,
-		);
-		const shoulder: Vector3Tuple = [side * 0.27, 3.17, -0.09],
-			elbow: Vector3Tuple = [side * 0.37, 2.96, 0.04],
-			hand: Vector3Tuple = [side * 0.29, 2.85, 0.43];
-		oval(rider, shirt, [0.12, 0.15, 0.13], shoulder);
-		limb(rider, shirt, shoulder, elbow, 0.115, 0.09);
-		oval(rider, shirt, [0.09, 0.09, 0.09], elbow);
-		limb(rider, shirt, elbow, hand, 0.085, 0.065);
-		oval(rider, skin, [0.072, 0.065, 0.09], hand);
-		const hip: Vector3Tuple = [side * 0.22, 2.72, -0.12],
-			knee: Vector3Tuple = [side * 0.56, 2.22, 0.3],
-			ankle: Vector3Tuple = [side * 0.64, 1.7, 0.08];
-		limb(rider, pants, hip, knee, 0.15, 0.11);
-		oval(rider, pants, [0.12, 0.13, 0.12], knee);
-		limb(rider, boots, [side * 0.575, 2.13, 0.27], ankle, 0.105, 0.075);
-		oval(rider, boots, [0.11, 0.09, 0.21], [side * 0.64, 1.63, 0.19]);
-	}
-
-	// Clothing and facial details stay attached to the animated rider group.
-	const seam = surface('#a65e43'),
-		lip = surface('#b47766'),
-		lining = surface('#ede5d4'),
-		glove = surface('#56483b', 0.68);
-	cord(
-		rider,
-		seam,
+	const head = new THREE.Group();
+	head.position.set(0, 3.62, -0.065);
+	rider.add(head);
+	form(
+		head,
+		skin,
 		[
-			[0, 2.78, 0.024],
-			[0, 2.96, 0.058],
-			[0, 3.19, 0.055],
+			[[0, -0.255, 0.008], 0.036, 0.045],
+			[[0, -0.218, 0.004], 0.099, 0.102],
+			[[0, -0.13, -0.015], 0.158, 0.146],
+			[[0, -0.025, -0.025], 0.186, 0.18],
+			[[0, 0.1, -0.025], 0.181, 0.18],
+			[[0, 0.21, -0.03], 0.145, 0.145],
+			[[0, 0.265, -0.035], 0.012, 0.018],
 		],
-		0.007,
+		'y',
 	);
-	for (const y of [3.08, 3.16])
-		oval(rider, lining, [0.014, 0.014, 0.009], [0, y, 0.067]);
+	// A narrow bridge and shaped tip replace the round button nose.
+	form(
+		head,
+		skin,
+		[
+			[[0, -0.128, 0.155], 0.033, 0.022],
+			[[0, -0.1, 0.176], 0.03, 0.034],
+			[[0, -0.02, 0.157], 0.021, 0.022],
+			[[0, 0.04, 0.146], 0.027, 0.012],
+		],
+		'y',
+	);
 	cord(
-		rider,
+		head,
 		lip,
 		[
-			[-0.057, 3.465, 0.115],
-			[0, 3.453, 0.137],
-			[0.057, 3.465, 0.115],
+			[-0.045, -0.17, 0.108],
+			[0, -0.181, 0.127],
+			[0.045, -0.17, 0.108],
 		],
-		0.006,
+		0.005,
 	);
+	oval(head, hair, [0.192, 0.2, 0.12], [0, 0.02, -0.104]);
+	// Close-fitting helmet shell and shallow peak.
+	form(
+		head,
+		helmet,
+		[
+			[[0, 0.096, -0.022], 0.202, 0.198],
+			[[0, 0.19, -0.031], 0.209, 0.207],
+			[[0, 0.285, -0.04], 0.144, 0.148],
+			[[0, 0.327, -0.043], 0.01, 0.012],
+		],
+		'y',
+	);
+	oval(head, helmet, [0.198, 0.018, 0.14], [0, 0.107, 0.155]);
 	for (const side of [-1, 1]) {
+		oval(head, lining, [0.03, 0.013, 0.008], [side * 0.071, 0.008, 0.146]);
+		oval(head, iris, [0.01, 0.011, 0.006], [side * 0.07, 0.007, 0.154]);
+		oval(head, eye, [0.005, 0.007, 0.004], [side * 0.07, 0.007, 0.159]);
 		cord(
-			rider,
-			riderHair,
+			head,
+			skin,
 			[
-				[side * 0.048, 3.677, 0.13],
-				[side * 0.089, 3.691, 0.124],
-				[side * 0.129, 3.674, 0.108],
+				[side * 0.039, 0.011, 0.143],
+				[side * 0.07, 0.023, 0.15],
+				[side * 0.103, 0.01, 0.135],
 			],
-			0.009,
-		);
-		oval(rider, lining, [0.006, 0.008, 0.005], [side * 0.085, 3.638, 0.144]);
-		oval(rider, lip, [0.018, 0.041, 0.025], [side * 0.255, 3.58, -0.045]);
-		cord(
-			rider,
-			lining,
-			[
-				[side * 0.095, 3.31, -0.07],
-				[side * 0.14, 3.24, 0.022],
-				[side * 0.045, 3.2, 0.058],
-			],
-			0.027,
+			0.007,
 		);
 		cord(
-			rider,
-			seam,
+			head,
+			hair,
 			[
-				[side * 0.22, 3.22, -0.17],
-				[side * 0.26, 3.11, -0.245],
-				[side * 0.21, 2.84, -0.205],
+				[side * 0.04, 0.047, 0.145],
+				[side * 0.074, 0.056, 0.143],
+				[side * 0.111, 0.044, 0.129],
 			],
 			0.006,
 		);
-		oval(rider, glove, [0.073, 0.067, 0.093], [side * 0.29, 2.85, 0.43]);
-		oval(rider, glove, [0.035, 0.045, 0.06], [side * 0.245, 2.88, 0.44]);
+		oval(head, skin, [0.027, 0.054, 0.032], [side * 0.185, -0.058, -0.031]);
+		oval(head, lip, [0.011, 0.029, 0.016], [side * 0.205, -0.056, -0.011]);
 		cord(
-			rider,
-			lining,
+			head,
+			boots,
 			[
-				[side * 0.42, 2.45, 0.045],
-				[side * 0.57, 2.24, 0.25],
-				[side * 0.55, 2.19, 0.34],
+				[side * 0.2, 0.11, 0.013],
+				[side * 0.19, -0.095, 0.01],
+				[side * 0.1, -0.247, 0.061],
+				[0, -0.257, 0.061],
 			],
 			0.008,
 		);
-		// Defined boot soles and heels replace the soft slipper silhouette.
-		mesh(rider, new THREE.BoxGeometry(0.17, 0.07, 0.17), boots, [
+		for (let i = 0; i < 3; i++)
+			cord(
+				head,
+				hair,
+				[
+					[side * (0.12 + i * 0.017), 0.085, -0.137],
+					[side * (0.14 + i * 0.017), -0.08, -0.133],
+					[side * (0.1 + i * 0.017), -0.19, -0.13],
+				],
+				0.015,
+			);
+		cord(
+			head,
+			boots,
+			[
+				[side * 0.07, 0.306, -0.04],
+				[side * 0.083, 0.292, 0.046],
+				[side * 0.09, 0.264, 0.098],
+			],
+			0.007,
+		);
+		sleeve(
+			rider,
+			shirt,
+			[
+				[side * 0.19, 3.185, -0.1],
+				[side * 0.29, 3.14, -0.085],
+				[side * 0.35, 2.97, 0.035],
+				[side * 0.31, 2.89, 0.26],
+				[side * 0.29, 2.855, 0.4],
+			],
+			[0.11, 0.108, 0.087, 0.072, 0.057],
+		);
+		// Fingers curl around the reins; hands stay at the existing rein attachments.
+		oval(rider, glove, [0.057, 0.055, 0.075], [side * 0.29, 2.855, 0.436]);
+		for (let finger = 0; finger < 3; finger++)
+			cord(
+				rider,
+				glove,
+				[
+					[side * 0.335, 2.876 - finger * 0.025, 0.417],
+					[side * 0.325, 2.875 - finger * 0.025, 0.482],
+					[side * 0.285, 2.865 - finger * 0.025, 0.486],
+				],
+				0.012,
+			);
+		oval(rider, glove, [0.024, 0.037, 0.049], [side * 0.252, 2.88, 0.44]);
+		sleeve(
+			rider,
+			pants,
+			[
+				[side * 0.18, 2.71, -0.12],
+				[side * 0.37, 2.54, 0.035],
+				[side * 0.53, 2.29, 0.25],
+				[side * 0.558, 2.18, 0.285],
+				[side * 0.576, 2.1, 0.255],
+			],
+			[0.15, 0.145, 0.11, 0.098, 0.084],
+		);
+		form(
+			rider,
+			boots,
+			[
+				[[side * 0.64, 1.65, 0.1], 0.076, 0.09],
+				[[side * 0.625, 1.8, 0.14], 0.082, 0.09],
+				[[side * 0.598, 1.98, 0.215], 0.097, 0.107],
+				[[side * 0.575, 2.13, 0.27], 0.09, 0.097],
+			],
+			'y',
+		);
+		oval(rider, boots, [0.096, 0.067, 0.189], [side * 0.64, 1.625, 0.195]);
+		oval(rider, boots, [0.1, 0.024, 0.194], [side * 0.64, 1.567, 0.2]);
+		mesh(rider, new THREE.BoxGeometry(0.142, 0.055, 0.125), boots, [
 			side * 0.64,
-			1.55,
-			0.095,
+			1.548,
+			0.09,
 		]);
-		oval(rider, boots, [0.112, 0.028, 0.217], [side * 0.64, 1.565, 0.2]);
 		cord(
 			rider,
 			glove,
 			[
 				[side * 0.672, 2.12, 0.27],
-				[side * 0.72, 1.92, 0.185],
-				[side * 0.715, 1.72, 0.095],
+				[side * 0.703, 1.93, 0.19],
+				[side * 0.715, 1.73, 0.112],
 			],
-			0.008,
+			0.006,
 		);
-		for (let i = 0; i < 3; i++)
-			cord(
-				rider,
-				eye,
-				[
-					[side * (0.07 + i * 0.045), 3.915, -0.07],
-					[side * (0.085 + i * 0.045), 3.92, 0.0],
-					[side * (0.09 + i * 0.045), 3.89, 0.08],
-				],
-				0.009,
-			);
-		for (let i = 0; i < 3; i++)
-			cord(
-				rider,
-				riderHair,
-				[
-					[side * (0.12 + i * 0.03), 3.69, -0.21],
-					[side * (0.13 + i * 0.03), 3.51, -0.22],
-					[side * (0.1 + i * 0.025), 3.4, -0.19],
-				],
-				0.025,
-			);
+		cord(
+			rider,
+			lining,
+			[
+				[side * 0.084, 3.295, -0.07],
+				[side * 0.134, 3.245, 0.015],
+				[side * 0.05, 3.205, 0.047],
+			],
+			0.017,
+		);
 	}
+	cord(
+		rider,
+		seam,
+		[
+			[0, 2.77, 0.03],
+			[0, 2.98, 0.062],
+			[0, 3.19, 0.048],
+		],
+		0.004,
+	);
+	for (const y of [3.09, 3.155])
+		oval(rider, lining, [0.009, 0.009, 0.006], [0, y, 0.063]);
 	return rider;
 }
