@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { stripVTControlCharacters } from 'node:util';
 
 const port = process.env.BROWSER_PORT || '5174';
 const baseURL = `http://127.0.0.1:${port}`;
@@ -37,8 +38,8 @@ try {
 			clearTimeout(timeout);
 			reject(new Error(`Vite exited (${code}).\n${serverOutput}`));
 		});
-		server.stdout.on('data', (chunk: Buffer) => {
-			if (chunk.toString().includes('Local:')) {
+		server.stdout.on('data', () => {
+			if (stripVTControlCharacters(serverOutput).includes('Local:')) {
 				clearTimeout(timeout);
 				resolve();
 			}
