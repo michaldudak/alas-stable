@@ -103,7 +103,10 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[1] = -0.6;
 	});
-	await page.waitForTimeout(200);
+	await page.waitForFunction(
+		(z) => window.__alasStable!.snapshot().z < z,
+		start.z,
+	);
 	assert.ok(
 		(await snapshot()).z < start.z,
 		'Left stick moves forward momentarily',
@@ -123,7 +126,10 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[1] = 0.6;
 	});
-	await page.waitForTimeout(200);
+	await page.waitForFunction(
+		(z) => window.__alasStable!.snapshot().z > z,
+		released.z,
+	);
 	assert.ok(
 		(await snapshot()).z > released.z,
 		'Left stick moves backward momentarily',
@@ -132,13 +138,18 @@ try {
 		window.__gamepadTest.axes[1] = 0;
 		window.__gamepadTest.axes[3] = -1;
 	});
-	await page.waitForTimeout(200);
+	await page.waitForFunction(
+		() => window.__alasStable!.snapshot().cameraDistanceScale < 1,
+	);
 	const closeZoom = (await snapshot()).cameraDistanceScale;
 	assert.ok(closeZoom < 1);
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[3] = 1;
 	});
-	await page.waitForTimeout(200);
+	await page.waitForFunction(
+		(scale) => window.__alasStable!.snapshot().cameraDistanceScale > scale,
+		closeZoom,
+	);
 	assert.ok((await snapshot()).cameraDistanceScale > closeZoom);
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[3] = 0;
@@ -180,7 +191,7 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[0] = 0.1;
 	});
-	await page.waitForTimeout(180);
+	await frames();
 	assert.equal(
 		(await snapshot()).heading,
 		heading,
@@ -189,7 +200,10 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[0] = 0.6;
 	});
-	await page.waitForTimeout(180);
+	await page.waitForFunction(
+		(previous) => window.__alasStable!.snapshot().heading < previous,
+		heading,
+	);
 	assert.ok(
 		(await snapshot()).heading < heading,
 		'Right stick deflection steers right',
@@ -210,7 +224,7 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[0] = 1;
 	});
-	await page.waitForTimeout(180);
+	await frames();
 	assert.equal(
 		(await snapshot()).heading,
 		frozen.heading,
