@@ -5,7 +5,7 @@ import { WORLD_RADIUS } from '../game/tuning.ts';
 export const SUN_DIRECTION = new THREE.Vector3(-35, 65, 25).normalize();
 
 export function createSun() {
-	const sun = new THREE.DirectionalLight('#fff1dd', 2.6);
+	const sun = new THREE.DirectionalLight('#fff1dd', 3.1);
 	// Include edge tree crowns and their ground shadows beyond the playable area.
 	const extent = WORLD_RADIUS + 16;
 	sun.position.copy(SUN_DIRECTION).multiplyScalar(extent * 2);

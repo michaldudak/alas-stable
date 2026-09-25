@@ -129,7 +129,7 @@ export function createSky(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		mesh.material.dispose();
 	}
 	scene.environment = target.texture;
-	scene.environmentIntensity = 0.75;
+	scene.environmentIntensity = 0.65;
 	return {
 		update(time: number) {
 			deck.material.uniforms.time.value = time;

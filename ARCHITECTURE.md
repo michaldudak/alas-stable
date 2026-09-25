@@ -16,7 +16,12 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Appearance catalog and validation                        | `src/horse/appearance.ts`                          |
 | Stable walls and colliders                               | `src/world/stable-layout.ts`                       |
 | Stable building and residents                            | `src/world/stable.ts`                              |
-| Terrain, vegetation, fences, obstacles, lighting         | `src/world/world.ts`, `primitives.ts`              |
+| Scenery layout, fences, obstacles                        | `src/world/world.ts`, `primitives.ts`              |
+| Sky, haze, clouds, environment lighting, sun             | `src/world/sky.ts`, `sun.ts`                       |
+| Ground surface mask, terrain textures, distant hills     | `src/world/terrain.ts`                             |
+| Grass, trees, wildflowers                                | `src/world/grass.ts`, `trees.ts`, `flowers.ts`     |
+| Material finishes (wood, boards, concrete, roofing)      | `src/world/surface-detail.ts`                      |
+| Procedural noise and texture helpers                     | `src/world/noise.ts`, `textures.ts`                |
 | Camera following and wall avoidance                      | `src/rendering/camera.ts`                          |
 | Keyboard/pointer input, audio, storage                   | `src/platform/`                                    |
 | Page markup, appearance controls, preview, minimap       | `src/ui/`                                          |
@@ -30,6 +35,15 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 - `game/` contains state and numeric rules, with no browser or Three.js imports. Oxlint enforces its import boundary and checks for dependency cycles throughout the project.
 - `horse/` owns the visual rig and appearance. Its animation adapter reads the minimal `MotionState` interface, without moving the physical player or changing collisions.
 - `world/` builds the environment. Collision records are plain `Solid`/`Obstacle` data, separate from meshes. Stable rendering and physics share wall dimensions from `stable-layout.ts`.
+
+## Scenery rendering
+
+The environment is procedural and asset-free. `sky.ts` bakes the analytic sky into a prefiltered environment map once at startup; `createWorld().dispose()` releases it, since it is not reachable from scene meshes. `terrain.ts` paints one mask texture (sand, worn earth, lushness, grass density) that both the terrain shader and the grass shader sample, so paths, the arena and the stable apron stay consistent. Grass is a fixed grid of instanced tiles that follows the camera; distant tiles draw fewer tufts and blades shrink to nothing before the grid edge. Trees are a few pre-built shapes per kind drawn as instanced meshes; backdrop trees on the hills use lighter shapes and cast no shadows. Tree placement keeps the original random sequence so existing trunk colliders stay where they were.
+
+Shader extensions use `onBeforeCompile`. Samplers that are only shader uniforms are listed in `material.userData.textures`, which `disposeScene` releases alongside regular material textures. `createWorld().update(time, camera)` advances wind and cloud drift and repositions the grass grid; call it after the camera has moved each frame.
+
+Scenery costs about one to two million triangles per frame from the default camera, dominated by grass, trees and the five horse models. Profile on the target computer before adding more vegetation; lowering `CLUMPS_PER_CHUNK` in `grass.ts` or the backdrop tree count in `world.ts` are the cheapest levers.
+
 - `platform/` owns browser APIs. Saved data enters as `unknown`, is normalized against the appearance catalog, and never directly becomes trusted game state. Storage failure is optional and does not block play.
 - `ui/` owns HTML, controls and the preview. The appearance panel accepts only the model's appearance setter; the minimap accepts positions and obstacle data rather than a Three.js scene.
 - `rendering/` owns the camera and GPU-resource cleanup. `app/` coordinates these modules and owns their lifetime.

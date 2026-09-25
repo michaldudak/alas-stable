@@ -1,7 +1,7 @@
 # Design decisions
 
 - Audience: school-age children. Starting play should not require reading; short text can supplement pictures.
-- Desktop browser. A simple cartoon-style 3D world with a natural riding stable, meadows, and forest, without fantasy elements.
+- Desktop browser. A naturalistic 3D world with a realistic riding stable, meadows, and forest, without fantasy elements. The world started cartoon-style and now aims for realism; see below.
 - Free riding and a separate jumping arena in the same world. A small area suitable for a ride lasting a few minutes.
 - No scores, timers, mandatory tasks, or competition in the first version.
 - Up/Down or W/S selects a gait that the horse maintains automatically. Left/Right or A/D steers.
@@ -18,3 +18,7 @@ First, test whether riding, cameras, and jumps feel enjoyable. Then develop cust
 The user confirmed that controls and jumping worked as intended. Preserve those mechanics.
 Before expanding customization, improve the horse and rider models and the close-up preview.
 The next stage covers selectable mane and tail styles, bows, flowers, ribbons, and saddlecloth patterns. All options remain available from the start.
+
+## Towards realism
+
+The team asked for a more realistic look. The environment now uses a physically based sky with image-based lighting and haze, one blended terrain with hills beyond the ridden area, wind-blown grass, procedural broadleaves and spruces, and material detail on built objects. Everything is still generated in code, without downloaded assets. The horse and rider keep their friendly proportions for now; changing their anatomy is a separate step that also affects the gait rig.

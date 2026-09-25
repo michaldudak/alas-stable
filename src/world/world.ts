@@ -16,7 +16,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const solids: Solid[] = [],
 		obstacles: (Obstacle & { rails: THREE.Group })[] = [];
 	const sky = createSky(scene, renderer);
-	scene.add(new THREE.HemisphereLight('#dbe8f5', '#5f6344', 0.55));
+	scene.add(new THREE.HemisphereLight('#dbe8f5', '#5f6344', 0.35));
 	scene.add(createSun());
 	// A continuous broad bridleway through the meadow and the forest.
 	const curve = new THREE.CatmullRomCurve3(
