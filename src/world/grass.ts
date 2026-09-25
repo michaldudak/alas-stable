@@ -84,7 +84,8 @@ float insideMask = step(abs(root.x), surfaceSize * 0.5 - 2.0) * step(abs(root.z)
 surface = mix(vec4(0.0, 0.0, 0.5, 1.0), surface, insideMask);
 float cameraDistance = distance(root.xz, cameraPosition.xz);
 float height = offset.w * (0.6 + 0.8 * surface.b) * (0.75 + 0.5 * variation);
-height *= smoothstep(0.2, 0.75, surface.a);
+// Tufts shorten gradually towards worn tracks and the arena.
+height *= smoothstep(0.08, 0.9, surface.a);
 height *= 1.0 - smoothstep(fadeStart, fadeEnd, cameraDistance);
 height *= 1.0 - smoothstep(flatRadius - 6.0, flatRadius, length(root.xz));
 float turn = offset.z + variation * 6.2831;

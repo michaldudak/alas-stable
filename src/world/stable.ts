@@ -5,7 +5,43 @@ import type { Solid } from '../game/types.ts';
 import { context2d } from '../platform/dom.ts';
 import * as THREE from 'three';
 import { createHorse } from '../horse/model.ts';
+import { detailedMaterial, type Finish } from './surface-detail.ts';
 import { STABLE, STABLE_WALLS, stableSolids } from './stable-layout.ts';
+
+// Building colours double as material keys for their surface finish.
+const FINISHES: Record<string, Finish> = {
+	'#e0d3b7': 'siding',
+	'#976d48': 'boards',
+	'#8f8877': 'concrete',
+	'#b4aaa0': 'concrete',
+	'#bcae94': 'concrete',
+	'#bdb8a9': 'concrete',
+	'#c7c1b1': 'concrete',
+	'#d0c2a5': 'concrete',
+	'#4c5c57': 'roofing',
+	'#5a6b63': 'roofing',
+	'#7b5137': 'door',
+	'#99704e': 'post',
+	'#795338': 'post',
+	'#75573c': 'post',
+	'#785c3f': 'post',
+	'#6b5139': 'post',
+	'#735942': 'wood',
+	'#75553b': 'wood',
+	'#795e40': 'wood',
+	'#71533b': 'wood',
+	'#514536': 'wood',
+	'#8d6d49': 'wood',
+	'#8e7045': 'wood',
+	'#ddc9a0': 'paint',
+	'#cfbb95': 'paint',
+	'#ccb487': 'paint',
+	'#b7a16a': 'straw',
+	'#d6bf78': 'straw',
+	'#cbb074': 'straw',
+	'#c6ac69': 'straw',
+	'#c9b170': 'straw',
+};
 
 export function createStable(scene: THREE.Scene, solids: Solid[]) {
 	const root = new THREE.Group();
@@ -21,7 +57,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		if (!materials.has(color))
 			materials.set(
 				color,
-				new THREE.MeshStandardMaterial({ color, roughness: 0.9 }),
+				detailedMaterial(color, FINISHES[String(color)] ?? 'plain'),
 			);
 		return materials.get(color)!;
 	};
@@ -238,10 +274,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		shape.closePath();
 		const gable = new THREE.Mesh(
 			new THREE.ShapeGeometry(shape),
-			new THREE.MeshStandardMaterial({
-				color: '#d5c4a0',
-				side: THREE.DoubleSide,
-			}),
+			detailedMaterial('#d5c4a0', 'siding', { side: THREE.DoubleSide }),
 		);
 		gable.position.z = z;
 		gable.castShadow = true;

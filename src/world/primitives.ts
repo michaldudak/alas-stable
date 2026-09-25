@@ -2,21 +2,15 @@ import { t, onLanguageChange, type MessageKey } from '../i18n/index.ts';
 import * as THREE from 'three';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import { context2d } from '../platform/dom.ts';
-const materials = new Map<
-	THREE.ColorRepresentation,
-	THREE.MeshStandardMaterial
->();
-export function material(color: THREE.ColorRepresentation) {
-	if (!materials.has(color))
-		materials.set(
-			color,
-			new THREE.MeshStandardMaterial({
-				color,
-				roughness: 1,
-				flatShading: false,
-			}),
-		);
-	return materials.get(color)!;
+import { detailedMaterial, type Finish } from './surface-detail.ts';
+const materials = new Map<string, THREE.MeshStandardMaterial>();
+export function material(
+	color: THREE.ColorRepresentation,
+	finish: Finish = 'paint',
+) {
+	const key = `${String(color)}:${finish}`;
+	if (!materials.has(key)) materials.set(key, detailedMaterial(color, finish));
+	return materials.get(key)!;
 }
 export function box(
 	parent: THREE.Object3D,
@@ -24,8 +18,12 @@ export function box(
 	size: Vector3Tuple,
 	position: Vector3Tuple,
 	rotation = 0,
+	finish?: Finish,
 ) {
-	const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material(color));
+	const mesh = new THREE.Mesh(
+		new THREE.BoxGeometry(...size),
+		material(color, finish),
+	);
 	mesh.position.set(...position);
 	mesh.rotation.y = rotation;
 	mesh.castShadow = true;
@@ -58,10 +56,11 @@ export function cylinder(
 	height: number,
 	position: Vector3Tuple,
 	radiusTop = radius,
+	finish?: Finish,
 ) {
 	const mesh = new THREE.Mesh(
 		new THREE.CylinderGeometry(radiusTop, radius, height, 12),
-		material(color),
+		material(color, finish),
 	);
 	mesh.position.set(...position);
 	mesh.castShadow = true;
@@ -112,5 +111,5 @@ export function sign(
 	mesh.position.set(x, 2.8, z);
 	mesh.rotation.y = angle;
 	parent.add(mesh);
-	cylinder(parent, '#876744', 0.1, 2.4, [x, 1.2, z]);
+	cylinder(parent, '#876744', 0.1, 2.4, [x, 1.2, z], 0.1, 'post');
 }

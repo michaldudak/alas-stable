@@ -4,7 +4,7 @@ import { createFlowers } from './flowers.ts';
 import { random } from './noise.ts';
 import { createGrass } from './grass.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
-import { box, sign } from './primitives.ts';
+import { box, cylinder, sign } from './primitives.ts';
 import type { Solid, Obstacle } from '../game/types.ts';
 import * as THREE from 'three';
 import { createStable } from './stable.ts';
@@ -42,7 +42,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		group.rotation.y = alongZ ? Math.PI / 2 : 0;
 		scene.add(group);
 		for (let i = -length / 2; i <= length / 2 + 0.01; i += 4)
-			box(group, '#eee3c8', [0.23, 1.55, 0.23], [i, 0.77, 0]);
+			box(group, '#eee3c8', [0.23, 1.55, 0.23], [i, 0.77, 0], 0, 'post');
 		for (const y of [0.6, 1.15])
 			box(group, '#e8ddc2', [length, 0.16, 0.13], [0, y, 0]);
 		solids.push({
@@ -65,22 +65,32 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	] as const) {
 		const x = 0,
 			width = 8;
+		// Show-jumping wings: a slim standard braced by a painted foot.
 		for (const side of [-1, 1]) {
-			box(scene, '#f7edcf', [0.3, 1.9, 0.3], [x + side * 4.2, 0.95, z]);
-			box(scene, color, [1.2, 0.16, 0.75], [x + side * 4.2, 0.1, z]);
-			solids.push({ x: x + side * 4.2, z, w: 0.3, d: 0.3 });
+			const standard = x + side * 4.2;
+			box(scene, '#f7edcf', [0.16, 1.9, 0.16], [standard, 0.95, z], 0, 'post');
+			box(scene, color, [0.14, 0.14, 1.1], [standard, 0.07, z]);
+			box(scene, color, [0.5, 0.12, 0.14], [standard + side * 0.2, 0.06, z]);
+			for (const y of [0.5, 1])
+				box(
+					scene,
+					'#6f7472',
+					[0.06, 0.1, 0.22],
+					[standard - side * 0.1, y - 0.1, z],
+				);
+			solids.push({ x: standard, z, w: 0.3, d: 0.3 });
 		}
 		const rails = new THREE.Group();
 		rails.position.set(x, 0, z);
 		scene.add(rails);
+		// Round poles painted in alternating bands, resting in the cups.
 		for (const y of [0.5, 1])
 			for (let i = 0; i < 8; i++)
-				box(
-					rails,
-					i % 2 ? '#fff0d3' : color,
-					[1, 0.16, 0.16],
-					[-3.5 + i, y, 0],
-				);
+				cylinder(rails, i % 2 ? '#fff0d3' : color, 0.075, 1, [
+					-3.5 + i,
+					y,
+					0,
+				]).rotation.z = Math.PI / 2;
 		obstacles.push({ x, z, width, rails, down: 0 });
 	}
 	const stable = createStable(scene, solids);

@@ -116,7 +116,7 @@ function surfaceMask(path: readonly Point[]) {
 			const jitter = worldNoise(x, z, 1.7, 3) - 0.5;
 			const sand = sandAmount(x, z, jitter);
 			const edge = wear[index] + jitter * 0.45;
-			let dirt = 1 - THREE.MathUtils.smoothstep(edge, 0.72, 1.12);
+			let dirt = 1 - THREE.MathUtils.smoothstep(edge, 0.7, 1.3);
 			// Trampled patches around gates and the stable doors.
 			if (insideStable(x, z, 3)) dirt = Math.max(dirt, 0.85);
 			const forest = THREE.MathUtils.smoothstep(-z, 36, 52);
@@ -125,6 +125,12 @@ function surfaceMask(path: readonly Point[]) {
 				(1 - sand) * (1 - THREE.MathUtils.smoothstep(dirt, 0.05, 0.6));
 			grass *= 1 - forest * 0.6 * worldNoise(x, z, 9, 11);
 			if (insideStable(x, z, 0.5)) grass = 0;
+			// Paved apron and hay store outside the south doors.
+			const localX = x - STABLE.x,
+				localZ = z - STABLE.z;
+			if (Math.abs(localX) < 5 && localZ > 12 && localZ < 22) grass = 0;
+			if (localX > -10.2 && localX < -6 && localZ > 14 && localZ < 17.6)
+				grass = 0;
 			const offset = index * 4;
 			data[offset] = sand * 255;
 			data[offset + 1] = dirt * (1 - sand) * 255;

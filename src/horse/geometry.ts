@@ -5,6 +5,19 @@ const sphere = new THREE.SphereGeometry(1, 20, 14);
 const up = new THREE.Vector3(0, 1, 0);
 export const surface = (color: THREE.ColorRepresentation, roughness = 0.85) =>
 	new THREE.MeshStandardMaterial({ color, roughness });
+/** Short hair and manes: a soft grazing sheen instead of a plastic highlight. */
+export const hairSurface = (
+	color: THREE.ColorRepresentation,
+	roughness: number,
+	sheen = 0.8,
+) =>
+	new THREE.MeshPhysicalMaterial({
+		color,
+		roughness,
+		sheen,
+		sheenRoughness: 0.45,
+		sheenColor: new THREE.Color(0.32, 0.29, 0.26),
+	});
 
 export function mesh(
 	parent: THREE.Object3D,

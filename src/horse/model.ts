@@ -2,7 +2,7 @@ import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
 import { attachSkin } from './skin.ts';
 import { createRider } from './rider.ts';
-import { surface, mesh, oval, cord } from './geometry.ts';
+import { surface, hairSurface, mesh, oval, cord } from './geometry.ts';
 import type { HorseModel } from './types.ts';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import type { Appearance } from './appearance.ts';
@@ -18,8 +18,8 @@ export function createHorse(): HorseModel {
 	root.name = 'horse';
 	body.name = 'body';
 	root.add(body);
-	const coat = surface('#aa6941', 0.58),
-		hair = surface('#47332d', 0.72);
+	const coat = hairSurface('#aa6941', 0.66),
+		hair = hairSurface('#47332d', 0.62, 1);
 	const cloth = surface('#437f79'),
 		leather = surface('#60432c', 0.48);
 	const cream = surface('#f1dfbf'),
