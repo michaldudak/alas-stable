@@ -21,4 +21,4 @@ The next stage covers selectable mane and tail styles, bows, flowers, ribbons, a
 
 ## Towards realism
 
-The team asked for a more realistic look. The environment now uses a physically based sky with image-based lighting and haze, one blended terrain with hills beyond the ridden area, wind-blown grass, procedural broadleaves and spruces, and material detail on built objects. Everything is still generated in code, without downloaded assets. The horse and rider keep their friendly proportions for now; changing their anatomy is a separate step that also affects the gait rig.
+The team asked for a more realistic look. The environment now uses a physically based sky with image-based lighting and haze, one blended terrain with hills beyond the ridden area, wind-blown grass, procedural broadleaves and spruces, and material detail on built objects. Everything is still generated in code, without downloaded assets. The horse now has realistic proportions, sculpted in Blender and rigged with a fetlock joint. The rider keeps the earlier friendly style for now.

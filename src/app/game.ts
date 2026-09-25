@@ -40,6 +40,9 @@ import { Soundscape } from '../platform/audio.ts';
 import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
 
+// Horses are built from the sculpted asset: load it before calling startGame().
+export { loadHorseAsset } from '../horse/asset.ts';
+
 export function startGame() {
 	const events = new AbortController();
 	const app = requireElement('#app', HTMLElement);

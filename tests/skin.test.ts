@@ -5,6 +5,9 @@ import { clone } from 'three/addons/utils/SkeletonUtils.js';
 import { createSkinGeometry } from '../src/horse/skin.ts';
 import { createHorse } from '../src/horse/model.ts';
 import { createHorseAnimation } from '../src/horse/animation.ts';
+import { loadTestHorseAsset } from './support/horse-asset.ts';
+
+await loadTestHorseAsset();
 
 await test('horse skin is one closed connected surface with normalized joint weights', () => {
 	const geometry = createSkinGeometry();

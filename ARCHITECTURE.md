@@ -9,7 +9,10 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Speed, jump timing, collision radius, world boundary     | `src/game/tuning.ts`                               |
 | Movement, jump buffering, collision rules                | `src/game/physics.ts`                              |
 | Gait rhythm, blending, foot contacts, inverse kinematics | `src/game/gaits.ts`                                |
-| Horse silhouette, rig, tack, hairstyles and ornaments    | `src/horse/model.ts`                               |
+| Horse body sculpture and export (Blender)                | `tools/horse/`                                     |
+| Horse asset loading, rig landmarks, fitting samples      | `src/horse/asset.ts`                               |
+| Horse rig, tack, hairstyles and ornaments                | `src/horse/model.ts`, `halter.ts`, `saddle.ts`     |
+| Coat shading from baked masks                            | `src/horse/skin.ts`                                |
 | Procedural mesh helpers, rider, cloth textures           | `src/horse/geometry.ts`, `rider.ts`, `patterns.ts` |
 | Model-to-animation contract                              | `src/horse/types.ts`                               |
 | Applying a pose to the model                             | `src/horse/animation.ts`                           |
@@ -48,15 +51,23 @@ Scenery costs about one to two million triangles per frame from the default came
 - `ui/` owns HTML, controls and the preview. The appearance panel accepts only the model's appearance setter; the minimap accepts positions and obstacle data rather than a Three.js scene.
 - `rendering/` owns the camera and GPU-resource cleanup. `app/` coordinates these modules and owns their lifetime.
 
-## Replacing the horse
+## The horse asset
 
-Keep `createHorse(): HorseModel` as the construction entry point; both the player and stable residents use it. Visual changes should stay under `horse/`, without touching movement or collision code.
+The horse body is `src/assets/horse.glb`, built by `tools/horse/build_horse.py` in Blender 4.2 or later (it needs the bundled numpy and OpenVDB). `tools/horse/anatomy.py` describes the body as smoothly blended signed-distance primitives in game coordinates; OpenVDB meshes the field, and `tools/horse/game_mesh.py` reduces it to about 46,000 triangles, transfers smooth normals from the high-resolution surface and writes everything the game needs as custom vertex attributes: distance-field ambient occlusion (`_ao`), sock/muzzle/hoof masks (`_mask`), and per-vertex leg and bone weights (`_leg`, `_weight`). Rig landmarks and surface samples used to fit tack, hair and ornaments travel as JSON in the node extras. There is no armature or texture in the file.
 
-The procedural rig uses metres, +Y up and +Z forward, with the root at ground level. Limb arrays have exactly four entries in this order: left hind, left fore, right hind, right fore. Animation writes body, leg, knee, hoof, tail and rider transforms. The existing IK solver assumes the current limb lengths and rest pose; a differently proportioned rig needs a matching animation adapter or updated solver, not just a swapped mesh.
+Rebuild after editing the anatomy:
 
-The preview clones the model before locomotion starts. It uses the names of `body` and `rider`, shares materials and geometry with the live model, and synchronizes visibility for unique `choice:<field>:<id>` groups. Preserve these names/variant groups when retaining this preview implementation. Alternatively, update the preview and animation adapters alongside a new rig.
+```sh
+blender --background --python tools/horse/build_horse.py -- --preview artifacts/horse
+```
 
-A future GLB model should load behind this factory/adapter boundary. Await asset loading before starting the frame loop, retain the coordinate convention, and keep collision shapes independent of mesh detail. Store imported assets under `src/assets/` and resolve them through Vite so production URLs receive hashes. No asset loader or additional engine abstraction is needed for the current procedural models.
+The build refuses to export a body with tunnels (Euler characteristic other than 2); blend the masses around the reported gap. `--preview DIR` also renders side, front, three-quarter and head views, and `--sculpt-only` stops before export.
+
+`src/main.ts` loads the asset before `startGame()`; unit tests load it from disk through `tests/support/horse-asset.ts`. `createHorse()` stays synchronous and shares one body geometry between all horses.
+
+The rig uses metres, +Y up and +Z forward, with the root at ground level. Each leg has three bones (upper leg from the elbow or stifle, knee or hock, fetlock) in the order left hind, left fore, right hind, right fore; `HorseModel.legRigs` gives their rest segments. Animation first chooses a pastern angle (level when planted, breaking over at the end of a long stride, folded when lifted), derives the fetlock target from the hoof marker, then solves the two upper segments. Shoulders and hips slide a little so supporting legs stay nearly straight. Hoof markers sit 0.12 above the ground on a planted hoof.
+
+The preview clones the model before locomotion starts. It uses the names of `body` and `rider`, shares materials and geometry with the live model, and synchronizes visibility for unique `choice:<field>:<id>` groups. Keep collision shapes independent of mesh detail.
 
 ## Timing and ownership
 

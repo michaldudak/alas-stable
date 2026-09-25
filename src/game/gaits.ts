@@ -101,14 +101,23 @@ export function sampleGait(gait: number, phase: number) {
 		riderPitch: 0.1 - 0.045 * Math.sin(tau * p),
 	};
 }
+/** Rest offsets (y, z) of the upper and lower leg segments in the leg's plane. */
+export type LegSegments = {
+	upper: readonly [number, number];
+	lower: readonly [number, number];
+	/** Forelegs fold the knee backwards, hind legs the hock forwards. */
+	front: boolean;
+};
+
 // Two-segment IK keeps stance feet level rather than swinging through soil.
-export function solveLeg(y: number, z: number, front: boolean) {
-	const kneeZ = front ? -0.01 : 0.13;
-	const upper = Math.hypot(0.82, kneeZ),
-		lower = Math.hypot(0.87, 0.035);
+export function solveLeg(y: number, z: number, leg: LegSegments) {
+	const [uy, uz] = leg.upper,
+		[ly, lz] = leg.lower;
+	const upper = Math.hypot(uy, uz),
+		lower = Math.hypot(ly, lz);
 	const distance = clamp(Math.hypot(y, z), 0.15, upper + lower - 0.00001);
 	const bend =
-		(front ? -1 : 1) *
+		(leg.front ? -1 : 1) *
 		Math.acos(
 			clamp(
 				(distance ** 2 - upper ** 2 - lower ** 2) / (2 * upper * lower),
@@ -119,8 +128,8 @@ export function solveLeg(y: number, z: number, front: boolean) {
 	const angle =
 		Math.atan2(z, -y) -
 		Math.atan2(lower * Math.sin(bend), upper + lower * Math.cos(bend));
-	const baseUpper = Math.atan2(kneeZ, 0.82),
-		baseLower = Math.atan2(0.035, 0.87);
+	const baseUpper = Math.atan2(uz, -uy),
+		baseLower = Math.atan2(lz, -ly);
 	return { hip: baseUpper - angle, knee: baseLower - baseUpper - bend };
 }
 export function createGaitController() {

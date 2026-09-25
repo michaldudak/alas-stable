@@ -15,9 +15,10 @@ try {
 	);
 	await page.goto(`${BASE_URL}/lifecycle-inspection`);
 	const results = await page.evaluate(async () => {
-		const { startGame } = (await import(
+		const { startGame, loadHorseAsset } = (await import(
 			String('/src/app/game.ts')
 		)) as typeof GameModule;
+		await loadHorseAsset('/src/assets/horse.glb');
 		const results: {
 			activeGait: number;
 			disposedGait: number;

@@ -1,8 +1,21 @@
 import type * as THREE from 'three';
 import type { Appearance } from './appearance.ts';
+import type { LegSegments } from '../game/gaits.ts';
+
+/** Rest geometry the animation adapter needs for one leg, in body space. */
+export interface LegRig {
+	segments: LegSegments;
+	/** Fetlock to hoof marker, (y, z) in the leg's plane. */
+	pastern: readonly [number, number];
+	/** Rest (x, z) of the hoof marker under the body. */
+	foot: readonly [number, number];
+	/** Comfortable distance from the leg root to the fetlock, just short of straight. */
+	reach: number;
+}
 
 /** A replaceable visual model: +Y up, +Z forward, origin at ground level.
- * Limb order is left hind, left fore, right hind, right fore.
+ * Limb order is left hind, left fore, right hind, right fore. Hoof markers sit
+ * 0.12 above the ground when a hoof is planted.
  * Animation owns transforms; appearance owns materials and variant visibility.
  */
 export interface HorseModel {
@@ -10,7 +23,9 @@ export interface HorseModel {
 	body: THREE.Group;
 	legs: THREE.Bone[];
 	knees: THREE.Bone[];
-	hooves: THREE.Mesh[];
+	fetlocks: THREE.Bone[];
+	hooves: THREE.Object3D[];
+	legRigs: LegRig[];
 	tail: THREE.Group;
 	rider: THREE.Group;
 	tack: THREE.Group;

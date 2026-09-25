@@ -1,6 +1,7 @@
 import type * as ThreeModule from 'three';
 import type * as HorseModule from '../src/horse/model.ts';
 import type * as AnimationModule from '../src/horse/animation.ts';
+import type * as AssetModule from '../src/horse/asset.ts';
 import { BASE_URL, launchBrowser } from './browser-support.ts';
 import { mkdir } from 'node:fs/promises';
 await mkdir('artifacts', { recursive: true });
@@ -27,6 +28,10 @@ try {
 		const { createHorseAnimation } = (await import(
 			String('/src/horse/animation.ts')
 		)) as typeof AnimationModule;
+		const { loadHorseAsset } = (await import(
+			String('/src/horse/asset.ts')
+		)) as typeof AssetModule;
+		await loadHorseAsset('/src/assets/horse.glb');
 		const renderer = new THREE.WebGLRenderer({
 			antialias: true,
 			preserveDrawingBuffer: true,

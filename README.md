@@ -45,7 +45,7 @@ The appearance panel has four sections: colors, hairstyles, ornaments, and saddl
 
 This is a desktop keyboard prototype, not a finished mobile game. Sounds and models are provisional. Playtesting with a child should assess steering speed, camera height, how clearly the horse reads on screen, jump difficulty, and performance on the target computer.
 
-The horse model lives in `src/horse/model.ts`: a rounded silhouette, muzzle, mane and tail strands, articulated legs, and fitted saddlecloth and saddle. The appearance preview supports rotation and zoom, with an optional rider. Color changes appear immediately. Drag to rotate and use the mouse wheel to zoom; buttons and arrow keys are also available when the preview has focus.
+The horse body is sculpted in Blender from anatomical masses by `tools/horse/build_horse.py` and exported to `src/assets/horse.glb`; `src/horse/model.ts` rigs it with three-bone legs and fits mane and tail strands, saddlecloth, saddle, bridle and halter to its surface. The appearance preview supports rotation and zoom, with an optional rider. Color changes appear immediately. Drag to rotate and use the mouse wheel to zoom; buttons and arrow keys are also available when the preview has focus.
 
 ## Gait animations
 

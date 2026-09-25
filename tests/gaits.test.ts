@@ -8,6 +8,9 @@ import {
 } from '../src/game/gaits.ts';
 import { createHorse } from '../src/horse/model.ts';
 import { createHorseAnimation } from '../src/horse/animation.ts';
+import { loadTestHorseAsset } from './support/horse-asset.ts';
+
+await loadTestHorseAsset();
 
 function strikes(gait: number) {
 	const events = [];
