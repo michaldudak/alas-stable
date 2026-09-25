@@ -103,7 +103,7 @@ export function createSky(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const sky = atmosphere(),
 		deck = clouds();
 	scene.add(sky, deck);
-	scene.fog = new THREE.FogExp2(HAZE, 0.0042);
+	scene.fog = new THREE.FogExp2(HAZE, 0.0034);
 
 	// Bake the sky and a meadow-coloured ground into a prefiltered environment.
 	const environment = new THREE.Scene();

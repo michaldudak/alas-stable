@@ -1,7 +1,10 @@
-import { createTerrain } from './terrain.ts';
+import { createTerrain, terrainHeight } from './terrain.ts';
+import { createForest, type TreeSpec } from './trees.ts';
+import { createFlowers } from './flowers.ts';
+import { random } from './noise.ts';
 import { createGrass } from './grass.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
-import { box, ellipsoid, cylinder, sign } from './primitives.ts';
+import { box, sign } from './primitives.ts';
 import type { Solid, Obstacle } from '../game/types.ts';
 import * as THREE from 'three';
 import { createStable } from './stable.ts';
@@ -83,14 +86,11 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const stable = createStable(scene, solids);
 	sign(scene, 'sign.arena', -9, 26);
 	sign(scene, 'sign.forest', 39, 34, -0.3);
-	let seed = 521;
-	const random = () => {
-		seed = (seed * 1664525 + 1013904223) >>> 0;
-		return seed / 4294967296;
-	};
+	const next = random(521);
+	const trees: TreeSpec[] = [];
 	for (let i = 0; i < 230; i++) {
-		const x = (random() - 0.5) * 224,
-			z = (random() - 0.5) * 224;
+		const x = (next() - 0.5) * 224,
+			z = (next() - 0.5) * 224;
 		if (
 			insideStable(x, z, 7) ||
 			Math.hypot(x, z) > WORLD_RADIUS ||
@@ -99,80 +99,80 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		)
 			continue;
 		if (points.some((p) => Math.hypot(x - p.x, z - p.z) < 6)) continue;
-		if (z > 25 && random() > 0.2) continue;
-		const height = 4 + random() * 5,
-			tree = new THREE.Group();
-		tree.position.set(x, 0, z);
-		scene.add(tree);
-		cylinder(tree, '#80674b', 0.3, height * 0.65, [0, height * 0.325, 0], 0.18);
-		const green = ['#53694a', '#637952', '#73865c', '#49634e'][
-			Math.floor(random() * 4)
-		];
-		if (z < -35) {
-			for (let j = 0; j < 5; j++) {
-				const crown = cylinder(
-					tree,
-					green,
-					2.4 - j * 0.36,
-					2.6,
-					[
-						Math.sin(j * 2) * 0.16,
-						height * 0.42 + j * 0.95,
-						Math.cos(j * 2) * 0.16,
-					],
-					0.05,
-				);
-				// Break the perfect cone outline while preserving the shared trunk collider.
-				const positions = crown.geometry.getAttribute('position');
-				for (let vertex = 0; vertex < positions.count; vertex++) {
-					const x = positions.getX(vertex),
-						z = positions.getZ(vertex);
-					const angle = Math.atan2(z, x);
-					const irregularity = 1 + 0.12 * Math.sin(angle * 5 + j * 1.7);
-					positions.setXYZ(
-						vertex,
-						x * irregularity,
-						positions.getY(vertex),
-						z * irregularity,
-					);
-				}
-				crown.geometry.computeVertexNormals();
-			}
-		} else {
-			for (let crown = 0; crown < 3; crown++) {
-				ellipsoid(
-					tree,
-					green,
-					[1.8 + crown * 0.15, height * 0.29, 1.9],
-					[
-						Math.sin(crown * 2.4) * 1.15,
-						height * (0.67 + crown * 0.08),
-						Math.cos(crown * 2.4) * 0.9,
-					],
-					2,
-				);
-			}
-		}
+		if (z > 25 && next() > 0.2) continue;
+		// Keep the original draw order so trunks and their colliders stay put.
+		const size = 4 + next() * 5,
+			shade = Math.floor(next() * 4);
+		const conifer = z < -35;
+		trees.push({
+			x,
+			z,
+			height: conifer ? size * 1.55 + 3 : size * 1.5 + 1.5,
+			kind: conifer ? 'conifer' : 'broadleaf',
+			variant: i,
+			tint: shade / 3,
+			rotation: i * 2.39,
+		});
 		solids.push({ x, z, w: 0.65, d: 0.65 });
 	}
+	// Thicken the woodland north of the meadow, clear of the bridleway.
+	const woodland = random(6007);
+	for (let i = 0; i < 170; i++) {
+		const x = (woodland() - 0.5) * 224,
+			z = -42 - woodland() * 72,
+			size = woodland(),
+			tint = woodland();
+		if (
+			Math.hypot(x, z) > WORLD_RADIUS - 2 ||
+			points.some((p) => Math.hypot(x - p.x, z - p.z) < 7) ||
+			solids.some((solid) => Math.hypot(solid.x - x, solid.z - z) < 3.5)
+		)
+			continue;
+		trees.push({
+			x,
+			z,
+			height: 10 + size * 8,
+			kind: tint < 0.8 ? 'conifer' : 'broadleaf',
+			variant: i,
+			tint,
+			rotation: i * 1.93,
+		});
+		solids.push({ x, z, w: 0.65, d: 0.65 });
+	}
+	const flowerSpots: { x: number; z: number }[] = [];
 	for (let i = 0; i < 450; i++) {
-		const x = (random() - 0.5) * 210,
-			z = (random() - 0.5) * 210;
+		const x = (next() - 0.5) * 210,
+			z = (next() - 0.5) * 210;
 		if (
 			insideStable(x, z, 5) ||
 			(Math.abs(x) < 20 && z > -42 && z < 30) ||
 			points.some((p) => Math.hypot(x - p.x, z - p.z) < 3.3)
 		)
 			continue;
-		const color = ['#e9d795', '#f0e6c8', '#b5bf79', '#819957'][i % 4];
-		ellipsoid(
-			scene,
-			color,
-			[0.15, 0.15 + random() * 0.2, 0.15],
-			[x, 0.16, z],
-			0,
-		);
+		next();
+		if (z > -38) flowerSpots.push({ x, z });
 	}
+	// A backdrop of woodland on the surrounding hills, outside the ridden area.
+	const backdrop = random(9001);
+	for (let i = 0; i < 1100; i++) {
+		const angle = backdrop() * Math.PI * 2,
+			radius = WORLD_RADIUS + 16 + backdrop() ** 0.8 * 140;
+		const x = Math.cos(angle) * radius,
+			z = Math.sin(angle) * radius;
+		trees.push({
+			x,
+			z,
+			y: terrainHeight(x, z) - 0.3,
+			height: 11 + backdrop() * 9,
+			kind: backdrop() < (z < 0 ? 0.75 : 0.35) ? 'conifer' : 'broadleaf',
+			variant: i,
+			tint: backdrop(),
+			rotation: backdrop() * Math.PI * 2,
+			castShadow: false,
+		});
+	}
+	const forest = createForest(trees);
+	scene.add(forest.group, createFlowers(flowerSpots));
 	return {
 		obstacles,
 		solids,
@@ -181,6 +181,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		update(time: number, camera: THREE.Camera) {
 			sky.update(time);
 			grass.update(time, camera);
+			forest.update(time);
 		},
 		dispose() {
 			sky.dispose();
