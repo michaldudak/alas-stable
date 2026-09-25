@@ -49,20 +49,14 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 	scene.add(root);
 	const cameraBlockers: THREE.Object3D[] = [],
 		horses: HorseModel[] = [];
-	const materials = new Map<
-		THREE.ColorRepresentation,
-		THREE.MeshStandardMaterial
-	>();
-	const mat = (color: THREE.ColorRepresentation) => {
+	const materials = new Map<string, THREE.MeshStandardMaterial>();
+	const mat = (color: string) => {
 		if (!materials.has(color))
-			materials.set(
-				color,
-				detailedMaterial(color, FINISHES[String(color)] ?? 'plain'),
-			);
+			materials.set(color, detailedMaterial(color, FINISHES[color] ?? 'plain'));
 		return materials.get(color)!;
 	};
 	function box(
-		color: THREE.ColorRepresentation,
+		color: string,
 		size: Vector3Tuple,
 		pos: Vector3Tuple,
 		parent = root,
@@ -77,7 +71,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		return object;
 	}
 	function cylinder(
-		color: THREE.ColorRepresentation,
+		color: string,
 		radius: number,
 		height: number,
 		pos: Vector3Tuple,
@@ -94,7 +88,7 @@ export function createStable(scene: THREE.Scene, solids: Solid[]) {
 		return object;
 	}
 	function oval(
-		color: THREE.ColorRepresentation,
+		color: string,
 		scale: Vector3Tuple,
 		pos: Vector3Tuple,
 		parent = root,

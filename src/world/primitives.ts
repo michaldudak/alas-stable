@@ -4,17 +4,14 @@ import type { Vector3Tuple } from '../rendering/types.ts';
 import { context2d } from '../platform/dom.ts';
 import { detailedMaterial, type Finish } from './surface-detail.ts';
 const materials = new Map<string, THREE.MeshStandardMaterial>();
-export function material(
-	color: THREE.ColorRepresentation,
-	finish: Finish = 'paint',
-) {
-	const key = `${String(color)}:${finish}`;
+export function material(color: string, finish: Finish = 'paint') {
+	const key = `${color}:${finish}`;
 	if (!materials.has(key)) materials.set(key, detailedMaterial(color, finish));
 	return materials.get(key)!;
 }
 export function box(
 	parent: THREE.Object3D,
-	color: THREE.ColorRepresentation,
+	color: string,
 	size: Vector3Tuple,
 	position: Vector3Tuple,
 	rotation = 0,
@@ -33,7 +30,7 @@ export function box(
 }
 export function ellipsoid(
 	parent: THREE.Object3D,
-	color: THREE.ColorRepresentation,
+	color: string,
 	size: Vector3Tuple,
 	position: Vector3Tuple,
 	detail = 1,
@@ -51,7 +48,7 @@ export function ellipsoid(
 }
 export function cylinder(
 	parent: THREE.Object3D,
-	color: THREE.ColorRepresentation,
+	color: string,
 	radius: number,
 	height: number,
 	position: Vector3Tuple,
