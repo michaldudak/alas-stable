@@ -23,7 +23,11 @@ export function disposeScene(root: THREE.Object3D) {
 			object.shadow.dispose();
 	});
 	for (const material of materials) {
-		for (const value of Object.values(material))
+		// Shader extensions keep their extra samplers in `userData.textures`.
+		const candidates: unknown[] = Object.values(material);
+		const extra: unknown = material.userData.textures;
+		if (Array.isArray(extra)) candidates.push(...(extra as unknown[]));
+		for (const value of candidates)
 			if (value instanceof THREE.Texture) textures.add(value);
 		material.dispose();
 	}

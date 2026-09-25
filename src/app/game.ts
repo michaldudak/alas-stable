@@ -67,9 +67,9 @@ export function startGame() {
 			52,
 			innerWidth / innerHeight,
 			0.1,
-			350,
+			900,
 		);
-	const world = createWorld(scene);
+	const world = createWorld(scene, renderer);
 	const raven = createHorse();
 	raven.root.name = 'Raven';
 	scene.add(raven.root);
@@ -793,6 +793,7 @@ export function startGame() {
 		scene.updateMatrixWorld(true);
 		rope.update(walker.leadHand, horse.leadAnchor, leading);
 		world.stable.update(elapsed, horse);
+		world.update(elapsed, camera);
 		minimap.draw(
 			activeState(),
 			herd
@@ -843,6 +844,7 @@ export function startGame() {
 			audio.dispose();
 			for (const entry of herd) entry.model.dispose();
 			disposeScene(scene);
+			world.dispose();
 			renderer.dispose();
 			delete window.__alasStable;
 			for (const dialog of dialogs) dialog.close();

@@ -1,4 +1,5 @@
-import { terrainMaterial } from './terrain-material.ts';
+import { createTerrain } from './terrain.ts';
+import { createGrass } from './grass.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
 import { box, ellipsoid, cylinder, sign } from './primitives.ts';
 import type { Solid, Obstacle } from '../game/types.ts';
@@ -6,29 +7,14 @@ import * as THREE from 'three';
 import { createStable } from './stable.ts';
 import { insideStable } from './stable-layout.ts';
 import { createSun } from './sun.ts';
+import { createSky } from './sky.ts';
 
-export function createWorld(scene: THREE.Scene) {
+export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const solids: Solid[] = [],
 		obstacles: (Obstacle & { rails: THREE.Group })[] = [];
-	scene.background = new THREE.Color('#c4d6df');
-	scene.fog = new THREE.Fog('#c4d6df', 85, 230);
-	scene.add(new THREE.HemisphereLight('#e6eff8', '#77735a', 1.65));
+	const sky = createSky(scene, renderer);
+	scene.add(new THREE.HemisphereLight('#dbe8f5', '#5f6344', 0.55));
 	scene.add(createSun());
-	const ground = new THREE.Mesh(
-		new THREE.CircleGeometry(260, 96),
-		terrainMaterial('#849468', 32, 32),
-	);
-	ground.rotation.x = -Math.PI / 2;
-	ground.receiveShadow = true;
-	scene.add(ground);
-	const arena = new THREE.Mesh(
-		new THREE.PlaneGeometry(32, 58),
-		terrainMaterial('#cdbb99', 3, 5),
-	);
-	arena.rotation.x = -Math.PI / 2;
-	arena.position.set(0, 0.025, -9);
-	arena.receiveShadow = true;
-	scene.add(arena);
 	// A continuous broad bridleway through the meadow and the forest.
 	const curve = new THREE.CatmullRomCurve3(
 		[
@@ -43,38 +29,10 @@ export function createWorld(scene: THREE.Scene) {
 		],
 		true,
 	);
-	const points = curve.getPoints(240),
-		verts = [],
-		indices = [];
-	for (let i = 0; i < points.length; i++) {
-		const tangent = curve.getTangent(i / (points.length - 1)),
-			p = points[i];
-		verts.push(
-			p.x - tangent.z * 2.8,
-			p.y,
-			p.z + tangent.x * 2.8,
-			p.x + tangent.z * 2.8,
-			p.y,
-			p.z - tangent.x * 2.8,
-		);
-		if (i < points.length - 1) {
-			const n = i * 2;
-			indices.push(n, n + 1, n + 2, n + 1, n + 3, n + 2);
-		}
-	}
-	const geometry = new THREE.BufferGeometry();
-	geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-	geometry.setIndex(indices);
-	geometry.computeVertexNormals();
-	const uvs: number[] = [];
-	for (let i = 0; i < verts.length; i += 3)
-		uvs.push(verts[i] / 12, verts[i + 2] / 12);
-	geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-	const pathMaterial = terrainMaterial('#b9aa8a', 1, 1);
-	pathMaterial.side = THREE.DoubleSide;
-	const path = new THREE.Mesh(geometry, pathMaterial);
-	path.receiveShadow = true;
-	scene.add(path);
+	const points = curve.getPoints(240);
+	const terrain = createTerrain(points);
+	const grass = createGrass(terrain.mask);
+	scene.add(terrain.ground, grass.group);
 	function fence(x: number, z: number, length: number, alongZ = false) {
 		const group = new THREE.Group();
 		group.position.set(x, 0, z);
@@ -215,32 +173,17 @@ export function createWorld(scene: THREE.Scene) {
 			0,
 		);
 	}
-	for (let i = 0; i < 15; i++) {
-		const angle = (i / 15) * Math.PI * 2;
-		ellipsoid(
-			scene,
-			i % 2 ? '#809b70' : '#73936d',
-			[35, 12 + random() * 15, 28],
-			[Math.sin(angle) * 160, 0, Math.cos(angle) * 160],
-			3,
-		);
-	}
-	for (let i = 0; i < 11; i++) {
-		const cloud = new THREE.Group();
-		cloud.position.set(
-			(random() - 0.5) * 250,
-			40 + random() * 22,
-			(random() - 0.5) * 250,
-		);
-		scene.add(cloud);
-		for (let j = 0; j < 4; j++)
-			ellipsoid(
-				cloud,
-				'#f8f4e6',
-				[7, 2.6, 3],
-				[j * 4, Math.sin(j) * 1.2, 0],
-				1,
-			).castShadow = false;
-	}
-	return { obstacles, solids, points, stable };
+	return {
+		obstacles,
+		solids,
+		points,
+		stable,
+		update(time: number, camera: THREE.Camera) {
+			sky.update(time);
+			grass.update(time, camera);
+		},
+		dispose() {
+			sky.dispose();
+		},
+	};
 }
