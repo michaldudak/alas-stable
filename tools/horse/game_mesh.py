@@ -100,7 +100,7 @@ def leg_chain(index):
     side = 1 if index >= 2 else -1
     spec = anatomy.FORE if fore else anatomy.HIND
     x = spec["x"] * side
-    cx = (spec["x"] + 0.03) * side
+    cx = spec["lower_x"] * side
     return [
         np.array([x, *spec["root"]]),
         np.array([cx, *spec["knee"]]),
@@ -132,9 +132,20 @@ def skin_weights(points):
             start += length
             joints.append(start)
         knee, fetlock = joints[0], joints[1]
-        # Upper limb vertices far from the bone line belong to the chest or flank.
-        reach = np.where(along < knee - 0.1, 1 - smoothstep(0.17, 0.3, best), 1.0)
-        limb = reach * smoothstep(0.04, 0.32, along)
+        if index % 2 == 1:
+            # Upper foreleg vertices far from the bone line belong to the chest.
+            reach = np.where(along < knee - 0.1, 1 - smoothstep(0.17, 0.3, best), 1.0)
+            limb = reach * smoothstep(0.04, 0.32, along)
+        else:
+            # The thigh swings from the hip joint: everything below the croup and
+            # behind the flank follows the leg, except the midline under the tail.
+            px, py, pz = p.T
+            thigh = (
+                smoothstep(-0.3, -0.58, pz)
+                * smoothstep(2.02, 1.58, py)
+                * smoothstep(0.02, 0.15, np.abs(px))
+            )
+            limb = np.where(along < knee - 0.1, thigh, 1.0)
         to_knee = smoothstep(knee - 0.08, knee + 0.05, along)
         to_fetlock = smoothstep(fetlock - 0.05, fetlock + 0.04, along)
         weights[mine] = np.stack(

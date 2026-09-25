@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Vector3Tuple } from '../rendering/types.ts';
 
 const sphere = new THREE.SphereGeometry(1, 20, 14);
@@ -130,4 +131,59 @@ export function form(
 	geometry.setIndex(indices);
 	geometry.computeVertexNormals();
 	return mesh(parent, geometry, material);
+}
+
+export type Lock = { points: Vector3Tuple[]; radius: number; tip?: number };
+
+/**
+ * Tapering hair locks merged into one mesh: each is a tube that thins from
+ * `radius` at the root to `tip` times that at the end.
+ */
+export function locks(
+	parent: THREE.Object3D,
+	material: THREE.Material,
+	strands: Lock[],
+	segments = 20,
+) {
+	const radial = 6,
+		center = new THREE.Vector3(),
+		vertex = new THREE.Vector3();
+	const geometries = strands.map(({ points, radius, tip = 0.3 }) => {
+		const curve = new THREE.CatmullRomCurve3(
+			points.map((point) => new THREE.Vector3(...point)),
+		);
+		const geometry = new THREE.TubeGeometry(
+			curve,
+			segments,
+			radius,
+			radial,
+			false,
+		);
+		const position = geometry.getAttribute('position');
+		for (let i = 0; i <= segments; i++) {
+			curve.getPointAt(i / segments, center);
+			const scale = THREE.MathUtils.lerp(1, tip, (i / segments) ** 1.4);
+			for (let j = 0; j <= radial; j++) {
+				const index = i * (radial + 1) + j;
+				vertex
+					.fromBufferAttribute(position, index)
+					.sub(center)
+					.multiplyScalar(scale)
+					.add(center);
+				position.setXYZ(index, vertex.x, vertex.y, vertex.z);
+			}
+		}
+		return geometry;
+	});
+	const merged = mergeGeometries(geometries);
+	for (const geometry of geometries) geometry.dispose();
+	return mesh(parent, merged, material);
+}
+
+/** Deterministic pseudo-random numbers, so every horse grows the same hair. */
+export function seeded(seed: number) {
+	return () => {
+		seed = (seed * 1664525 + 1013904223) >>> 0;
+		return seed / 4294967296;
+	};
 }

@@ -2,7 +2,16 @@ import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
 import { attachSkin, skinMaterial } from './skin.ts';
 import { createRider } from './rider.ts';
-import { surface, hairSurface, mesh, oval, cord } from './geometry.ts';
+import {
+	surface,
+	hairSurface,
+	mesh,
+	oval,
+	cord,
+	locks,
+	seeded,
+	type Lock,
+} from './geometry.ts';
 import type { HorseModel, LegRig } from './types.ts';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import type { Appearance } from './appearance.ts';
@@ -56,6 +65,48 @@ function headLoop(rig: HorseRig, s: number, offset: number, bottom = 0.3) {
 	}
 	points.push(tuple(headPoint(rig, s, bottom + offset + 0.03)), points[0]);
 	return points;
+}
+
+/** Hair locks of a full or pulled tail, in the tail's local frame. */
+function tailHair(count: number, length: number, seed: number): Lock[] {
+	const next = seeded(seed);
+	// Dock runs down and back from the tail head; `out` points away from the body.
+	const dock = new THREE.Vector3(0, -0.29, -0.12),
+		out = new THREE.Vector3(0, 0.383, -0.924);
+	const strands: Lock[] = [];
+	for (let i = 0; i < count; i++) {
+		const along = ((i % 8) / 8) * 0.8 + next() * 0.08,
+			angle = (next() * 2 - 1) * 1.9;
+		const reach = 0.075 * (1 - 0.35 * along);
+		const root = dock
+			.clone()
+			.multiplyScalar(along)
+			.addScaledVector(out, Math.cos(angle) * reach)
+			.add(new THREE.Vector3(Math.sin(angle) * reach, 0, 0));
+		const spread = Math.sin(angle) * (0.05 + next() * 0.06),
+			depth = Math.cos(angle) * 0.05,
+			end = length * (0.88 + next() * 0.2);
+		strands.push({
+			points: [
+				tuple(root),
+				[root.x * 1.2, root.y - 0.13, root.z - 0.08],
+				[spread * 1.6, -0.55 - 0.25 * along, -0.26 + depth * 0.5],
+				[
+					spread * 2 + (next() - 0.5) * 0.05,
+					-0.55 - (end - 0.55) * 0.55,
+					-0.22 + depth * 0.4,
+				],
+				[
+					spread * 1.6 + (next() - 0.5) * 0.08,
+					-end,
+					-0.16 + (next() - 0.5) * 0.05,
+				],
+			],
+			radius: 0.03 + next() * 0.012,
+			tip: 0.35,
+		});
+	}
+	return strands;
 }
 
 function buildLegs(rig: HorseRig, body: THREE.Group) {
@@ -169,24 +220,11 @@ export function createHorse(): HorseModel {
 	cord(mane, hair, forelock(), 0.09);
 	const tail = new THREE.Group();
 	tail.name = 'tail';
-	// Hair springs from the top of the dock and falls clear of the buttocks.
+	// The tail pivots at the tail head; hair grows around the top and sides of
+	// the dock and falls in a rounded, tapering bundle clear of the buttocks.
 	tail.position.set(0, 2.47, -1.32);
 	body.add(tail);
-	for (let i = 0; i < 13; i++) {
-		const x = (i - 6) * 0.025;
-		cord(
-			tail,
-			hair,
-			[
-				[x * 0.3, 0, 0],
-				[x * 0.8, -0.18, -0.13],
-				[x * 1.3, -0.72, -0.21],
-				[x * 1.1 + 0.05, -1.75 + Math.abs(x), -0.12],
-			],
-			0.057,
-		);
-	}
-
+	locks(tail, hair, tailHair(40, 1.55, 1));
 	const { legs, knees, fetlocks, hooves, legRigs } = buildLegs(rig, body);
 	attachSkin(
 		body,
@@ -370,31 +408,19 @@ export function createHorse(): HorseModel {
 		cord(group, hair, forelock().slice(0, 2), 0.07);
 	const shortTail = variant(tail, 'tailStyle', 'short'),
 		braidedTail = variant(tail, 'tailStyle', 'braided');
-	for (let i = 0; i < 7; i++) {
-		const x = (i - 6) * 0.024;
-		cord(
-			shortTail,
-			hair,
-			[
-				[x * 0.3, 0, 0],
-				[x * 0.8, -0.18, -0.13],
-				[x * 1.1, -0.95, -0.2],
-			],
-			0.052,
-		);
-	}
+	locks(shortTail, hair, tailHair(30, 0.95, 2));
 	for (let i = 0; i < 13; i++) {
 		for (const side of [-1, 1]) {
 			const piece = oval(
 				braidedTail,
 				hair,
 				[0.077, 0.12, 0.075],
-				[side * 0.038, -0.06 - i * 0.095, -0.06 - Math.min(i, 3) * 0.045],
+				[side * 0.038, -0.06 - i * 0.095, -0.08 - Math.min(i, 4) * 0.045],
 			);
 			piece.rotation.z = side * 0.55;
 		}
 	}
-	oval(braidedTail, hair, [0.105, 0.2, 0.085], [0, -1.4, -0.2]);
+	oval(braidedTail, hair, [0.105, 0.2, 0.085], [0, -1.4, -0.26]);
 	variant(decoration, 'ornament', 'none');
 	const bow = variant(decoration, 'ornament', 'bow');
 	for (const side of [-1, 1]) {
