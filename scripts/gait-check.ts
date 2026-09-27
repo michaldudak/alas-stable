@@ -2,6 +2,7 @@ import type * as ThreeModule from 'three';
 import type * as HorseModule from '../src/horse/model.ts';
 import type * as AnimationModule from '../src/horse/animation.ts';
 import type * as AssetModule from '../src/horse/asset.ts';
+import type * as RiderAssetModule from '../src/horse/rider-asset.ts';
 import { BASE_URL, launchBrowser } from './browser-support.ts';
 import { mkdir } from 'node:fs/promises';
 await mkdir('artifacts', { recursive: true });
@@ -32,6 +33,10 @@ try {
 			String('/src/horse/asset.ts')
 		)) as typeof AssetModule;
 		await loadHorseAsset('/src/assets/horse.glb');
+		const { loadRiderAsset } = (await import(
+			String('/src/horse/rider-asset.ts')
+		)) as typeof RiderAssetModule;
+		await loadRiderAsset('/src/assets/rider.glb');
 		const renderer = new THREE.WebGLRenderer({
 			antialias: true,
 			preserveDrawingBuffer: true,

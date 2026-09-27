@@ -4,32 +4,34 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 
 ## Where to make changes
 
-| Change                                                   | Module                                             |
-| -------------------------------------------------------- | -------------------------------------------------- |
-| Speed, jump timing, collision radius, world boundary     | `src/game/tuning.ts`                               |
-| Movement, jump buffering, collision rules                | `src/game/physics.ts`                              |
-| Gait rhythm, blending, foot contacts, inverse kinematics | `src/game/gaits.ts`                                |
-| Horse body sculpture and export (Blender)                | `tools/horse/`                                     |
-| Horse asset loading, rig landmarks, fitting samples      | `src/horse/asset.ts`                               |
-| Horse rig, tack, hairstyles and ornaments                | `src/horse/model.ts`, `halter.ts`, `saddle.ts`     |
-| Coat shading from baked masks                            | `src/horse/skin.ts`                                |
-| Procedural mesh helpers, rider, cloth textures           | `src/horse/geometry.ts`, `rider.ts`, `patterns.ts` |
-| Model-to-animation contract                              | `src/horse/types.ts`                               |
-| Applying a pose to the model                             | `src/horse/animation.ts`                           |
-| Appearance catalog and validation                        | `src/horse/appearance.ts`                          |
-| Stable walls and colliders                               | `src/world/stable-layout.ts`                       |
-| Stable building and residents                            | `src/world/stable.ts`                              |
-| Scenery layout, fences, obstacles                        | `src/world/world.ts`, `primitives.ts`              |
-| Sky, haze, clouds, environment lighting, sun             | `src/world/sky.ts`, `sun.ts`                       |
-| Ground surface mask, terrain textures, distant hills     | `src/world/terrain.ts`                             |
-| Grass, trees, wildflowers                                | `src/world/grass.ts`, `trees.ts`, `flowers.ts`     |
-| Material finishes (wood, boards, concrete, roofing)      | `src/world/surface-detail.ts`                      |
-| Procedural noise and texture helpers                     | `src/world/noise.ts`, `textures.ts`                |
-| Camera following and wall avoidance                      | `src/rendering/camera.ts`                          |
-| Keyboard/pointer input, audio, storage                   | `src/platform/`                                    |
-| Page markup, appearance controls, preview, minimap       | `src/ui/`                                          |
-| Styling                                                  | `src/style.css`                                    |
-| Startup, frame loop, pause, UI actions, teardown         | `src/app/game.ts`                                  |
+| Change                                                   | Module                                                |
+| -------------------------------------------------------- | ----------------------------------------------------- |
+| Speed, jump timing, collision radius, world boundary     | `src/game/tuning.ts`                                  |
+| Movement, jump buffering, collision rules                | `src/game/physics.ts`                                 |
+| Gait rhythm, blending, foot contacts, inverse kinematics | `src/game/gaits.ts`                                   |
+| Horse body sculpture and export (Blender)                | `tools/horse/`                                        |
+| Horse asset loading, rig landmarks, fitting samples      | `src/horse/asset.ts`                                  |
+| Rider body sculpture and export (Blender)                | `tools/rider/`                                        |
+| Rider skeleton, pose solver, seat and walking poses      | `src/horse/figure.ts`, `rider.ts`, `walking-rider.ts` |
+| Horse rig, tack, hairstyles and ornaments                | `src/horse/model.ts`, `halter.ts`, `saddle.ts`        |
+| Coat shading from baked masks                            | `src/horse/skin.ts`                                   |
+| Procedural mesh helpers, rider, cloth textures           | `src/horse/geometry.ts`, `rider.ts`, `patterns.ts`    |
+| Model-to-animation contract                              | `src/horse/types.ts`                                  |
+| Applying a pose to the model                             | `src/horse/animation.ts`                              |
+| Appearance catalog and validation                        | `src/horse/appearance.ts`                             |
+| Stable walls and colliders                               | `src/world/stable-layout.ts`                          |
+| Stable building and residents                            | `src/world/stable.ts`                                 |
+| Scenery layout, fences, obstacles                        | `src/world/world.ts`, `primitives.ts`                 |
+| Sky, haze, clouds, environment lighting, sun             | `src/world/sky.ts`, `sun.ts`                          |
+| Ground surface mask, terrain textures, distant hills     | `src/world/terrain.ts`                                |
+| Grass, trees, wildflowers                                | `src/world/grass.ts`, `trees.ts`, `flowers.ts`        |
+| Material finishes (wood, boards, concrete, roofing)      | `src/world/surface-detail.ts`                         |
+| Procedural noise and texture helpers                     | `src/world/noise.ts`, `textures.ts`                   |
+| Camera following and wall avoidance                      | `src/rendering/camera.ts`                             |
+| Keyboard/pointer input, audio, storage                   | `src/platform/`                                       |
+| Page markup, appearance controls, preview, minimap       | `src/ui/`                                             |
+| Styling                                                  | `src/style.css`                                       |
+| Startup, frame loop, pause, UI actions, teardown         | `src/app/game.ts`                                     |
 
 `src/main.ts` only loads global styles/fonts and starts the application. It also registers Vite hot-reload cleanup. Imports use explicit `.ts` extensions so both Vite and Node's built-in type stripping can execute the same modules.
 
@@ -68,6 +70,12 @@ The build refuses to export a body with tunnels (Euler characteristic other than
 The rig uses metres, +Y up and +Z forward, with the root at ground level. Each leg has three bones (upper leg from the elbow in front and from the hip joint behind, so the whole thigh swings; knee or hock; fetlock) in the order left hind, left fore, right hind, right fore; `HorseModel.legRigs` gives their rest segments. Animation first chooses a pastern angle (level when planted, breaking over at the end of a long stride, folded when lifted), derives the fetlock target from the hoof marker, then solves the two upper segments. Shoulders and hips slide a little so supporting legs stay nearly straight. Hoof markers sit 0.12 above the ground on a planted hoof.
 
 The preview clones the model before locomotion starts. It uses the names of `body` and `rider`, shares materials and geometry with the live model, and synchronizes visibility for unique `choice:<field>:<id>` groups. Keep collision shapes independent of mesh detail.
+
+## The rider asset
+
+The rider is `src/assets/rider.glb`, built by `tools/rider/build_rider.py` with the same distance-field pipeline as the horse. `tools/rider/figure.py` sculpts a teenage girl standing in a relaxed A-pose with feet on the ground. The build cuts the reduced mesh exactly along the collar, waistband, boot tops and glove cuffs, then assigns one material per garment (skin, hair, jacket, breeches, boots, gloves), so clothing edges stay straight. Each vertex stores its two nearest bones and a blend weight (`_joint`, `_blend`) plus occlusion (`_ao`); bone joints travel in the node extras.
+
+`src/horse/figure.ts` builds the skeleton with identity rest rotations and poses it by aiming bones at targets in figure space, with two-bone IK for arms and legs. `rider.ts` seats a figure in the saddle (knees on the flaps, feet in the stirrups at `STIRRUP`, hands on the reins at `REIN_HAND`), and the saddle is fitted to the horse's measured flank. `walking-rider.ts` animates a second figure on foot and blends it into the seated pose while mounting. Helmet, eyes and ponytail are code-built on the head bone. Load both assets before `startGame()`; tests load them through `tests/support/horse-asset.ts`.
 
 ## Timing and ownership
 

@@ -32,10 +32,11 @@ def smoothstep(a, b, x):
 class Field:
     """Trilinear lookup into the sculpted distance field (game coordinates)."""
 
-    def __init__(self):
-        half, origin = anatomy.field()
+    def __init__(self, half=None, origin=None, voxel=anatomy.VOXEL):
+        if half is None:
+            half, origin = anatomy.field()
         self.grid = anatomy.mirrored(half)
-        self.h = anatomy.VOXEL
+        self.h = voxel
         self.origin = np.array([-self.h * (half.shape[0] - 1), origin[1], origin[2]])
 
     def __call__(self, points):
@@ -268,7 +269,7 @@ def build(sculpture, field):
     return obj
 
 
-def export(obj, path):
+def export(obj, path, materials="PLACEHOLDER"):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
@@ -281,7 +282,7 @@ def export(obj, path):
         export_apply=True,
         export_normals=True,
         export_texcoords=False,
-        export_materials="PLACEHOLDER",
+        export_materials=materials,
         export_vertex_color="NONE",
         export_attributes=True,
         export_extras=True,

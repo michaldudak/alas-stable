@@ -1,7 +1,7 @@
 import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
 import { attachSkin, skinMaterial } from './skin.ts';
-import { createRider } from './rider.ts';
+import { createRider, REIN_HAND, STIRRUP } from './rider.ts';
 import {
 	surface,
 	hairSurface,
@@ -274,8 +274,7 @@ export function createHorse(): HorseModel {
 		leather = surface('#60432c', 0.48);
 	const cream = surface('#f1dfbf'),
 		hoof = surface('#393634', 0.52);
-	const muzzle = surface('#5d4a40'),
-		eye = surface('#171c1b', 0.18);
+	const muzzle = surface('#5d4a40');
 	const trim = surface('#dfcda3'),
 		metal = surface('#b6b7ab', 0.32);
 	metal.metalness = 0.65;
@@ -366,7 +365,22 @@ export function createHorse(): HorseModel {
 	const saddle = new THREE.Group();
 	saddle.position.copy(settle);
 	equipment.add(saddle);
-	createSaddle(saddle, leather, metal, trim);
+	// The flank profile from the girth samples, in the saddle's own space.
+	const flank = rig.girth
+		.filter(([x, y]) => x >= 0 && y > 1.5)
+		.sort((a, b) => a[1] - b[1]);
+	const flankX = (y: number) => {
+		const body = y + settle.y;
+		const i = flank.findIndex(([, fy]) => fy >= body);
+		if (i <= 0) return flank[Math.max(0, i)][0];
+		const [x0, y0] = flank[i - 1],
+			[x1, y1] = flank[i];
+		return x0 + ((x1 - x0) * (body - y0)) / (y1 - y0);
+	};
+	createSaddle(saddle, leather, metal, trim, {
+		surfaceX: flankX,
+		stirrup: STIRRUP,
+	});
 	// A visible girth around the barrel just behind the elbows.
 	cord(equipment, leather, inflate(rig.girth, barrel, 0.05), 0.065);
 
@@ -397,7 +411,7 @@ export function createHorse(): HorseModel {
 			[
 				tuple(bit),
 				[side * (neck.lowWidth + 0.12), neck.y - 0.45, 1.15],
-				[side * 0.3, 2.85 + settle.y, 0.42],
+				[side * REIN_HAND[0], REIN_HAND[1] + settle.y, REIN_HAND[2]],
 			],
 			0.016,
 		);
@@ -423,7 +437,7 @@ export function createHorse(): HorseModel {
 	const seat = new THREE.Group();
 	seat.name = 'rider-seat';
 	body.add(seat);
-	const rider = createRider(seat, eye);
+	const rider = createRider(seat);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
 	decoration.position.copy(onHead(rig, 0.02, 0.1, 1, 0.04));

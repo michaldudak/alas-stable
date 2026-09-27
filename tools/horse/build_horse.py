@@ -61,8 +61,12 @@ def mesh_from_quads(name, points, quads):
 
 def sculpt():
     half, origin = anatomy.field()
+    return mesh_field(half, origin, anatomy.VOXEL, "HorseSculpt")
+
+
+def mesh_field(half, origin, h, name):
+    """Meshes a mirrored half field and checks that the surface has no tunnels."""
     full = anatomy.mirrored(half)
-    h = anatomy.VOXEL
     ox = -h * (half.shape[0] - 1)
     grid = openvdb.FloatGrid(1.0)
     grid.copyFromArray(full)
@@ -70,7 +74,7 @@ def sculpt():
         [[h, 0, 0, 0], [0, h, 0, 0], [0, 0, h, 0], [ox, origin[1], origin[2], 1]]
     )
     points, quads = grid.convertToQuads(isovalue=0.0)
-    obj = mesh_from_quads("HorseSculpt", points, quads)
+    obj = mesh_from_quads(name, points, quads)
     keep_largest_part(obj.data)
     mesh = obj.data
     euler = len(mesh.vertices) - len(mesh.edges) + len(mesh.polygons)

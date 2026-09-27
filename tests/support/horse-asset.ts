@@ -1,12 +1,16 @@
 import { readFile } from 'node:fs/promises';
 import { parseHorseAsset } from '../../src/horse/asset.ts';
+import { parseRiderAsset } from '../../src/horse/rider-asset.ts';
 
-/** Loads the exported horse so tests can build horses without a browser. */
-export async function loadTestHorseAsset() {
+async function asset(name: string) {
 	const file = await readFile(
-		new URL('../../src/assets/horse.glb', import.meta.url),
+		new URL(`../../src/assets/${name}`, import.meta.url),
 	);
-	return parseHorseAsset(
-		file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength),
-	);
+	return file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength);
+}
+
+/** Loads the exported horse and rider so tests can build them without a browser. */
+export async function loadTestHorseAsset() {
+	await parseRiderAsset(await asset('rider.glb'));
+	return parseHorseAsset(await asset('horse.glb'));
 }

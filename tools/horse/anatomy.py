@@ -305,21 +305,21 @@ def smax(a, b, k):
     return -smin(-a, -b, k)
 
 
-def axes():
-    return [np.arange(lo, hi + VOXEL, VOXEL) for lo, hi in BOUNDS]
+def axes(bounds=BOUNDS, voxel=VOXEL):
+    return [np.arange(lo, hi + voxel, voxel) for lo, hi in bounds]
 
 
-def field(parts=None):
+def field(parts=None, bounds=BOUNDS, voxel=VOXEL):
     """Evaluates the half field (x >= 0) on the voxel grid."""
-    xs, ys, zs = axes()
+    xs, ys, zs = axes(bounds, voxel)
     grid = np.full((len(xs), len(ys), len(zs)), 1.0, np.float32)
     origin = np.array([xs[0], ys[0], zs[0]])
     shape = np.array(grid.shape)
     for part in parts or primitives():
         lo, hi = part.bounds()
-        margin = part.k + 3 * VOXEL
-        i0 = np.maximum(np.floor((lo - margin - origin) / VOXEL).astype(int), 0)
-        i1 = np.minimum(np.ceil((hi + margin - origin) / VOXEL).astype(int) + 1, shape)
+        margin = part.k + 3 * voxel
+        i0 = np.maximum(np.floor((lo - margin - origin) / voxel).astype(int), 0)
+        i1 = np.minimum(np.ceil((hi + margin - origin) / voxel).astype(int) + 1, shape)
         if np.any(i1 <= i0):
             continue
         sub = np.stack(

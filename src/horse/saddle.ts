@@ -4,11 +4,20 @@ import * as THREE from 'three';
 import { mesh, cord, surface } from './geometry.ts';
 import type { Vector3Tuple } from '../rendering/types.ts';
 
+/** How the saddle sits on this horse: flank profile and where the stirrups hang. */
+export type SaddleFit = {
+	/** Half-width of the barrel at height `y`, in the saddle's space. */
+	surfaceX: (y: number) => number;
+	/** Centre of the left stirrup tread; the right one mirrors it. */
+	stirrup: Vector3Tuple;
+};
+
 export function createSaddle(
 	parent: THREE.Group,
 	leather: THREE.Material,
 	metal: THREE.Material,
 	trim: THREE.Material,
+	fit: SaddleFit,
 ) {
 	const saddle = new THREE.Group();
 	saddle.name = 'saddle';
@@ -99,8 +108,8 @@ export function createSaddle(
 		const originalFlap = flapGeometry;
 		flapGeometry = new TessellateModifier(0.055, 6).modify(originalFlap);
 		originalFlap.dispose();
-		const surfaceX = (y: number) =>
-			0.67 * Math.sqrt(Math.max(0, 1 - ((y - 1.91) / 0.69) ** 2)) + 0.027;
+		// Flaps lie on the saddle pad over the flank.
+		const surfaceX = (y: number) => fit.surfaceX(y) + 0.035;
 		const vertices = flapGeometry.getAttribute('position');
 		for (let i = 0; i < vertices.count; i++)
 			vertices.setX(i, vertices.getX(i) + surfaceX(vertices.getY(i)));
@@ -116,21 +125,23 @@ export function createSaddle(
 			.getPoints(48)
 			.map((p) => [side * (surfaceX(p.y) + 0.046), p.y, -p.x]);
 		cord(saddle, trim, outline, 0.004);
+		// Knee roll along the front of the flap.
 		cord(
 			saddle,
 			leather,
-			[
-				[side * 0.49, 2.48, 0.2],
-				[side * 0.62, 2.34, 0.29],
-				[side * 0.68, 2.19, 0.25],
-			],
+			[2.48, 2.34, 2.19].map((y, i): Vector3Tuple => [
+				side * (surfaceX(y) + 0.06),
+				y,
+				[0.2, 0.29, 0.25][i],
+			]),
 			0.042,
 		);
 		// Flat stirrup leathers and a metal arch with a separate nonslip tread.
+		const [sx, sy, sz] = fit.stirrup;
 		const strapPoints = [
-			[side * 0.38, 2.56, 0.21],
-			[side * 0.66, 2.23, 0.21],
-			[side * 0.66, 1.73, 0.21],
+			[side * 0.3, 2.56, sz - 0.05],
+			[side * (surfaceX(2.23) + 0.06), 2.23, sz - 0.05],
+			[side * sx, sy + 0.195, sz],
 		];
 		for (let i = 0; i < 2; i++) {
 			const a = new THREE.Vector3(...strapPoints[i]),
@@ -151,29 +162,29 @@ export function createSaddle(
 			saddle,
 			metal,
 			[
-				[side * 0.66, 1.73, 0.2],
-				[side * 0.67, 1.69, 0.085],
-				[side * 0.67, 1.55, 0.06],
-				[side * 0.67, 1.535, 0.2],
-				[side * 0.67, 1.55, 0.34],
-				[side * 0.67, 1.69, 0.315],
-				[side * 0.66, 1.73, 0.2],
-			],
+				[0, 0.195, 0],
+				[0.01, 0.155, -0.115],
+				[0.01, 0.015, -0.14],
+				[0.01, 0, 0],
+				[0.01, 0.015, 0.14],
+				[0.01, 0.155, 0.115],
+				[0, 0.195, 0],
+			].map(([x, y, z]): Vector3Tuple => [side * (sx + x), sy + y, sz + z]),
 			0.018,
 		);
 		mesh(saddle, new THREE.BoxGeometry(0.19, 0.03, 0.24), metal, [
-			side * 0.64,
-			1.535,
-			0.2,
+			side * sx,
+			sy,
+			sz,
 		]);
 	}
 	const tread = surface('#343532');
 	for (const side of [-1, 1])
 		for (let i = 0; i < 5; i++)
 			mesh(saddle, new THREE.BoxGeometry(0.16, 0.014, 0.017), tread, [
-				side * 0.64,
-				1.556,
-				0.12 + i * 0.04,
+				side * fit.stirrup[0],
+				fit.stirrup[1] + 0.021,
+				fit.stirrup[2] - 0.08 + i * 0.04,
 			]);
 	return saddle;
 }

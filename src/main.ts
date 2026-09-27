@@ -1,10 +1,14 @@
 import '@fontsource-variable/inter';
 import './style.css';
 import horseUrl from './assets/horse.glb?url';
-import { loadHorseAsset, startGame } from './app/game.ts';
+import riderUrl from './assets/rider.glb?url';
+import { loadHorseAsset, loadRiderAsset, startGame } from './app/game.ts';
 
-// Horses are built from the sculpted asset, so load it before the first frame.
-const game = loadHorseAsset(horseUrl).then(() => startGame());
+// Horses and the rider are built from sculpted assets, so load them first.
+const game = Promise.all([
+	loadHorseAsset(horseUrl),
+	loadRiderAsset(riderUrl),
+]).then(() => startGame());
 if (import.meta.hot) {
 	import.meta.hot.accept();
 	import.meta.hot.dispose(() => {

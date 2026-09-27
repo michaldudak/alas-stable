@@ -42,6 +42,7 @@ import { locationName, isSand } from '../world/locations.ts';
 
 // Horses are built from the sculpted asset: load it before calling startGame().
 export { loadHorseAsset } from '../horse/asset.ts';
+export { loadRiderAsset } from '../horse/rider-asset.ts';
 
 export function startGame() {
 	const events = new AbortController();
@@ -137,7 +138,7 @@ export function startGame() {
 		$('preview-rider').setAttribute('aria-pressed', 'false');
 	}
 	const person = createState();
-	const walker = createWalkingRider(horse.rider);
+	const walker = createWalkingRider();
 	scene.add(walker.root);
 	const rope = createLeadRope(scene);
 	let leading = false;
