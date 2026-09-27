@@ -67,6 +67,109 @@ function headLoop(rig: HorseRig, s: number, offset: number, bottom = 0.3) {
 	return points;
 }
 
+/** A point on the crest from the poll (t = 0) to the withers (t = 1). */
+function crestAt(rig: HorseRig, t: number) {
+	const z = THREE.MathUtils.lerp(1.42, 0.46, t);
+	return { z, ...topline(rig, z) };
+}
+
+/** Half-width of the neck `depth` below the crest, from the two measured levels. */
+function neckWidth(width: number, lowWidth: number, depth: number) {
+	if (depth <= 0.15) return (width * depth) / 0.15;
+	return width + ((lowWidth - width) * (depth - 0.15)) / 0.25;
+}
+
+/**
+ * Mane locks rooted along the crest. Long hair lies flat down the side of the
+ * neck; short hair stands up like a pulled, brushed mane.
+ */
+function maneHair(
+	rig: HorseRig,
+	count: number,
+	seed: number,
+	short: boolean,
+): Lock[] {
+	const next = seeded(seed);
+	const strands: Lock[] = [];
+	for (let i = 0; i < count; i++) {
+		const t = (i + next()) / count;
+		const { y, z, width, lowWidth } = crestAt(rig, t);
+		const x = (next() - 0.5) * 0.04;
+		if (short) {
+			const height = 0.11 + next() * 0.05;
+			strands.push({
+				points: [
+					[x, y - 0.02, z],
+					[x + 0.02, y + height * 0.6, z - 0.01],
+					[x + 0.04 + next() * 0.02, y + height, z - 0.03],
+				],
+				radius: 0.018 + next() * 0.006,
+				tip: 0.5,
+			});
+			continue;
+		}
+		// Longest halfway down the neck, shorter at the poll and the withers.
+		const length =
+			(0.26 + 0.2 * Math.sin(Math.PI * Math.min(1, t * 1.15))) *
+			(0.85 + next() * 0.3);
+		const side = next() < 0.1 ? -1 : 1,
+			lie = (depth: number) =>
+				side * (neckWidth(width, lowWidth, depth) + 0.03);
+		strands.push({
+			points: [
+				[x, y + 0.01, z],
+				[side * width * 0.5, y + 0.005, z - 0.01],
+				[lie(length * 0.35), y - length * 0.35, z - 0.015],
+				[lie(length * 0.7), y - length * 0.7, z + 0.005],
+				[
+					lie(length) + side * 0.02,
+					y - length,
+					z + 0.02 + (next() - 0.5) * 0.04,
+				],
+			],
+			radius: 0.017 + next() * 0.009,
+			tip: 0.3,
+		});
+	}
+	return strands;
+}
+
+/** Forelock locks from between the ears down the forehead. */
+function forelockHair(
+	rig: HorseRig,
+	count: number,
+	seed: number,
+	reach: number,
+): Lock[] {
+	const next = seeded(seed);
+	const poll = crestAt(rig, 0);
+	const strands: Lock[] = [];
+	for (let i = 0; i < count; i++) {
+		const x = (next() - 0.5) * 0.06,
+			end = reach * (0.8 + next() * 0.3);
+		strands.push({
+			points: [
+				[x, poll.y + 0.02, poll.z + 0.02],
+				tuple(headPoint(rig, 0.05, faceTop(rig, 0.05) - 0.045, x * 1.2)),
+				tuple(
+					headPoint(rig, end * 0.6, faceTop(rig, end * 0.6) - 0.03, x * 1.5),
+				),
+				tuple(
+					headPoint(
+						rig,
+						end,
+						faceTop(rig, end) - 0.02,
+						x * 1.8 + (next() - 0.5) * 0.03,
+					),
+				),
+			],
+			radius: 0.024 + next() * 0.008,
+			tip: 0.3,
+		});
+	}
+	return strands;
+}
+
 /** Hair locks of a full or pulled tail, in the tail's local frame. */
 function tailHair(count: number, length: number, seed: number): Lock[] {
 	const next = seeded(seed);
@@ -189,35 +292,16 @@ export function createHorse(): HorseModel {
 		oval(body, eyeball, [0.046, 0.046, 0.054], [side * (x - 0.004), y, z]);
 	}
 
-	const crest = (t: number) => {
-		const z = THREE.MathUtils.lerp(1.42, 0.46, t);
-		return { z, ...topline(rig, z) };
-	};
+	const crest = (t: number) => crestAt(rig, t);
 	const mane = new THREE.Group();
 	mane.name = 'mane';
 	body.add(mane);
-	for (let i = 0; i < 22; i++) {
-		const t = i / 21,
-			{ y, z, width, lowWidth } = crest(t);
-		cord(
-			mane,
-			hair,
-			[
-				[0, y + 0.015, z],
-				[width * 0.7, y - 0.03, z - 0.03],
-				[(width + lowWidth) / 2 + 0.05, y - 0.2, z + 0.01],
-				[lowWidth + 0.05, y - 0.36, z + 0.07],
-			],
-			0.05 - t * 0.012,
-		);
-	}
-	// Forelock falls from the poll between the ears onto the forehead.
-	const forelock = (): Vector3Tuple[] => [
-		[0, crest(0).y + 0.02, crest(0).z + 0.04],
-		tuple(headPoint(rig, 0.06, faceTop(rig, 0.06) - 0.05, -0.02)),
-		tuple(headPoint(rig, 0.2, faceTop(rig, 0.2) - 0.035, -0.04)),
-	];
-	cord(mane, hair, forelock(), 0.09);
+	locks(
+		mane,
+		hair,
+		[...maneHair(rig, 110, 11, false), ...forelockHair(rig, 24, 12, 0.3)],
+		14,
+	);
 	const tail = new THREE.Group();
 	tail.name = 'tail';
 	// The tail pivots at the tail head; hair grows around the top and sides of
@@ -384,28 +468,24 @@ export function createHorse(): HorseModel {
 	decoration.visible = true;
 	const shortMane = variant(mane, 'maneStyle', 'short');
 	const braidedMane = variant(mane, 'maneStyle', 'braided');
-	for (let i = 0; i < 13; i++) {
-		const t = i / 12,
-			{ y, z, width } = crest(t);
-		oval(shortMane, hair, [0.07, 0.1, 0.085], [0.02, y + 0.03, z]);
-		if (i % 2 === 0) {
-			for (const side of [-1, 1])
-				oval(
-					braidedMane,
-					hair,
-					[0.06, 0.1, 0.055],
-					[width * 0.7 + side * 0.028, y - 0.07, z],
-				).rotation.z = side * 0.5;
+	locks(
+		shortMane,
+		hair,
+		[...maneHair(rig, 90, 13, true), ...forelockHair(rig, 10, 14, 0.16)],
+		6,
+	);
+	for (let i = 0; i < 13; i += 2) {
+		const { y, z, width } = crest(i / 12);
+		for (const side of [-1, 1])
 			oval(
 				braidedMane,
 				hair,
-				[0.075, 0.06, 0.065],
-				[width + 0.02, y - 0.17, z],
-			);
-		}
+				[0.06, 0.1, 0.055],
+				[width * 0.7 + side * 0.028, y - 0.07, z],
+			).rotation.z = side * 0.5;
+		oval(braidedMane, hair, [0.075, 0.06, 0.065], [width + 0.02, y - 0.17, z]);
 	}
-	for (const group of [shortMane, braidedMane])
-		cord(group, hair, forelock().slice(0, 2), 0.07);
+	locks(braidedMane, hair, forelockHair(rig, 10, 15, 0.16), 8);
 	const shortTail = variant(tail, 'tailStyle', 'short'),
 		braidedTail = variant(tail, 'tailStyle', 'braided');
 	locks(shortTail, hair, tailHair(30, 0.95, 2));
