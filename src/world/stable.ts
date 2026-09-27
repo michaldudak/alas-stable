@@ -15,7 +15,7 @@ import {
 	stableWalls,
 	type StableSpec,
 } from './stable-layout.ts';
-import { mergeStatic } from './merge.ts';
+import { mergeStatic } from '../rendering/merge.ts';
 
 // Building colours double as material keys for their surface finish.
 const FINISHES: Record<string, Finish> = {

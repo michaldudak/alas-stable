@@ -23,7 +23,7 @@ import {
 	type Point,
 } from './layout.ts';
 import { arc, railFence } from './fences.ts';
-import { mergeStatic } from './merge.ts';
+import { mergeStatic } from '../rendering/merge.ts';
 import type { HorseModel } from '../horse/types.ts';
 import { createHorse } from '../horse/model.ts';
 import type { Appearance } from '../horse/appearance.ts';

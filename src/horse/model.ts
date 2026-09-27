@@ -1,5 +1,6 @@
 import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
+import { mergeStatic } from '../rendering/merge.ts';
 import { attachSkin, bindToNeck, skinMaterial } from './skin.ts';
 import { createRider, REIN_HAND, STIRRUP } from './rider.ts';
 import {
@@ -386,6 +387,8 @@ export function createHorse(): HorseModel {
 		surfaceX: flankX,
 		stirrup: STIRRUP,
 	});
+	// The saddle never moves on its own: draw it in one call per material.
+	mergeStatic(saddle);
 	// A visible girth around the barrel just behind the elbows.
 	cord(equipment, leather, inflate(rig.girth, barrel, 0.05), 0.065);
 

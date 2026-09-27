@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Obstacle } from '../game/types.ts';
 import { wingOffsets } from '../game/obstacles.ts';
 import { box, cylinder } from './primitives.ts';
+import { mergeStatic } from '../rendering/merge.ts';
 
 export type JumpKind = 'vertical' | 'cross' | 'oxer';
 
@@ -52,19 +53,20 @@ function pole(
 
 function build(kind: JumpKind, color: string, width: number, spread = 0) {
 	const group = new THREE.Group(),
+		wings = new THREE.Group(),
 		rails = new THREE.Group();
 	group.userData.dynamic = true;
-	group.add(rails);
+	group.add(wings, rails);
 	const half = width / 2;
 	const obstacle = { x: 0, z: 0, width, down: 0, spread };
 	// Show-jumping wings: a slim standard braced by a painted foot.
 	for (const [u, v] of wingOffsets(obstacle)) {
 		const side = Math.sign(u);
-		box(group, '#f7edcf', [0.16, 1.9, 0.16], [u, 0.95, v], 0, 'post');
-		box(group, color, [0.14, 0.14, 1.1], [u, 0.07, v]);
-		box(group, color, [0.5, 0.12, 0.14], [u + side * 0.2, 0.06, v]);
+		box(wings, '#f7edcf', [0.16, 1.9, 0.16], [u, 0.95, v], 0, 'post');
+		box(wings, color, [0.14, 0.14, 1.1], [u, 0.07, v]);
+		box(wings, color, [0.5, 0.12, 0.14], [u + side * 0.2, 0.06, v]);
 		for (const y of kind === 'cross' ? [0.3, 1] : [0.5, 1])
-			box(group, '#6f7472', [0.06, 0.1, 0.22], [u - side * 0.1, y - 0.1, v]);
+			box(wings, '#6f7472', [0.06, 0.1, 0.22], [u - side * 0.1, y - 0.1, v]);
 	}
 	if (kind === 'vertical')
 		for (const y of [0.5, 1]) pole(rails, color, [-half, y, 0], [half, y, 0]);
@@ -98,6 +100,9 @@ function build(kind: JumpKind, color: string, width: number, spread = 0) {
 			rails.add(bush);
 		}
 	}
+	// Each part draws in a call or two per colour.
+	mergeStatic(wings);
+	mergeStatic(rails);
 	return { group, rails };
 }
 

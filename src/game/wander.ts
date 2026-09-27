@@ -104,6 +104,27 @@ function blocked(x: number, z: number, solids: readonly Solid[]) {
 	return false;
 }
 
+/**
+ * Grass within reach of the muzzle: not through a stall front or a fence,
+ * where a lowered head would pass through boards and rails.
+ */
+function canGraze(wander: Wander, horse: GameState, solids: readonly Solid[]) {
+	if (!wander.grassy) return false;
+	const x = horse.x + Math.sin(horse.heading) * 2.3,
+		z = horse.z + Math.cos(horse.heading) * 2.3;
+	const enclosure = wander.enclosure;
+	if (
+		enclosure &&
+		(Math.abs(x - enclosure.x) > enclosure.halfWidth - 0.3 ||
+			Math.abs(z - enclosure.z) > enclosure.halfDepth - 0.3)
+	)
+		return false;
+	return !solids.some(
+		(s) =>
+			Math.abs(x - s.x) < s.w / 2 + 0.3 && Math.abs(z - s.z) < s.d / 2 + 0.3,
+	);
+}
+
 function pickTarget(wander: Wander, horse: GameState, random: () => number) {
 	for (let attempt = 0; attempt < 8; attempt++) {
 		const angle = random() * Math.PI * 2,
@@ -189,7 +210,8 @@ export function stepWander(
 		const error = angleTo(horse.heading, Math.atan2(dx, dz));
 		wander.look = error * 0.3;
 		if (distance < 0.5 || wander.timer <= 0) {
-			wander.mode = wander.grassy && random() < 0.7 ? 'graze' : 'idle';
+			wander.mode =
+				canGraze(wander, horse, solids) && random() < 0.7 ? 'graze' : 'idle';
 			wander.timer =
 				wander.mode === 'graze' ? 7 + random() * 10 : 3 + random() * 5;
 		} else {
@@ -220,7 +242,7 @@ export function stepWander(
 		if (random() < dt * 0.35) wander.look = (random() - 0.5) * 1.6;
 		if (wander.timer <= 0) {
 			const roll = random();
-			if (roll < 0.45 && wander.grassy) {
+			if (roll < 0.45 && canGraze(wander, horse, solids)) {
 				wander.mode = 'graze';
 				wander.timer = 8 + random() * 12;
 			} else if (roll < 0.85) {
