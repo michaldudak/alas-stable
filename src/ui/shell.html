@@ -56,8 +56,10 @@
 </header>
 <div class="location">
 	<i data-lucide="trees" aria-hidden="true"></i
-	><span id="location">{{location.nearStable}}</span
-	><span class="dot"></span>{{game.freeRide}}
+	><span id="location">{{location.nearStable}}</span><span class="dot"></span
+	><span id="sky" class="sky" role="img" aria-label="{{weather.sunny}}"
+		><i data-lucide="sun" aria-hidden="true"></i></span
+	><span id="clock">11:00</span>
 </div>
 <aside class="side-tools">
 	<button
@@ -392,6 +394,22 @@
 	><select id="language">
 		<option value="en" lang="en">{{language.en}}</option>
 		<option value="pl" lang="pl">{{language.pl}}</option>
+	</select>
+	<label class="language-setting" for="daytime">{{settings.daytime}}</label>
+	<select id="daytime">
+		<option value="cycle">{{settings.daytimeCycle}}</option>
+		<option value="day">{{settings.daytimeDay}}</option>
+		<option value="night">{{settings.daytimeNight}}</option>
+	</select>
+	<label class="language-setting" for="weather-mode"
+		>{{settings.weather}}</label
+	>
+	<select id="weather-mode">
+		<option value="auto">{{settings.weatherAuto}}</option>
+		<option value="sunny">{{weather.sunny}}</option>
+		<option value="windy">{{weather.windy}}</option>
+		<option value="cloudy">{{weather.cloudy}}</option>
+		<option value="rainy">{{weather.rainy}}</option>
 	</select>
 	<h3>{{controller.title}}</h3>
 	<p id="controller-status" role="status">{{controller.disconnected}}</p>

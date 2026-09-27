@@ -47,6 +47,14 @@ This is a desktop keyboard prototype, not a finished mobile game. Sounds and mod
 
 The horse body is sculpted in Blender from anatomical masses by `tools/horse/build_horse.py` and exported to `src/assets/horse.glb`; `src/horse/model.ts` rigs it with three-bone legs and fits mane and tail strands, saddlecloth, saddle, bridle and halter to its surface. The appearance preview supports rotation and zoom, with an optional rider. Color changes appear immediately. Drag to rotate and use the mouse wheel to zoom; buttons and arrow keys are also available when the preview has focus.
 
+## Time of day and weather
+
+A full day and night lasts fifteen minutes; the game starts at 11:00 and the night passes twice as fast as the day. The sun follows a real arc for a northern summer, so mornings and evenings bring long golden shadows. At night the moon becomes the shadowing light and the sky shows stars. The weather changes by itself between sunny, windy, cloudy and rainy spells, blending over about half a minute; rain only falls from a heavy sky and leaves the ground dark and glossy for a while. Wind sways the grass and trees and drives the clouds. The clock and a weather icon sit next to the location name.
+
+At dusk, lanterns around the yard and floodlights at the arena and the racecourse switch on, stable windows glow and the ground under each lamp is lit. A few real point lights follow the camera between the nearest lamps, so the cost does not grow with the number of lamps. Sounds follow the weather: rain, wind, birds by day and crickets at night.
+
+Settings → Time of day can keep it always day or always night, and Settings → Weather can pick a fixed weather; both are remembered. `src/game/environment.ts` holds the clock and weather model and is covered by `tests/environment.test.ts`; `src/world/sky.ts`, `lamps.ts` and `rain.ts` render it.
+
 ## Gait animations
 
 The walk has four distinct beats with continuous support. The trot uses diagonal pairs with suspension phases. The canter is a three-beat right-lead gait: left hind, right hind together with left fore, right fore, then suspension. The model has separate body and rider motion, joint bending, and smooth transitions. Hoofbeats are triggered by foot contacts rather than an independent timer. Movement speeds and jump mechanics remain unchanged. Animation is stylized and procedural, without motion capture or automatic lead changes.

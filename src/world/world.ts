@@ -24,6 +24,19 @@ import {
 import { arc, railFence } from './fences.ts';
 import { mergeStatic } from './merge.ts';
 import type { HorseModel } from '../horse/types.ts';
+import { createLamps, createSurfaceUniforms } from './lamps.ts';
+import { createRain } from './rain.ts';
+import type { Environment } from '../game/environment.ts';
+
+const smooth = THREE.MathUtils.smoothstep;
+const SUNLIGHT = new THREE.Color('#fff1dd'),
+	LOW_SUN = new THREE.Color('#ffae6e'),
+	MOONLIGHT = new THREE.Color('#a9bfe6'),
+	DAY_SKY = new THREE.Color('#dbe8f5'),
+	GOLDEN_SKY = new THREE.Color('#f3c79c'),
+	NIGHT_SKY = new THREE.Color('#4a5d8c'),
+	DAY_GROUND = new THREE.Color('#5f6344'),
+	NIGHT_GROUND = new THREE.Color('#20261d');
 
 function segmentDistance(p: Point, a: Point, b: Point) {
 	const abx = b.x - a.x,
@@ -42,11 +55,15 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const solids: Solid[] = [],
 		obstacles: (Obstacle & { rails: THREE.Group })[] = [];
 	const sky = createSky(scene, renderer);
-	scene.add(new THREE.HemisphereLight('#dbe8f5', '#5f6344', 0.35));
+	const hemisphere = new THREE.HemisphereLight(DAY_SKY, DAY_GROUND, 0.35);
+	scene.add(hemisphere);
 	const sun = createSun();
 	scene.add(sun);
 	const focus = new THREE.Vector3(),
-		forward = new THREE.Vector3();
+		forward = new THREE.Vector3(),
+		sunVector = new THREE.Vector3(),
+		keyLight = new THREE.Vector3();
+	const surface = createSurfaceUniforms();
 	// Everything built here is static and merges into a few draw calls at the end.
 	const scenery = new THREE.Group();
 	scenery.name = 'scenery';
@@ -57,8 +74,8 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		true,
 	);
 	const points = curve.getPoints(240);
-	const terrain = createTerrain(points);
-	const grass = createGrass(terrain.mask);
+	const terrain = createTerrain(points, surface);
+	const grass = createGrass(terrain.mask, surface);
 	scene.add(terrain.ground, grass.group);
 	function fence(x: number, z: number, length: number, alongZ = false) {
 		const group = new THREE.Group();
@@ -233,40 +250,80 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	}
 	const forest = createForest(trees);
 	scene.add(forest.group, createFlowers(flowerSpots));
-	mergeStatic(scenery);
-	const horses: HorseModel[] = stables.flatMap((stable) => stable.horses);
-	const lamps = stables.flatMap((stable) => stable.lamps);
-	// A few real lights follow the camera between the lamps; the rest only glow.
-	const lampLights = Array.from({ length: 4 }, () => {
-		const light = new THREE.PointLight('#ffe3ad', 16, 15, 2);
-		scene.add(light);
-		return light;
-	});
-	const byDistance: { lamp: THREE.Vector3; distance: number }[] = lamps.map(
-		(lamp) => ({ lamp, distance: 0 }),
+	const lamps = createLamps(
+		scene,
+		scenery,
+		solids,
+		stables.flatMap((stable) => stable.lamps),
+		surface,
 	);
+	mergeStatic(scenery);
+	const rain = createRain(scene);
+	const horses: HorseModel[] = stables.flatMap((stable) => stable.horses);
 	return {
 		obstacles,
 		solids,
 		points,
 		stables,
 		horses,
-		lamps,
 		cameraBlockers: stables.flatMap((stable) => stable.cameraBlockers),
-		update(time: number, camera: THREE.Camera) {
+		update(
+			time: number,
+			camera: THREE.Camera,
+			environment: Environment,
+			viewportHeight = 800,
+		) {
+			const conditions = environment.conditions,
+				darkness = environment.darkness,
+				daylight = 1 - darkness;
+			sunVector.set(...environment.sun);
+			const height = sunVector.y;
+			// One shadowing key light: the sun by day and the moon by night.
+			const sunUp = smooth(height, -0.03, 0.1),
+				moonUp = 1 - smooth(height, -0.12, -0.02);
+			if (height > -0.05)
+				keyLight.set(sunVector.x, Math.max(height, 0.08), sunVector.z);
+			else keyLight.set(-sunVector.x, Math.abs(height) + 0.55, -sunVector.z);
+			keyLight.normalize();
+			sun.intensity =
+				3.1 * sunUp * (1 - 0.78 * conditions.overcast) +
+				0.55 * moonUp * (1 - 0.7 * conditions.overcast);
+			if (height > -0.05)
+				sun.color.copy(LOW_SUN).lerp(SUNLIGHT, smooth(height, 0.04, 0.4));
+			else sun.color.copy(MOONLIGHT);
+			// Golden hour warms the whole sky light, not just the sun.
+			hemisphere.color
+				.copy(DAY_SKY)
+				.lerp(GOLDEN_SKY, (1 - smooth(height, 0.02, 0.3)) * daylight * 0.7)
+				.lerp(NIGHT_SKY, darkness);
+			hemisphere.groundColor.copy(DAY_GROUND).lerp(NIGHT_GROUND, darkness);
+			hemisphere.intensity =
+				(0.35 + 0.3 * conditions.overcast) * daylight + 0.75 * darkness;
+			scene.environmentIntensity =
+				(0.65 + 0.3 * conditions.overcast) * daylight + 1.4 * darkness;
+			renderer.toneMappingExposure = 1.05 + 0.3 * darkness;
 			// Spend the shadow map ahead of the camera, where the player looks.
 			camera.getWorldDirection(forward).setY(0).normalize();
 			focus.copy(camera.position).addScaledVector(forward, 35).setY(0);
-			sun.follow(focus);
-			sky.update(time);
-			grass.update(time, camera);
-			forest.update(time);
-			for (const entry of byDistance)
-				entry.distance = entry.lamp.distanceToSquared(camera.position);
-			byDistance.sort((a, b) => a.distance - b.distance);
-			lampLights.forEach((light, i) => {
-				light.position.copy(byDistance[i].lamp);
+			sun.follow(focus, keyLight);
+			sky.update(time, {
+				sun: sunVector,
+				conditions,
+				darkness,
+				windPhase: environment.windPhase,
 			});
+			surface.wind.value = conditions.wind;
+			surface.wetness.value = environment.wetness;
+			grass.update(environment.windPhase, camera);
+			forest.update(environment.windPhase, conditions.wind);
+			rain.update(time, camera, conditions.rain, conditions.wind, daylight);
+			lamps.update(camera, darkness, viewportHeight);
+			// Lit stables glow through their windows after dusk.
+			const night = smooth(darkness, 0.25, 0.7);
+			for (const stable of stables) {
+				stable.lampMaterial.emissiveIntensity = 0.5 + night;
+				stable.windowMaterial.emissiveIntensity = night * 0.9;
+			}
 		},
 		dispose() {
 			sky.dispose();

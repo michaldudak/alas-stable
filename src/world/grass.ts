@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { random } from './noise.ts';
 import { SURFACE_SIZE } from './terrain.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
+import { LAMP_POOL_GLSL, type SurfaceUniforms } from './lamps.ts';
 
 const CHUNK = 10;
 const GRID = 11;
@@ -66,9 +67,10 @@ const grassVertex = /* glsl */ `
 attribute vec4 offset;
 attribute float tip;
 uniform sampler2D surfaceMask;
-uniform float surfaceSize, time, fadeStart, fadeEnd, flatRadius;
+uniform float surfaceSize, time, fadeStart, fadeEnd, flatRadius, wind;
 varying float vTip;
 varying float vLush;
+varying vec2 vRoot;
 float grassHash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }`;
@@ -96,24 +98,31 @@ blade.y *= height;
 blade.xz *= (0.7 + height * 0.8) * smoothstep(0.0, 0.08, height);
 // Gusts roll across the meadow as travelling waves.
 float gust = sin(time * 1.3 + root.x * 0.21 + root.z * 0.13) * 0.6 + sin(time * 2.7 + root.x * 0.8 - root.z * 0.5) * 0.25;
-vec2 sway = vec2(0.8, 0.45) * (0.12 + 0.14 * gust) * tip * tip * height;
+vec2 sway = vec2(0.8, 0.45) * (0.12 + 0.14 * gust) * (0.55 + wind * 1.2) * tip * tip * height;
 blade.xz += sway;
 blade.y -= dot(sway, sway) * 1.5;
 vec3 transformed = local + blade;
 vTip = tip;
+vRoot = root.xz;
 vLush = surface.b + (variation - 0.5) * 0.35;`;
 
 const grassFragment = /* glsl */ `
+uniform float wetness;
 varying float vTip;
-varying float vLush;`;
+varying float vLush;
+varying vec2 vRoot;
+${LAMP_POOL_GLSL}`;
 
 const grassColor = /* glsl */ `
 vec3 blade = mix(vec3(0.36, 0.35, 0.14), vec3(0.23, 0.33, 0.085), clamp(vLush, 0.0, 1.0));
 // Darker roots stand in for the occlusion inside a dense sward.
-diffuseColor.rgb *= blade * mix(0.55, 1.05, vTip);`;
+diffuseColor.rgb *= blade * mix(0.55, 1.05, vTip) * (1.0 - wetness * 0.18);`;
 
 /** Instanced meadow grass in a grid of tiles that follows the camera. */
-export function createGrass(mask: THREE.Texture) {
+export function createGrass(
+	mask: THREE.Texture,
+	surfaceUniforms: SurfaceUniforms,
+) {
 	const clump = clumpGeometry();
 	const next = random(97);
 	const offsets = new Float32Array(CLUMPS_PER_CHUNK * 4);
@@ -135,6 +144,7 @@ export function createGrass(mask: THREE.Texture) {
 		fadeStart: { value: FADE_START },
 		fadeEnd: { value: FADE_END },
 		flatRadius: { value: WORLD_RADIUS + 10 },
+		...surfaceUniforms,
 	};
 	const material = new THREE.MeshStandardMaterial({
 		roughness: 0.8,
@@ -149,6 +159,10 @@ export function createGrass(mask: THREE.Texture) {
 		shader.fragmentShader = shader.fragmentShader
 			.replace('#include <common>', `#include <common>\n${grassFragment}`)
 			.replace('#include <map_fragment>', grassColor)
+			.replace(
+				'#include <emissivemap_fragment>',
+				'#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * lampLight(vRoot) * 0.55;',
+			)
 			// Blades share an upward normal, so both faces light like the ground.
 			.replace('gl_FrontFacing ? 1.0 : - 1.0', '1.0');
 	};

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WORLD_RADIUS } from '../game/tuning.ts';
 import { fbm, worldNoise } from './noise.ts';
 import { proceduralTexture, rgb, mix } from './textures.ts';
+import { LAMP_POOL_GLSL, type SurfaceUniforms } from './lamps.ts';
 import { halfDepth, insideStable, STABLES } from './stable-layout.ts';
 import { isSand } from './locations.ts';
 import {
@@ -244,7 +245,8 @@ varying vec3 vGroundPosition;`;
 
 const groundFragment = /* glsl */ `
 uniform sampler2D surfaceMask, grassMap, dirtMap, sandMap;
-uniform float surfaceSize;
+uniform float surfaceSize, wetness;
+${LAMP_POOL_GLSL}
 varying vec3 vGroundPosition;
 vec3 twoScale(sampler2D map, vec2 p, float scale) {
 	// Blending two rotated scales hides the repetition of each detail texture.
@@ -269,6 +271,8 @@ groundColor = mix(groundColor, groundColor * vec3(0.72, 0.66, 0.6), forestFloor 
 float radius = length(groundXZ);
 float woods = smoothstep(${WOODS_START}, ${WOODS_END}, radius) * smoothstep(0.45, 0.55, texture2D(grassMap, groundXZ / 173.0).g * 2.2);
 groundColor = mix(groundColor, vec3(0.13, 0.19, 0.1), woods * 0.75);
+// Rain darkens the ground, sand and bare earth most of all.
+groundColor *= 1.0 - wetness * (0.22 + 0.16 * max(surface.r, surface.g));
 diffuseColor.rgb *= groundColor;`;
 
 function groundGeometry() {
@@ -303,7 +307,10 @@ function groundGeometry() {
 }
 
 /** One continuous ground: flat meadow, arena sand, worn tracks and hills to the horizon. */
-export function createTerrain(path: readonly Point[]) {
+export function createTerrain(
+	path: readonly Point[],
+	surfaceUniforms: SurfaceUniforms,
+) {
 	const mask = surfaceMask(path);
 	const { grass, dirt, sand } = groundTextures();
 	const material = new THREE.MeshStandardMaterial({ roughness: 1 });
@@ -317,6 +324,9 @@ export function createTerrain(path: readonly Point[]) {
 			dirtMap: { value: dirt },
 			sandMap: { value: sand },
 			surfaceSize: { value: SURFACE_SIZE },
+			wetness: surfaceUniforms.wetness,
+			lampPools: surfaceUniforms.lampPools,
+			lampStrength: surfaceUniforms.lampStrength,
 		});
 		shader.vertexShader = shader.vertexShader
 			.replace('#include <common>', `#include <common>\n${groundVertex}`)
@@ -326,7 +336,15 @@ export function createTerrain(path: readonly Point[]) {
 			);
 		shader.fragmentShader = shader.fragmentShader
 			.replace('#include <common>', `#include <common>\n${groundFragment}`)
-			.replace('#include <map_fragment>', groundColor);
+			.replace('#include <map_fragment>', groundColor)
+			.replace(
+				'#include <roughnessmap_fragment>',
+				'#include <roughnessmap_fragment>\nroughnessFactor *= 1.0 - wetness * 0.4 * max(surface.r, surface.g);',
+			)
+			.replace(
+				'#include <emissivemap_fragment>',
+				'#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * lampLight(groundXZ);',
+			);
 	};
 	const ground = new THREE.Mesh(groundGeometry(), material);
 	ground.name = 'terrain';

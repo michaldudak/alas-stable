@@ -22,6 +22,7 @@ import { createGamepad } from '../platform/gamepad.ts';
 import { createTouchControls } from '../platform/touch.ts';
 import { createInput } from '../platform/input.ts';
 import { requireElement } from '../platform/dom.ts';
+import { readStoredValue } from '../platform/storage.ts';
 import * as THREE from 'three';
 import { icon, refreshIcons } from '../ui/icons.ts';
 import shell from '../ui/shell.html?raw';
@@ -39,6 +40,12 @@ import {
 import { Soundscape } from '../platform/audio.ts';
 import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
+import {
+	createEnvironment,
+	isNightHour,
+	WEATHERS,
+	type Weather,
+} from '../game/environment.ts';
 
 // Horses are built from the sculpted asset: load it before calling startGame().
 export { loadHorseAsset } from '../horse/asset.ts';
@@ -113,6 +120,37 @@ export function startGame() {
 		horse,
 	);
 	const audio = new Soundscape();
+	const environment = createEnvironment();
+	let skyIcon = '';
+	/** Shows the time and an icon for the weather, or the moon at night. */
+	function renderSky() {
+		const hour = environment.hour;
+		const minutes = Math.floor((hour % 1) * 12) * 5;
+		const clock = `${Math.floor(hour)}:${String(minutes).padStart(2, '0')}`;
+		if ($('clock').textContent !== clock) $('clock').textContent = clock;
+		const night = isNightHour(hour);
+		const weather = environment.weather;
+		const name =
+			weather === 'rainy'
+				? 'cloud-rain'
+				: weather === 'cloudy'
+					? night
+						? 'cloud-moon'
+						: 'cloud'
+					: weather === 'windy'
+						? 'wind'
+						: night
+							? 'moon'
+							: 'sun';
+		const label = t(`weather.${weather}`);
+		const key = name + label;
+		if (key === skyIcon) return;
+		skyIcon = key;
+		$('sky').innerHTML = icon(name);
+		$('sky').setAttribute('aria-label', label);
+		$('sky').title = label;
+		refreshIcons();
+	}
 	const otherHorseSolids = () =>
 		herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state));
 	function selectHorse(next: typeof selected) {
@@ -462,6 +500,41 @@ export function startGame() {
 	$('resume').onclick = () => closeDialog(dialog('pause-dialog'));
 	$('settings').onclick = () => showDialog(dialog('settings-dialog'));
 	$('close-settings').onclick = () => closeDialog(dialog('settings-dialog'));
+	const daytimeSelect = requireElement('#daytime', HTMLSelectElement),
+		weatherSelect = requireElement('#weather-mode', HTMLSelectElement);
+	function applySkySettings() {
+		const daytime = daytimeSelect.value,
+			weather = weatherSelect.value;
+		environment.fixHour(
+			daytime === 'day' ? 11 : daytime === 'night' ? 23 : null,
+		);
+		environment.fixWeather(
+			WEATHERS.includes(weather as Weather) ? (weather as Weather) : null,
+		);
+		renderSky();
+	}
+	try {
+		const daytime = readStoredValue(localStorage, 'alas-stable.daytime'),
+			weather = readStoredValue(localStorage, 'alas-stable.weather');
+		if (daytime === 'day' || daytime === 'night') daytimeSelect.value = daytime;
+		if (weather && WEATHERS.includes(weather as Weather))
+			weatherSelect.value = weather;
+	} catch {
+		/* Settings still apply for this session without storage. */
+	}
+	for (const [select, key] of [
+		[daytimeSelect, 'alas-stable.daytime'],
+		[weatherSelect, 'alas-stable.weather'],
+	] as const)
+		select.onchange = () => {
+			applySkySettings();
+			try {
+				localStorage.setItem(key, select.value);
+			} catch {
+				/* The choice lasts for this session. */
+			}
+		};
+	applySkySettings();
 	const languageSelect = requireElement('#language', HTMLSelectElement);
 	languageSelect.value = getLanguage();
 	languageSelect.onchange = () => {
@@ -653,6 +726,8 @@ export function startGame() {
 	);
 
 	const unsubscribeLanguage = onLanguageChange(() => {
+		skyIcon = '';
+		renderSky();
 		refreshShell();
 		renderControllerStatus();
 		languageSelect.value = getLanguage();
@@ -684,6 +759,7 @@ export function startGame() {
 		gamepad.update(dt);
 		if (!paused) {
 			elapsed += dt;
+			environment.update(dt);
 			const turn = THREE.MathUtils.clamp(
 				input.turn + gamepad.turn + touch.turn,
 				-1,
@@ -784,6 +860,7 @@ export function startGame() {
 				riding === 'mounted' ? footfalls : 0,
 			);
 			$('location').textContent = t(locationName(active.x, active.z));
+			renderSky();
 			$('hint').classList.toggle('hidden', elapsed > hintUntil);
 		}
 		for (const entry of herd) {
@@ -798,7 +875,12 @@ export function startGame() {
 			entry.model.tail.rotation.z = Math.sin(elapsed * 1.1 + i) * 0.1;
 			entry.model.body.position.y = Math.sin(elapsed * 0.9 + i) * 0.012;
 		});
-		world.update(elapsed, camera);
+		world.update(elapsed, camera, environment, innerHeight);
+		audio.weather(
+			environment.conditions.rain,
+			environment.conditions.wind,
+			environment.darkness,
+		);
 		minimap.draw(
 			activeState(),
 			herd
@@ -833,6 +915,13 @@ export function startGame() {
 				calls: renderer.info.render.calls,
 			}),
 			debug: {
+				setTime(hours: number) {
+					environment.setHour(hours);
+				},
+				setWeather(weather: string) {
+					if (WEATHERS.includes(weather as Weather))
+						environment.setWeather(weather as Weather, true);
+				},
 				teleport(x: number, z: number, heading: number) {
 					Object.assign(activeState(), { x, z, heading, speed: 0, gait: 0 });
 					updateGait();

@@ -563,5 +563,8 @@ export function createStable(
 		horses.push(horse);
 	}
 	root.updateMatrixWorld(true);
-	return { root, cameraBlockers, horses, lamps, lampMaterial };
+	const windowMaterial = mat('#a0bbc0');
+	windowMaterial.emissive.set('#ffc987');
+	windowMaterial.emissiveIntensity = 0;
+	return { root, cameraBlockers, horses, lamps, lampMaterial, windowMaterial };
 }

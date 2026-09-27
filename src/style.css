@@ -176,6 +176,16 @@ header {
 	height: 16px;
 }
 
+.sky {
+	display: flex;
+	color: #8a6a2c;
+}
+
+#clock {
+	font-variant-numeric: tabular-nums;
+	min-width: 34px;
+}
+
 .dot {
 	height: 3px;
 	width: 3px;
@@ -926,7 +936,9 @@ dialog > p {
 	font-weight: 600;
 }
 
-#language {
+#language,
+#daytime,
+#weather-mode {
 	width: 100%;
 	padding: 12px;
 	border: 1px solid #8a9d8e;
@@ -1183,4 +1195,8 @@ dialog > p {
 	.touch-actions button {
 		min-height: 48px;
 	}
+}
+
+#weather-mode {
+	margin-bottom: 12px;
 }

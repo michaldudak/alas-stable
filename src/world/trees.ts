@@ -406,7 +406,7 @@ function conifer(seed: number, lite: boolean) {
 }
 
 const windVertex = /* glsl */ `
-uniform float time;`;
+uniform float time, wind;`;
 
 const windTransform = /* glsl */ `
 #include <begin_vertex>
@@ -417,13 +417,18 @@ const windTransform = /* glsl */ `
 #endif
 float treeSway = sin(time * 0.9 + treeOrigin.x * 0.11 + treeOrigin.y * 0.07) * 0.6 +
 	sin(time * 1.7 + treeOrigin.y * 0.23) * 0.25;
+treeSway *= 0.6 + wind * 1.6;
 float lift = max(position.y - 2.0, 0.0);
 transformed.x += treeSway * lift * lift * 0.0022;
 transformed.z += treeSway * lift * lift * 0.0012;
 // Individual sprays flutter faster than the whole crown sways.
-transformed += 0.04 * sin(time * 3.1 + dot(position, vec3(2.1, 1.3, 1.7)) + treeOrigin.x) * min(lift, 1.0);`;
+transformed += (0.03 + wind * 0.05) * sin(time * 3.1 + dot(position, vec3(2.1, 1.3, 1.7)) + treeOrigin.x) * min(lift, 1.0);`;
 
-function foliageMaterial(map: THREE.Texture, time: { value: number }) {
+function foliageMaterial(
+	map: THREE.Texture,
+	time: { value: number },
+	wind: { value: number },
+) {
 	const material = new THREE.MeshStandardMaterial({
 		map,
 		alphaTest: 0.45,
@@ -434,6 +439,7 @@ function foliageMaterial(map: THREE.Texture, time: { value: number }) {
 	});
 	material.onBeforeCompile = (shader) => {
 		shader.uniforms.time = time;
+		shader.uniforms.wind = wind;
 		shader.vertexShader = shader.vertexShader
 			.replace('#include <common>', `#include <common>\n${windVertex}`)
 			.replace('#include <begin_vertex>', windTransform);
@@ -448,14 +454,15 @@ function foliageMaterial(map: THREE.Texture, time: { value: number }) {
 
 /** Instanced trees: a handful of procedural shapes, each drawn in two calls. */
 export function createForest(specs: readonly TreeSpec[]) {
-	const time = { value: 0 };
+	const time = { value: 0 },
+		wind = { value: 0.2 };
 	const bark = new THREE.MeshStandardMaterial({
 		map: barkTexture(),
 		roughness: 0.95,
 	});
 	bark.map!.repeat.set(2, 0.5);
-	const leaves = foliageMaterial(leafTexture(), time),
-		needles = foliageMaterial(needleTexture(), time);
+	const leaves = foliageMaterial(leafTexture(), time, wind),
+		needles = foliageMaterial(needleTexture(), time, wind);
 	const group = new THREE.Group();
 	group.name = 'forest';
 	const matrix = new THREE.Matrix4(),
@@ -542,8 +549,10 @@ export function createForest(specs: readonly TreeSpec[]) {
 			}
 	return {
 		group,
-		update(elapsed: number) {
-			time.value = elapsed;
+		/** `phase` advances faster in strong wind; `strength` scales the sway. */
+		update(phase: number, strength = 0.2) {
+			time.value = phase;
+			wind.value = strength;
 		},
 	};
 }

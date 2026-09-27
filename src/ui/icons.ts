@@ -23,6 +23,13 @@ import {
 	Palette,
 	Check,
 	Maximize,
+	Sun,
+	Moon,
+	Cloud,
+	CloudRain,
+	CloudSun,
+	CloudMoon,
+	Wind,
 } from 'lucide';
 export const icons = {
 	Menu,
@@ -48,6 +55,13 @@ export const icons = {
 	Palette,
 	Check,
 	Maximize,
+	Sun,
+	Moon,
+	Cloud,
+	CloudRain,
+	CloudSun,
+	CloudMoon,
+	Wind,
 };
 export const refreshIcons = () => createIcons({ icons });
 
