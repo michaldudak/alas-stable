@@ -239,6 +239,58 @@ header {
 	opacity: 0;
 }
 
+/* Floats above the horse the rider can mount or lead. */
+.prompt {
+	position: fixed;
+	left: 0;
+	top: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 7px 12px;
+	border-radius: 999px;
+	background: #fffbefe6;
+	box-shadow: 0 4px 18px #223c2520;
+	color: #294c3e;
+	font-size: 13px;
+	pointer-events: none;
+	white-space: nowrap;
+	will-change: transform;
+}
+
+.prompt[hidden] {
+	display: none;
+}
+
+.prompt strong {
+	font-weight: 700;
+	letter-spacing: 0.02em;
+}
+
+.prompt-action {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+}
+
+.prompt kbd {
+	display: grid;
+	place-items: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 5px;
+	border-radius: 6px;
+	background: #2f5b49;
+	color: #fffbef;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.touch-enabled .prompt kbd {
+	display: none;
+}
+
 .hint-key {
 	display: grid;
 	place-items: center;
@@ -1199,4 +1251,8 @@ dialog > p {
 
 #weather-mode {
 	margin-bottom: 12px;
+}
+
+.prompt-action[hidden] {
+	display: none;
 }

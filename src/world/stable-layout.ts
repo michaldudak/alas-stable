@@ -148,3 +148,15 @@ export function stallAt(x: number, z: number) {
 		halfDepth: 3.6,
 	};
 }
+
+/** A walk through the doorway of the stall at a point: aisle side, then inside. */
+export function stallDoorway(x: number, z: number) {
+	const stall = stallAt(x, z),
+		spec = stableAt(x, z);
+	if (!stall || !spec) return undefined;
+	const side = Math.sign(x - spec.x);
+	return [
+		{ x: spec.x + side * (AISLE_HALF_WIDTH - 1.1), z: stall.z },
+		{ x: spec.x + side * (AISLE_HALF_WIDTH + 1.2), z: stall.z },
+	];
+}

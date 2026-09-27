@@ -44,6 +44,8 @@ export const en = {
 	'weather.cloudy': 'Cloudy',
 	'weather.rainy': 'Rainy',
 	'weather.night': 'Night',
+	'prompt.mount': 'mount',
+	'prompt.lead': 'lead rope',
 	'settings.daytime': 'Time of day',
 	'settings.daytimeCycle': 'Day and night',
 	'settings.daytimeDay': 'Always day',

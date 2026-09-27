@@ -10,10 +10,15 @@ import {
 } from '../i18n/index.ts';
 import { stepLedHorse, leadPathClear, LEAD_LENGTH } from '../game/leading.ts';
 import { createLeadRope } from '../rendering/lead-rope.ts';
-import { horseBarrier, nearbyMount } from '../game/herd.ts';
+import { horseBarrier, nearbyLead, nearbyMount } from '../game/herd.ts';
 import { createAppearanceStore } from '../platform/appearance-storage.ts';
 import { createWalkingRider } from '../horse/walking-rider.ts';
-import { mountSide, stepPerson, MOUNT_DURATION } from '../game/riding.ts';
+import {
+	APPROACH_SPEED,
+	mountSide,
+	stepPerson,
+	MOUNT_DURATION,
+} from '../game/riding.ts';
 import { MAX_FRAME_DELTA, STICK_PACE_ADJUSTMENT } from '../game/tuning.ts';
 import { disposeScene } from '../rendering/resources.ts';
 import { createCameraController } from '../rendering/camera.ts';
@@ -42,7 +47,7 @@ import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
 import { createWander, settle, stepWander } from '../game/wander.ts';
 import { createSolidGrid } from '../game/spatial.ts';
-import { insideStable, stallAt } from '../world/stable-layout.ts';
+import { insideStable, stallAt, stallDoorway } from '../world/stable-layout.ts';
 import { PASTURE, inPasture } from '../world/layout.ts';
 import type { HeadTarget } from '../horse/animation.ts';
 import type { Solid } from '../game/types.ts';
@@ -147,6 +152,10 @@ export function startGame() {
 			waitingPlace(entry.state.x, entry.state.z),
 		);
 	const staticSolids = createSolidGrid(world.solids);
+	const doorways = (horse: { x: number; z: number }) => {
+		const doorway = stallDoorway(horse.x, horse.z);
+		return doorway ? [doorway] : [];
+	};
 	const nearby: Solid[] = [];
 	const frustum = new THREE.Frustum(),
 		viewProjection = new THREE.Matrix4(),
@@ -222,13 +231,20 @@ export function startGame() {
 	const rope = createLeadRope(scene);
 	let leading = false;
 	let leadBlocked = false;
-	let riding: 'mounted' | 'on-foot' | 'mounting' | 'dismounting' = 'mounted';
+	let riding:
+		'mounted' | 'on-foot' | 'approaching' | 'mounting' | 'dismounting' =
+		'mounted';
+	/** Waypoints of the walk to the horse's side before mounting. */
+	let approachPath: { x: number; z: number }[] = [];
 	let transferTime = 0;
 	let footstepTimer = 0;
 	let transferSide = { side: -1, x: 0, z: 0 };
 	let approach = { x: 0, z: 0, heading: 0 };
 	const activeState = () => (riding === 'mounted' ? state : person);
-	const transferring = () => riding === 'mounting' || riding === 'dismounting';
+	const transferring = () =>
+		riding === 'mounting' ||
+		riding === 'dismounting' ||
+		riding === 'approaching';
 	let firstPerson = false,
 		paused = false,
 		elapsed = 0,
@@ -386,12 +402,12 @@ export function startGame() {
 			hint('hint.released', 'hint.waiting', 4, { name: selected.name });
 			return;
 		}
-		const target = nearbyMount(herd, person, world.solids);
+		const target = nearbyLead(herd, person, world.solids);
 		if (!target) {
 			hint('hint.approach', 'hint.attach');
 			return;
 		}
-		selectHorse(target.horse);
+		selectHorse(target);
 		leading = true;
 		state.gait = 0;
 		state.speed = 0;
@@ -407,20 +423,33 @@ export function startGame() {
 			hint('hint.stopTitle', 'hint.stopBody');
 			return;
 		}
+		let side: typeof transferSide | undefined;
 		if (riding === 'on-foot') {
-			const target = nearbyMount(herd, person, world.solids);
+			const target = nearbyMount(herd, person, world.solids, doorways);
 			if (!target) {
 				hint('hint.approach', 'hint.chooseHorse');
 				return;
 			}
 			releaseLead();
 			selectHorse(target.horse);
-		}
-		const side = mountSide(
-			state,
-			[...world.solids, ...otherHorseSolids()],
-			riding === 'on-foot' ? person : undefined,
-		);
+			side = target.side;
+			// Walk up to the saddle first when the horse is a few steps away.
+			const [first] = target.path;
+			if (
+				target.path.length > 1 ||
+				Math.hypot(first.x - person.x, first.z - person.z) > 0.6
+			) {
+				approachPath = target.path;
+				transferSide = target.side;
+				riding = 'approaching';
+				state.gait = 0;
+				person.gait = 0;
+				person.speed = APPROACH_SPEED;
+				input.clear();
+				updateGait();
+				return;
+			}
+		} else side = mountSide(state, [...world.solids, ...otherHorseSolids()]);
 		if (!side) {
 			hint('hint.spaceTitle', 'hint.spaceBody');
 			return;
@@ -439,6 +468,32 @@ export function startGame() {
 		horse.rider.visible = false;
 		walker.root.visible = !firstPerson;
 		input.clear();
+		updateGait();
+	}
+	/** Walks the rider along the planned path, then starts mounting. */
+	function updateApproach(dt: number) {
+		const next = approachPath[0];
+		const dx = next.x - person.x,
+			dz = next.z - person.z;
+		const distance = Math.hypot(dx, dz),
+			stride = APPROACH_SPEED * dt;
+		if (distance > 0.01) person.heading = Math.atan2(dx, dz);
+		if (distance > stride) {
+			person.x += (dx / distance) * stride;
+			person.z += (dz / distance) * stride;
+			walker.pose(dt, APPROACH_SPEED);
+			return;
+		}
+		person.x = next.x;
+		person.z = next.z;
+		approachPath.shift();
+		if (approachPath.length) return;
+		person.speed = 0;
+		transferTime = 0;
+		approach = { x: person.x, z: person.z, heading: person.heading };
+		riding = 'mounting';
+		horse.rider.visible = false;
+		walker.root.visible = !firstPerson;
 		updateGait();
 	}
 	function updateTransfer(dt: number) {
@@ -848,6 +903,57 @@ export function startGame() {
 				);
 		}
 	}
+	// A floating tag names the horse within reach and the keys to use.
+	const promptPoint = new THREE.Vector3();
+	let promptTimer = 0,
+		promptTarget: (typeof herd)[number] | undefined,
+		promptMount = false;
+	function updatePrompt(dt: number) {
+		promptTimer -= dt;
+		if (riding !== 'on-foot' || leading) promptTarget = undefined;
+		else if (promptTimer <= 0) {
+			promptTimer = 0.2;
+			const mountable = nearbyMount(
+				herd,
+				person,
+				world.solids,
+				doorways,
+			)?.horse;
+			promptMount = !!mountable;
+			promptTarget = mountable ?? nearbyLead(herd, person, world.solids);
+		}
+		const element = $('prompt');
+		if (!promptTarget) {
+			element.hidden = true;
+			return;
+		}
+		const target = promptTarget.state;
+		promptPoint.set(target.x, 4.1, target.z).project(camera);
+		if (promptPoint.z > 1) {
+			element.hidden = true;
+			return;
+		}
+		element.hidden = false;
+		const name = promptTarget.name;
+		if ($('prompt-name').textContent !== name)
+			$('prompt-name').textContent = name;
+		const pad = document.documentElement.classList.contains('gamepad-active');
+		$('prompt-mount-key').textContent = pad ? 'B' : 'E';
+		$('prompt-lead-key').textContent = pad ? 'X' : 'L';
+		($('prompt-mount-key').parentElement as HTMLElement).hidden = !promptMount;
+		// Keep the tag on screen even when the horse's head is out of view.
+		const x = THREE.MathUtils.clamp(
+			((promptPoint.x + 1) / 2) * innerWidth,
+			110,
+			innerWidth - 110,
+		);
+		const y = THREE.MathUtils.clamp(
+			((1 - promptPoint.y) / 2) * innerHeight,
+			200,
+			innerHeight - 220,
+		);
+		element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -100%)`;
+	}
 	// Clamp long frames: tab suspension must not teleport the horse through barriers.
 	let previousTime = performance.now();
 	let wasNudging = false;
@@ -923,7 +1029,8 @@ export function startGame() {
 				leadBlocked = taut;
 				leadTurn = stepLedHorse(state, person, dt, barriers);
 			}
-			if (transferring()) updateTransfer(dt);
+			if (riding === 'approaching') updateApproach(dt);
+			else if (transferring()) updateTransfer(dt);
 			else if (riding === 'on-foot')
 				walker.pose(dt, person.speed, 0, 0, -1, leading);
 			if (activeState().gait !== oldGait) updateGait();
@@ -952,6 +1059,7 @@ export function startGame() {
 			}
 			input.update(dt, gamepad.look);
 			updateCamera(dt);
+			updatePrompt(dt);
 			const active = activeState();
 			if (riding === 'on-foot' && Math.abs(person.speed) > 0.2) {
 				footstepTimer -= dt;

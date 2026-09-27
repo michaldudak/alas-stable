@@ -55,7 +55,13 @@ try {
 	const parked = (await state()).horse;
 	await page.keyboard.press('ArrowUp');
 	await page.waitForTimeout(2500);
-	assert.deepEqual((await state()).horse, parked);
+	// Step well beyond the rope's reach; the released horse potters about where it was left.
+	await page.evaluate(({ x, z }) => {
+		const s = window.__alasStable!.snapshot();
+		window.__alasStable!.debug!.teleport(x + 8, z, s.heading);
+	}, parked);
+	const waiting = (await state()).horse;
+	assert.ok(Math.hypot(waiting.x - parked.x, waiting.z - parked.z) < 4);
 	await page.keyboard.press('KeyL');
 	assert.equal((await state()).leading, false);
 	await page.locator('#home').click();

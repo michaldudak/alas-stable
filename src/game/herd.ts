@@ -1,5 +1,6 @@
 import type { GameState, Solid } from './types.ts';
-import { mountSide } from './riding.ts';
+import { planApproach, REACH } from './riding.ts';
+import { leadPathClear } from './leading.ts';
 export function horseBarrier(horse: GameState): Solid {
 	const across = Math.abs(Math.cos(horse.heading)),
 		along = Math.abs(Math.sin(horse.heading));
@@ -10,30 +11,48 @@ export function horseBarrier(horse: GameState): Solid {
 		d: 2.5 * across + 1.3 * along,
 	};
 }
+function byDistance<T extends { state: GameState }>(
+	horses: readonly T[],
+	person: GameState,
+) {
+	return horses
+		.map((horse) => ({
+			horse,
+			distance: Math.hypot(person.x - horse.state.x, person.z - horse.state.z),
+		}))
+		.filter(({ distance }) => distance <= REACH)
+		.sort((a, b) => a.distance - b.distance)
+		.map(({ horse }) => horse);
+}
+/** The nearest horse the rider can walk up to and mount, with the walk there. */
 export function nearbyMount<T extends { state: GameState }>(
 	horses: readonly T[],
 	person: GameState,
 	solids: readonly Solid[],
+	/** Extra routes to a horse, such as through its stall door. */
+	via: (horse: GameState) => { x: number; z: number }[][] = () => [],
 ) {
-	const candidates = horses
-		.filter(
-			(h) => Math.hypot(person.x - h.state.x, person.z - h.state.z) <= 3.3,
-		)
-		.sort(
-			(a, b) =>
-				Math.hypot(person.x - a.state.x, person.z - a.state.z) -
-				Math.hypot(person.x - b.state.x, person.z - b.state.z),
-		);
-	for (const horse of candidates) {
-		const side = mountSide(
+	for (const horse of byDistance(horses, person)) {
+		const plan = planApproach(
 			horse.state,
+			person,
 			[
 				...solids,
 				...horses.filter((h) => h !== horse).map((h) => horseBarrier(h.state)),
 			],
-			person,
+			via(horse.state),
 		);
-		if (side) return { horse, side };
+		if (plan) return { horse, side: plan, path: plan.path };
 	}
 	return undefined;
+}
+/** The nearest horse within reach of the lead rope, with nothing in between. */
+export function nearbyLead<T extends { state: GameState }>(
+	horses: readonly T[],
+	person: GameState,
+	solids: readonly Solid[],
+) {
+	return byDistance(horses, person).find((horse) =>
+		leadPathClear(horse.state, person, solids),
+	);
 }

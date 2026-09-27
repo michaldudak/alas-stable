@@ -14,7 +14,8 @@ declare global {
 					halter: boolean;
 					appearance: Appearance;
 				}[];
-				riding: 'mounted' | 'on-foot' | 'mounting' | 'dismounting';
+				riding:
+					'mounted' | 'on-foot' | 'approaching' | 'mounting' | 'dismounting';
 				horse: { x: number; z: number; heading: number };
 				paused: boolean;
 				firstPerson: boolean;

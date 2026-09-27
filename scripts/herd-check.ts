@@ -76,18 +76,23 @@ try {
 		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	const parked = (await state()).horses.find((h) => h.name === 'Raven')!;
+	// Waiting horses potter about, but only a few steps from where they were left.
+	const near = async (name: string, spot: { x: number; z: number }) => {
+		const h = (await state()).horses.find((entry) => entry.name === name)!;
+		assert.ok(Math.hypot(h.x - spot.x, h.z - spot.z) < 4, name);
+	};
 	await go(-38, 2, 2);
-	await go(-38, -3.15, 1);
-	await go(-43, -3.15, 1);
+	await go(-38, -2, 1);
+	await go(-40.3, -2, 1);
+	// From the aisle, the rider walks into the stall and up to Fuks's side.
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
 		() => window.__alasStable!.snapshot().riding === 'mounted',
+		undefined,
+		{ timeout: 10000 },
 	);
 	assert.equal((await state()).activeHorse, 'FUKS');
-	assert.deepEqual(
-		(await state()).horses.find((h) => h.name === 'Raven'),
-		parked,
-	);
+	await near('Raven', parked);
 	await page.locator('#wardrobe').click();
 	assert.equal(await page.locator('#dress-dialog h2').textContent(), 'FUKS');
 	await page.getByRole('button', { name: 'Maść: Siwa', exact: true }).click();
@@ -97,10 +102,8 @@ try {
 		(await state()).horses.find((h) => h.name === 'FUKS')!.appearance.coat,
 		'#e6e0d2',
 	);
-	assert.deepEqual(
-		(await state()).horses.find((h) => h.name === 'Raven'),
-		parked,
-	);
+	await near('Raven', parked);
+	await go(-44.5, -2, 1);
 	await go(-38, -2, 1);
 	await page.screenshot({ path: 'artifacts/fuks-riding.jpg' });
 	await page.keyboard.press('KeyE');
@@ -108,18 +111,17 @@ try {
 		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
 	const fuks = (await state()).horses.find((h) => h.name === 'FUKS')!;
-	// Approach the other side of Raven without passing through either horse.
-	await go(-35.7, 1, 1);
-	await go(parked.x + 1.65, parked.z, 1);
+	// Walk towards Raven; mounting walks the last steps round to its side.
+	const raven = (await state()).horses.find((h) => h.name === 'Raven')!;
+	await go(-36, raven.z - 3, 1);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
 		() => window.__alasStable!.snapshot().riding === 'mounted',
+		undefined,
+		{ timeout: 10000 },
 	);
 	assert.equal((await state()).activeHorse, 'Raven');
-	assert.deepEqual(
-		(await state()).horses.find((h) => h.name === 'FUKS'),
-		fuks,
-	);
+	await near('FUKS', fuks);
 	await page.reload();
 	await page.waitForFunction(() => window.__alasStable?.snapshot().calls);
 	assert.equal(

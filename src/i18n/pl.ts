@@ -45,6 +45,8 @@ export const pl = {
 	'weather.cloudy': 'Pochmurno',
 	'weather.rainy': 'Deszczowo',
 	'weather.night': 'Noc',
+	'prompt.mount': 'wsiądź',
+	'prompt.lead': 'lonża',
 	'settings.daytime': 'Pora dnia',
 	'settings.daytimeCycle': 'Dzień i noc',
 	'settings.daytimeDay': 'Zawsze dzień',

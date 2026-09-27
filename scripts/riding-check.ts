@@ -35,10 +35,14 @@ try {
 	await page.keyboard.press('ArrowUp');
 	await page.waitForTimeout(1000);
 	assert.equal(await page.locator('#gait').textContent(), 'Bieg');
-	assert.deepEqual(
-		(await page.evaluate(() => window.__alasStable!.snapshot())).horse,
-		horse,
-	);
+	// Out of reach of the horse, which waits within a few steps of where it was left.
+	await page.waitForFunction(() => {
+		const s = window.__alasStable!.snapshot();
+		return Math.hypot(s.x - s.horse.x, s.z - s.horse.z) > 7.5;
+	});
+	const waiting = (await page.evaluate(() => window.__alasStable!.snapshot()))
+		.horse;
+	assert.ok(Math.hypot(waiting.x - horse.x, waiting.z - horse.z) < 4);
 	await page.keyboard.press('KeyE');
 	assert.equal(
 		(await page.evaluate(() => window.__alasStable!.snapshot())).riding,

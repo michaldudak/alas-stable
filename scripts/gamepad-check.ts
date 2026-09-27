@@ -249,6 +249,11 @@ try {
 	await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
 	await press(14);
 	await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+	// The time-of-day and weather selections come next.
+	await press(13);
+	await expect(page.locator('#daytime')).toBeFocused();
+	await press(13);
+	await expect(page.locator('#weather-mode')).toBeFocused();
 	await press(13);
 	await expect(page.locator('#controller-vibration')).toBeFocused();
 	await press(0);
