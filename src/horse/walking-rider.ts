@@ -19,9 +19,35 @@ export function createWalkingRider() {
 	const leadHand = new THREE.Group();
 	leadHand.position.copy(figure.directions.handL).multiplyScalar(0.12);
 	figure.bones.handL.add(leadHand);
+	// A carrot the rider holds out on a flat hand.
+	const treat = new THREE.Group();
+	treat.name = 'treat';
+	const carrot = new THREE.Mesh(
+		new THREE.ConeGeometry(0.028, 0.2, 10),
+		new THREE.MeshStandardMaterial({ color: '#e0772b', roughness: 0.7 }),
+	);
+	carrot.rotation.x = Math.PI / 2;
+	carrot.castShadow = true;
+	treat.add(carrot);
+	const leaves = new THREE.MeshStandardMaterial({
+		color: '#4f8a36',
+		roughness: 0.8,
+	});
+	for (let i = 0; i < 3; i++) {
+		const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.09, 5), leaves);
+		leaf.position.set((i - 1) * 0.012, 0.01, -0.13);
+		leaf.rotation.x = -Math.PI / 2 + (i - 1) * 0.3;
+		treat.add(leaf);
+	}
+	treat.position.copy(figure.directions.handR).multiplyScalar(0.09);
+	treat.position.y += 0.03;
+	treat.visible = false;
+	figure.bones.handR.add(treat);
 	const walking = figure.snapshot(),
 		target = new THREE.Vector3(),
 		direction = new THREE.Vector3();
+	const offerArm = ['armR', 'forearmR', 'handR'] as const,
+		armRest = offerArm.map(() => new THREE.Quaternion());
 	let phase = 0;
 	function pose(
 		dt: number,
@@ -30,6 +56,8 @@ export function createWalkingRider() {
 		swing = 0,
 		side = -1,
 		leading = false,
+		/** 0–1: how far the right hand is held out with a treat. */
+		offer = 0,
 	) {
 		const pace = Math.abs(speed),
 			running = pace > 2.5;
@@ -85,6 +113,23 @@ export function createWalkingRider() {
 			figure.aim('forearmL', new THREE.Vector3(0.15, -0.35, 1), forward);
 			figure.aim('handL', new THREE.Vector3(0.1, -0.3, 1), up);
 		}
+		if (offer > 0) {
+			// Hold the treat out on a flat palm, just below shoulder height.
+			offerArm.forEach((name, i) =>
+				armRest[i].copy(figure.bones[name].quaternion),
+			);
+			figure.aim('armR', direction.set(0.12, -0.42, 1), forward);
+			figure.aim('forearmR', direction.set(0.06, -0.08, 1), forward);
+			figure.aim('handR', direction.set(0.02, -0.05, 1), up);
+			offerArm.forEach((name, i) => {
+				const bone = figure.bones[name];
+				bone.quaternion.slerpQuaternions(
+					armRest[i],
+					bone.quaternion.clone(),
+					offer,
+				);
+			});
+		}
 		for (const [name, quaternion] of Object.entries(figure.snapshot()))
 			walking[name as BoneName].copy(quaternion);
 		// Mounting blends towards the seat; one leg sweeps over the horse's back.
@@ -106,5 +151,5 @@ export function createWalkingRider() {
 	}
 	pose(0, 0);
 	root.visible = false;
-	return { root, pose, leadHand };
+	return { root, pose, leadHand, treat };
 }

@@ -54,6 +54,37 @@ export class Soundscape {
 			gain.disconnect();
 		};
 	}
+	/** A soft, happy nicker: a few quick, falling, breathy pulses. */
+	nicker() {
+		for (let i = 0; i < 4; i++)
+			setTimeout(
+				() => this.tone(260 - i * 18, 0.12, 0.035, 170, 'triangle'),
+				i * 95,
+			);
+	}
+	/** Crunching a carrot: short bursts of filtered noise. */
+	crunch() {
+		const ctx = this.context;
+		if (!this.enabled || !ctx || ctx.state !== 'running') return;
+		for (let i = 0; i < 5; i++) {
+			const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+			const data = buffer.getChannelData(0);
+			for (let j = 0; j < data.length; j++)
+				data[j] = (Math.random() * 2 - 1) * (1 - j / data.length) * 0.12;
+			const source = ctx.createBufferSource(),
+				filter = ctx.createBiquadFilter();
+			source.buffer = buffer;
+			filter.type = 'bandpass';
+			filter.frequency.value = 1400 + Math.random() * 800;
+			source.connect(filter);
+			filter.connect(ctx.destination);
+			source.start(ctx.currentTime + i * 0.17 + Math.random() * 0.04);
+			source.onended = () => {
+				source.disconnect();
+				filter.disconnect();
+			};
+		}
+	}
 	/** Looping noise, filtered into rain on leaves or a low wind, faded by weather. */
 	private noiseLoop(
 		filterType: BiquadFilterType,

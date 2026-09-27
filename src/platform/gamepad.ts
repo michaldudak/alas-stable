@@ -7,6 +7,7 @@ interface GamepadActions {
 	jump(): void;
 	mount(): void;
 	lead(): void;
+	treat(): void;
 	toggleCamera(): void;
 	fullscreen(): void;
 	appearance(): void;
@@ -250,6 +251,7 @@ export function createGamepad(actions: GamepadActions) {
 			if (edges[0]) actions.jump();
 			if (edges[1]) actions.mount();
 			if (edges[2]) actions.lead();
+			if (edges[7]) actions.treat();
 			if (edges[3]) actions.toggleCamera();
 		},
 		dispose() {

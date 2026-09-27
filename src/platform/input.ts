@@ -5,6 +5,7 @@ interface InputActions {
 	jump(): void;
 	mount(): void;
 	lead(): void;
+	treat(): void;
 	toggleCamera(): void;
 	pause(): void;
 }
@@ -22,6 +23,7 @@ const GAME_KEYS = new Set([
 	'KeyC',
 	'KeyE',
 	'KeyL',
+	'KeyT',
 	'Escape',
 ]);
 
@@ -62,6 +64,7 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 			if (['ArrowDown', 'KeyS'].includes(event.code)) actions.tempo(-1);
 			if (event.code === 'KeyE') actions.mount();
 			if (event.code === 'KeyL') actions.lead();
+			if (event.code === 'KeyT') actions.treat();
 			if (event.code === 'Space') actions.jump();
 			if (event.code === 'KeyC') actions.toggleCamera();
 			if (event.code === 'Escape') actions.pause();

@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { createState } from '../src/game/physics.ts';
 import {
 	ATTEND_DISTANCE,
+	FOLLOW_TIME,
+	TREAT_TIME,
+	feed,
 	createWander,
 	settle,
 	stepWander,
@@ -94,4 +97,27 @@ await test('neck weights keep the body still and move the head with the last bon
 		const shares = neckWeights(y, z);
 		assert.ok(Math.abs(shares.reduce((a, b) => a + b, 0) - 1) < 1e-9);
 	}
+});
+
+await test('a horse given a treat munches, then follows its friend for a while', () => {
+	const random = seeded(9);
+	const horse = { ...createState(), x: 0, z: 0, heading: 0 };
+	const wander = createWander(horse, { range: 5 }, random);
+	const person = { x: 0, z: 2.6 };
+	feed(wander);
+	let chewing = 0;
+	for (let i = 0; i < 60 * TREAT_TIME + 5; i++) {
+		const motion = stepWander(horse, wander, 1 / 60, [], person, random);
+		if (motion.chew && motion.graze > 0) chewing++;
+	}
+	assert.ok(chewing > 60 * (TREAT_TIME - 0.5));
+	assert.equal(wander.mode, 'follow');
+	// The friend walks off; the horse keeps up at a distance.
+	person.x = 15;
+	for (let i = 0; i < 60 * 12; i++)
+		stepWander(horse, wander, 1 / 60, [], person, random);
+	assert.ok(Math.hypot(person.x - horse.x, person.z - horse.z) < 4);
+	for (let i = 0; i < 60 * FOLLOW_TIME; i++)
+		stepWander(horse, wander, 1 / 60, [], person, random);
+	assert.notEqual(wander.mode, 'follow');
 });

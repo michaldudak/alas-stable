@@ -9,7 +9,8 @@ export interface Enclosure {
 	halfDepth: number;
 }
 
-export type WanderMode = 'idle' | 'graze' | 'walk' | 'attend';
+export type WanderMode =
+	'idle' | 'graze' | 'walk' | 'attend' | 'treat' | 'follow';
 
 export interface Wander {
 	/** Where the horse was left; it strolls around this point. */
@@ -24,6 +25,19 @@ export interface Wander {
 	look: number;
 	/** Whether the ground here has grass worth nibbling. */
 	grassy: boolean;
+	/** Seconds the horse keeps following the person who gave it a treat. */
+	affection: number;
+}
+
+/** How long a horse munches a treat, and then how long it follows its friend. */
+export const TREAT_TIME = 3.2;
+export const FOLLOW_TIME = 25;
+
+/** The horse takes a treat from the person's hand, then follows them for a while. */
+export function feed(wander: Wander) {
+	wander.mode = 'treat';
+	wander.timer = TREAT_TIME;
+	wander.affection = FOLLOW_TIME;
 }
 
 /** Leisurely walking speed while wandering, in metres per second. */
@@ -45,6 +59,7 @@ export function createWander(
 		target: { ...anchor },
 		look: 0,
 		grassy: options.grassy ?? true,
+		affection: 0,
 	};
 }
 
@@ -60,6 +75,7 @@ export function settle(
 	wander.grassy = options.grassy ?? true;
 	wander.mode = 'idle';
 	wander.timer = 2 + Math.random() * 3;
+	wander.affection = 0;
 	horse.gait = 0;
 	horse.speed = 0;
 }
@@ -129,21 +145,42 @@ export function stepWander(
 	const near =
 		person &&
 		Math.hypot(person.x - horse.x, person.z - horse.z) < ATTEND_DISTANCE;
-	if (near && wander.mode !== 'attend') {
+	const bearing = person
+		? angleTo(horse.heading, Math.atan2(person.x - horse.x, person.z - horse.z))
+		: 0;
+	const friendly = wander.mode === 'treat' || wander.mode === 'follow';
+	if (near && wander.mode !== 'attend' && !friendly) {
 		wander.mode = 'attend';
 		wander.timer = 0;
 	}
-	if (wander.mode === 'attend') {
-		// Stop and watch the person, turning only the head.
+	if (wander.mode === 'treat') {
+		// Munching from the person's hand, head turned towards it.
+		wander.look = Math.max(-1.1, Math.min(1.1, bearing));
+		if (wander.timer <= 0) wander.mode = person ? 'follow' : 'idle';
+	} else if (wander.mode === 'follow') {
+		wander.affection -= dt;
+		if (!person || wander.affection <= 0) {
+			// Settle down wherever the walk together ended.
+			wander.anchor = { x: horse.x, z: horse.z };
+			wander.mode = 'idle';
+			wander.timer = 2 + random() * 3;
+		} else {
+			const distance = Math.hypot(person.x - horse.x, person.z - horse.z);
+			wander.look = Math.max(-1.1, Math.min(1.1, bearing)) * 0.6;
+			if (distance > 3.4) {
+				turn = Math.max(-1, Math.min(1, bearing * 1.6));
+				targetSpeed =
+					Math.abs(bearing) < 1.2 ? (distance > 7 ? 2.6 : 1.5) : 0.35;
+			} else if (Math.abs(bearing) > 1.2) turn = Math.sign(bearing) * 0.5;
+		}
+	} else if (wander.mode === 'attend') {
+		// Stop and watch the person, turning the head and, if needed, the body.
 		if (!near) {
 			wander.mode = 'idle';
 			wander.timer = 1.5 + random() * 2;
 		} else {
-			const bearing = Math.atan2(person.x - horse.x, person.z - horse.z);
-			wander.look = Math.max(
-				-1.1,
-				Math.min(1.1, angleTo(horse.heading, bearing)),
-			);
+			wander.look = Math.max(-1.1, Math.min(1.1, bearing));
+			if (Math.abs(bearing) > 1.5) turn = Math.sign(bearing) * 0.45;
 		}
 	} else if (wander.mode === 'walk') {
 		const dx = wander.target.x - horse.x,
@@ -203,8 +240,10 @@ export function stepWander(
 		(!inside(wander.enclosure, x, z) || blocked(x, z, solids))
 	) {
 		horse.speed = 0;
-		wander.mode = 'idle';
-		wander.timer = 1 + random() * 2;
+		if (wander.mode !== 'follow') {
+			wander.mode = 'idle';
+			wander.timer = 1 + random() * 2;
+		}
 	} else {
 		horse.x = x;
 		horse.z = z;
@@ -212,7 +251,9 @@ export function stepWander(
 	horse.gait = horse.speed > 0.05 ? 1 : 0;
 	return {
 		turn,
-		graze: wander.mode === 'graze' ? 1 : 0,
+		// Taking a treat lowers the head to the person's hand.
+		graze: wander.mode === 'graze' ? 1 : wander.mode === 'treat' ? 0.5 : 0,
 		look: wander.look,
+		chew: wander.mode === 'graze' || wander.mode === 'treat',
 	};
 }

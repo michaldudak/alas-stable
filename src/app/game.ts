@@ -45,7 +45,8 @@ import {
 import { Soundscape } from '../platform/audio.ts';
 import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
-import { createWander, settle, stepWander } from '../game/wander.ts';
+import { createWander, feed, settle, stepWander } from '../game/wander.ts';
+import { createHearts } from '../rendering/hearts.ts';
 import { createSolidGrid } from '../game/spatial.ts';
 import { insideStable, stallAt, stallDoorway } from '../world/stable-layout.ts';
 import { PASTURE, inPasture } from '../world/layout.ts';
@@ -350,6 +351,7 @@ export function startGame() {
 		$('mount').title = label + ' (E)';
 		requireElement('#mount', HTMLButtonElement).disabled = transferring();
 		requireElement('#jump', HTMLButtonElement).disabled = riding !== 'mounted';
+		requireElement('#treat', HTMLButtonElement).disabled = transferring();
 		document
 			.querySelectorAll('.gait-steps b')
 			.forEach((bar, i) => bar.classList.toggle('on', i <= active.gait));
@@ -393,6 +395,74 @@ export function startGame() {
 		state.gait = 0;
 		state.speed = 0;
 		leaveHorse(selected);
+	}
+	const hearts = createHearts(scene);
+	const headPoint = new THREE.Vector3();
+	/** The rider holding out a carrot, and the horse taking it. */
+	let feeding: { entry: (typeof herd)[number]; time: number } | undefined;
+	let patTime = 9;
+	function treat() {
+		if (riding === 'mounted') {
+			// From the saddle, a pat on the neck.
+			if (patTime < 1.2) return;
+			patTime = 0;
+			horse.neck[1].getWorldPosition(headPoint);
+			hearts.burst(headPoint.setY(headPoint.y + 0.6), 4);
+			audio.nicker();
+			hint('hint.patTitle', 'hint.patBody', 3, { name: selected.name });
+			return;
+		}
+		if (riding !== 'on-foot' || feeding) return;
+		const target = herd
+			.filter((h) => !(leading && h === selected))
+			.map((h) => ({
+				h,
+				d: Math.hypot(h.state.x - person.x, h.state.z - person.z),
+			}))
+			.filter(({ d }) => d < 3.6)
+			.sort((a, b) => a.d - b.d)[0]?.h;
+		if (!target) {
+			hint('hint.treatTitle', 'hint.treatBody');
+			return;
+		}
+		feeding = { entry: target, time: 0 };
+		feed(target.wander);
+		person.gait = 0;
+		person.speed = 0;
+		updateGait();
+	}
+	/** Faces the rider to the horse's head and plays the hand-over. */
+	function updateFeeding(dt: number) {
+		if (!feeding) return 0;
+		feeding.time += dt;
+		const { entry, time } = feeding;
+		entry.model.neck[2].getWorldPosition(headPoint);
+		const bearing = Math.atan2(headPoint.x - person.x, headPoint.z - person.z);
+		person.heading +=
+			Math.atan2(
+				Math.sin(bearing - person.heading),
+				Math.cos(bearing - person.heading),
+			) * Math.min(1, dt * 6);
+		person.gait = 0;
+		person.speed = 0;
+		// The carrot disappears as the horse takes it.
+		walker.treat.visible = time < 1.15;
+		if (time >= 1.15 && time - dt < 1.15) {
+			audio.crunch();
+			hearts.burst(headPoint.setY(headPoint.y + 0.4), 5);
+			hint('hint.treatDone', 'hint.treatFollow', 4, { name: entry.name });
+		}
+		if (time >= 1.6 && time - dt < 1.6) audio.nicker();
+		// The rider is free again once the carrot is gone; the horse keeps munching.
+		if (time > 1.9) {
+			feeding = undefined;
+			walker.treat.visible = false;
+			return 0;
+		}
+		return (
+			THREE.MathUtils.smoothstep(time, 0, 0.45) *
+			(1 - THREE.MathUtils.smoothstep(time, 1.3, 1.8))
+		);
 	}
 	function lead() {
 		if (riding !== 'on-foot') return;
@@ -577,6 +647,10 @@ export function startGame() {
 		tempo(-1);
 		focusGame();
 	};
+	$('treat').onclick = () => {
+		treat();
+		focusGame();
+	};
 	$('lead').onclick = () => {
 		lead();
 		focusGame();
@@ -714,6 +788,7 @@ export function startGame() {
 		jump,
 		mount,
 		lead,
+		treat,
 		toggleCamera,
 		pause,
 	});
@@ -753,6 +828,7 @@ export function startGame() {
 		jump,
 		mount,
 		lead,
+		treat,
 		toggleCamera,
 		fullscreen: () => {
 			void toggleFullscreen();
@@ -881,7 +957,7 @@ export function startGame() {
 				entry.turn = motion.turn;
 				entry.head.graze = motion.graze;
 				entry.head.yaw = motion.look;
-				entry.head.chew = motion.graze > 0;
+				entry.head.chew = motion.chew;
 				entry.model.root.position.set(horseState.x, 0, horseState.z);
 				entry.model.root.rotation.y = horseState.heading;
 			}
@@ -941,6 +1017,9 @@ export function startGame() {
 		$('prompt-mount-key').textContent = pad ? 'B' : 'E';
 		$('prompt-lead-key').textContent = pad ? 'X' : 'L';
 		($('prompt-mount-key').parentElement as HTMLElement).hidden = !promptMount;
+		$('prompt-treat-key').textContent = pad ? 'RT' : 'T';
+		$('prompt-treat').hidden =
+			Math.hypot(target.x - person.x, target.z - person.z) >= 3.6;
 		// Keep the tag on screen even when the horse's head is out of view.
 		const x = THREE.MathUtils.clamp(
 			((promptPoint.x + 1) / 2) * innerWidth,
@@ -1032,7 +1111,7 @@ export function startGame() {
 			if (riding === 'approaching') updateApproach(dt);
 			else if (transferring()) updateTransfer(dt);
 			else if (riding === 'on-foot')
-				walker.pose(dt, person.speed, 0, 0, -1, leading);
+				walker.pose(dt, person.speed, 0, 0, -1, leading, updateFeeding(dt));
 			if (activeState().gait !== oldGait) updateGait();
 			walker.root.position.set(person.x, person.height, person.z);
 			walker.root.rotation.y = person.heading;
@@ -1068,6 +1147,8 @@ export function startGame() {
 					footstepTimer = Math.abs(person.speed) > 2.5 ? 0.23 : 0.36;
 				}
 			} else footstepTimer = 0;
+			patTime += dt;
+			hearts.update(dt);
 			audio.tick(
 				dt,
 				active,

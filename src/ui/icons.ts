@@ -30,6 +30,8 @@ import {
 	CloudSun,
 	CloudMoon,
 	Wind,
+	Carrot,
+	Grab,
 } from 'lucide';
 export const icons = {
 	Menu,
@@ -62,6 +64,8 @@ export const icons = {
 	CloudSun,
 	CloudMoon,
 	Wind,
+	Carrot,
+	Grab,
 };
 export const refreshIcons = () => createIcons({ icons });
 

@@ -82,6 +82,15 @@
 	</button>
 	<button
 		type="button"
+		id="treat"
+		title="{{action.treatShortcut}}"
+		aria-label="{{action.treat}}"
+	>
+		<i data-lucide="carrot" aria-hidden="true"></i><span>{{action.treat}}</span
+		><kbd>T</kbd>
+	</button>
+	<button
+		type="button"
 		id="camera"
 		title="{{camera.horseShortcut}}"
 		aria-label="{{camera.horse}}"
@@ -128,6 +137,9 @@
 	>
 	<span class="prompt-action"
 		><kbd id="prompt-lead-key">L</kbd><span>{{prompt.lead}}</span></span
+	>
+	<span class="prompt-action" id="prompt-treat"
+		><kbd id="prompt-treat-key">T</kbd><span>{{prompt.treat}}</span></span
 	>
 </div>
 <footer>
@@ -234,6 +246,13 @@
 				aria-label="{{action.attachLead}}"
 			>
 				<i data-lucide="link" aria-hidden="true"></i>
+			</button>
+			<button
+				type="button"
+				data-touch-action="treat"
+				aria-label="{{action.treat}}"
+			>
+				<i data-lucide="carrot" aria-hidden="true"></i>
 			</button>
 			<button
 				type="button"
