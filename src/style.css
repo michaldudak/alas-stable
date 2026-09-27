@@ -198,9 +198,19 @@ header {
 	right: 28px;
 	top: 112px;
 	display: flex;
-	flex-direction: column;
+	flex-flow: column wrap-reverse;
 	align-items: flex-end;
+	align-content: flex-start;
 	gap: 10px;
+
+	/* Leave room for the minimap; extra buttons wrap into a column to the left. */
+	max-height: calc(100dvh - 350px);
+}
+
+/* Actions that only work on foot step aside while riding. */
+.side-tools #lead:disabled,
+.side-tools #grab:disabled {
+	display: none;
 }
 
 .side-tools button {

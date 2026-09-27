@@ -29,6 +29,14 @@ declare global {
 					carried: boolean;
 				}[];
 				calls: number;
+				riders: {
+					name: string;
+					x: number;
+					z: number;
+					gait: number;
+					height: number;
+					out: boolean;
+				}[];
 			};
 			/** Development shortcuts for browser checks and screenshots. */
 			debug?: {

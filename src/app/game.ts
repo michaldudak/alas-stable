@@ -47,6 +47,7 @@ import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
 import { createWander, feed, settle, stepWander } from '../game/wander.ts';
 import { createHearts } from '../rendering/hearts.ts';
+import { createRiders } from './riders.ts';
 import {
 	carriedPose,
 	grabbable,
@@ -222,8 +223,11 @@ export function startGame() {
 		$('sky').title = label;
 		refreshIcons();
 	}
-	const otherHorseSolids = () =>
-		herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state));
+	const riders = createRiders(scene, world.points);
+	const otherHorseSolids = () => [
+		...herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state)),
+		...riders.barriers(),
+	];
 	function selectHorse(next: typeof selected) {
 		next.model.tack.visible = true;
 		if (selected === next) return;
@@ -1044,6 +1048,7 @@ export function startGame() {
 						nearby.push(horseBarrier(other.state));
 				if (riding !== 'mounted')
 					nearby.push({ x: person.x, z: person.z, w: 0.6, d: 0.6 });
+				nearby.push(...riders.barriers());
 				const motion = stepWander(
 					horseState,
 					entry.wander,
@@ -1245,6 +1250,21 @@ export function startGame() {
 							: 1,
 					);
 			updateWaitingHorses(dt, selectedWaits);
+			// Other riders wait for the player; horses left standing only for a while.
+			riders.update(
+				dt,
+				elapsed,
+				world.obstacles,
+				riding === 'mounted'
+					? [horseBarrier(state)]
+					: [{ x: person.x, z: person.z, w: 0.8, d: 0.8 }],
+				herd
+					.filter((h) => riding !== 'mounted' || h !== selected)
+					.map((h) => horseBarrier(h.state)),
+				frustum,
+				camera,
+				isNightHour(environment.hour),
+			);
 			if (riding === 'mounted' && footfalls > 0)
 				gamepad.pulse(0.08 + Math.abs(state.speed) * 0.012, 35);
 			for (const obstacle of world.obstacles) {
@@ -1293,6 +1313,7 @@ export function startGame() {
 			herd
 				.filter((h) => riding !== 'mounted' || h !== selected)
 				.map((h) => h.state),
+			riders.riders.filter((r) => r.out).map((r) => r.npc.state),
 		);
 		renderer.render(scene, camera);
 		if (dialog('dress-dialog').open) preview.render();
@@ -1326,6 +1347,14 @@ export function startGame() {
 					carried: carried?.jump.x === x && carried.jump.z === z,
 				})),
 				calls: renderer.info.render.calls,
+				riders: riders.riders.map((r) => ({
+					name: r.name,
+					x: r.npc.state.x,
+					z: r.npc.state.z,
+					gait: r.npc.state.gait,
+					height: r.npc.state.height,
+					out: r.out,
+				})),
 			}),
 			debug: {
 				setTime(hours: number) {

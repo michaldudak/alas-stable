@@ -49,6 +49,10 @@ This is a desktop keyboard prototype, not a finished mobile game. Sounds and mod
 
 The horse body is sculpted in Blender from anatomical masses by `tools/horse/build_horse.py` and exported to `src/assets/horse.glb`; `src/horse/model.ts` rigs it with three-bone legs and fits mane and tail strands, saddlecloth, saddle, bridle and halter to its surface. The appearance preview supports rotation and zoom, with an optional rider. Color changes appear immediately. Drag to rotate and use the mouse wheel to zoom; buttons and arrow keys are also available when the preview has focus.
 
+## Other riders
+
+Four other riders share the grounds: Zosia and Kuba gallop laps of the racecourse at slightly different speeds, Ola trots the bridleway, and Hania schools in the arena, jumping the three uprights up the centre line and the oxer on the way back. They follow their routes by pure pursuit, take off before any standing rails across their line (including jumps the player has moved), wait for the player to get out of the way and ride round a horse left standing in their path after a few seconds. They head home at sunset and come back in the morning, leaving and returning only out of sight. `src/game/npc.ts` holds the riding logic and is covered by `tests/npc.test.ts`; `src/app/riders.ts` builds their horses and outfits.
+
 ## Time of day and weather
 
 A full day and night lasts fifteen minutes; the game starts at 11:00 and the night passes twice as fast as the day. The sun follows a real arc for a northern summer, so mornings and evenings bring long golden shadows. At night the moon becomes the shadowing light and the sky shows stars. The weather changes by itself between sunny, windy, cloudy and rainy spells, blending over about half a minute; rain only falls from a heavy sky and leaves the ground dark and glossy for a while. Wind sways the grass and trees and drives the clouds. The clock and a weather icon sit next to the location name.

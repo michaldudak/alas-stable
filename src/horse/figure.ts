@@ -360,3 +360,48 @@ export function createFigure() {
 		figurePosition,
 	};
 }
+
+/** Colours worn by a rider; unset parts keep the default outfit. */
+export interface Outfit {
+	jacket?: string;
+	breeches?: string;
+	helmet?: string;
+	hair?: string;
+}
+
+const DEFAULT_OUTFIT: Required<Outfit> = {
+	jacket: '#2e4260',
+	breeches: '#ddd3bf',
+	helmet: '#2f4a43',
+	hair: '#5a3d2a',
+};
+
+/** Re-dresses every figure under `root`, matching the default outfit colours. */
+export function dressFigure(root: THREE.Object3D, outfit: Outfit) {
+	const swaps = new Map<number, THREE.Color>();
+	for (const key of Object.keys(DEFAULT_OUTFIT) as (keyof Outfit)[]) {
+		const colour = outfit[key];
+		if (colour)
+			swaps.set(
+				new THREE.Color(DEFAULT_OUTFIT[key]).getHex(),
+				new THREE.Color(colour),
+			);
+	}
+	const seen = new Set<THREE.Material>();
+	root.traverse((object) => {
+		if (!(object instanceof THREE.Mesh)) return;
+		const materials = Array.isArray(object.material)
+			? object.material
+			: [object.material];
+		for (const material of materials) {
+			if (
+				seen.has(material) ||
+				!(material instanceof THREE.MeshStandardMaterial)
+			)
+				continue;
+			seen.add(material);
+			const swap = swaps.get(material.color.getHex());
+			if (swap) material.color.copy(swap);
+		}
+	});
+}
