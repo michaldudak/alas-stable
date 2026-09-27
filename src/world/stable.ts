@@ -440,10 +440,10 @@ export function createStable(
 			beam.rotation.z = -side * roofAngle;
 			box('#75573c', [0.22, 5.8, 0.22], [side * AISLE_HALF_WIDTH, 2.9, z]);
 		}
-		cylinder('#484c41', 0.045, 0.8, [0, 5.65, z]);
-		const lamp = cylinder('#f0d298', 0.26, 0.2, [0, 5.2, z]);
+		cylinder('#484c41', 0.045, 0.3, [0, 5.9, z]);
+		const lamp = cylinder('#f0d298', 0.24, 0.16, [0, 5.72, z]);
 		lamp.material = lampMaterial;
-		lamps.push(new THREE.Vector3(spec.x, 4.9, spec.z + z));
+		lamps.push(new THREE.Vector3(spec.x, 5.4, spec.z + z));
 	}
 	// High windows read as pale glass from both the inside and the outside.
 	for (const side of [-1, 1])

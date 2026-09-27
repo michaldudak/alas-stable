@@ -11,12 +11,12 @@ export const pl = {
 	'touch.on': 'Zawsze pokazuj',
 	'touch.off': 'Ukryj',
 	'touch.help':
-		'Lewy drążek: skręcanie i regulacja tempa; na postoju ruch przód/tył podczas przytrzymania. Przeciągnij widok gry, aby się rozglądać. −/+ wybiera stałe tempo. Strzałka to skok, ślady to wsiadanie, łańcuch to lonża, a kamera zmienia widok. Menu otwiera ustawienia i wygląd konia. Pad ukrywa automatyczne przyciski dotykowe; dotknięcie ekranu je przywraca.',
+		'Lewy drążek: skręcanie i regulacja tempa; na postoju ruch przód/tył podczas przytrzymania. Przeciągnij widok gry, aby się rozglądać. −/+ wybiera stałe tempo. Strzałka to skok, ślady to wsiadanie, łańcuch to lonża, marchewka to smaczek, dłoń przesuwa przeszkodę, a kamera zmienia widok. Menu otwiera ustawienia i wygląd konia. Pad ukrywa automatyczne przyciski dotykowe; dotknięcie ekranu je przywraca.',
 	'controller.fullscreenHelp':
 		'Jeśli przeglądarka blokuje pełny ekran z pada, dotknij lub kliknij przycisk Pełny ekran.',
 	'controller.title': 'Pad',
 	'controller.controls':
-		'Lewy drążek: skręcanie; góra/dół przyspiesza/zwalnia wybrane tempo bez zmiany chodu. Na postoju przytrzymaj góra/dół, aby powoli ruszyć przód/tył. Puść, aby wrócić do wybranego tempa. Prawy drążek: rozglądanie lewo/prawo; góra przybliża, dół oddala kamerę zza postaci. LB/RB: wolniej/szybciej. A: skok. B: wsiadanie/zsiadanie. X: lonża. Y: kamera.',
+		'Lewy drążek: skręcanie; góra/dół przyspiesza/zwalnia wybrane tempo bez zmiany chodu. Na postoju przytrzymaj góra/dół, aby powoli ruszyć przód/tył. Puść, aby wrócić do wybranego tempa. Prawy drążek: rozglądanie lewo/prawo; góra przybliża, dół oddala kamerę zza postaci. LB/RB: wolniej/szybciej. A: skok. B: wsiadanie/zsiadanie. X: lonża. Y: kamera. RT: smaczek. LT: przesuwanie przeszkody.',
 	'controller.shortcuts':
 		'Kliknięcie prawego drążka (R3): pełny ekran. Menu/Start: pauza. View/Back: pomoc. Krzyżak góra/dół: tempo, lewo: wygląd, prawo: ustawienia. Oznaczenia przycisków jak na Steam Decku / padzie Xbox.',
 	'controller.menuHelp':
@@ -114,7 +114,16 @@ export const pl = {
 	'action.close': 'Zamknij',
 	'help.leadTitle': 'Poprowadź konia',
 	'help.leadBody':
-		'Zsiądź i podejdź do boku konia. L przypina lonżę do kantara. Ruszaj, a koń pójdzie za tobą. Ponowne L odpina linę.',
+		'Zsiądź i podejdź do konia. L przypina lonżę do kantara. Ruszaj, a koń pójdzie za tobą. Ponowne L odpina linę.',
+	'help.mountTitle': 'Wsiądź na konia',
+	'help.mountBody':
+		'Pieszo naciśnij E przy dowolnym koniu. Jeździec sam podejdzie do jego boku i wskoczy na siodło.',
+	'help.treatTitle': 'Daj smaczka',
+	'help.treatBody':
+		'Stań przy koniu i naciśnij T, aby podać mu marchewkę. Potem przez chwilę będzie chodzić za tobą.',
+	'help.moveTitle': 'Ułóż własny parkur',
+	'help.moveBody':
+		'Pieszo naciśnij G przy przeszkodzie, aby ją chwycić, idź, żeby ją pchać lub ciągnąć i obracać, a potem G, aby ją postawić.',
 	'help.paceTitle': 'Wybierz tempo',
 	'help.paceBody':
 		'Naciśnij i puść. Na postoju ↓ lub S włącza powolne cofanie. ↑ lub W zatrzymuje cofanie.',

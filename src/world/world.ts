@@ -285,7 +285,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 			// Lit stables glow through their windows after dusk.
 			const night = smooth(darkness, 0.25, 0.7);
 			for (const stable of stables) {
-				stable.lampMaterial.emissiveIntensity = 0.5 + night;
+				stable.lampMaterial.emissiveIntensity = 0.4 + night * 0.6;
 				stable.windowMaterial.emissiveIntensity = night * 0.9;
 			}
 		},

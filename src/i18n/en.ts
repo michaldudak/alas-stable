@@ -10,12 +10,12 @@ export const en = {
 	'touch.on': 'Always show',
 	'touch.off': 'Hide',
 	'touch.help':
-		'Left stick: steer and adjust pace; from standing, move forward/back while held. Drag the scene to look around. −/+ selects a lasting pace. Tap the arrow to jump, footprints to mount, chain to lead, or camera to change view. Menu opens settings and appearance. Using a gamepad hides automatic touch controls; touching the screen brings them back.',
+		'Left stick: steer and adjust pace; from standing, move forward/back while held. Drag the scene to look around. −/+ selects a lasting pace. Tap the arrow to jump, footprints to mount, chain to lead, the carrot to give a treat, the hand to move a jump, or camera to change view. Menu opens settings and appearance. Using a gamepad hides automatic touch controls; touching the screen brings them back.',
 	'controller.fullscreenHelp':
 		'If your browser blocks controller fullscreen, tap or click the Fullscreen button once.',
 	'controller.title': 'Controller',
 	'controller.controls':
-		'Left stick: steer; up/down adjusts the selected pace faster/slower without changing gait. From standing, hold up/down for small forward/back steps. Release to return to the selected pace. Right stick: look left/right, up to zoom in, down to zoom out (third person). LB/RB: slower/faster. A: jump. B: mount/dismount. X: lead rope. Y: camera.',
+		'Left stick: steer; up/down adjusts the selected pace faster/slower without changing gait. From standing, hold up/down for small forward/back steps. Release to return to the selected pace. Right stick: look left/right, up to zoom in, down to zoom out (third person). LB/RB: slower/faster. A: jump. B: mount/dismount. X: lead rope. Y: camera. RT: treat. LT: move a jump.',
 	'controller.shortcuts':
 		'Right-stick click (R3): fullscreen. Menu/Start: pause. View/Back: help. D-pad up/down: pace, left: appearance, right: settings. Button names follow the Steam Deck / Xbox layout.',
 	'controller.menuHelp':
@@ -113,7 +113,16 @@ export const en = {
 	'action.close': 'Close',
 	'help.leadTitle': 'Lead your horse',
 	'help.leadBody':
-		"Dismount and approach your horse's side. Press L to attach the lead rope to the halter. Start walking and your horse will follow. Press L again to release the rope.",
+		'Dismount and walk up to your horse. Press L to attach the lead rope to the halter. Start walking and your horse will follow. Press L again to release the rope.',
+	'help.mountTitle': 'Mount a horse',
+	'help.mountBody':
+		'On foot, press E near any horse. Your rider walks up to its side and swings into the saddle.',
+	'help.treatTitle': 'Give a treat',
+	'help.treatBody':
+		'Stand by a horse and press T to hold out a carrot. It will follow you for a while afterwards.',
+	'help.moveTitle': 'Build your course',
+	'help.moveBody':
+		'On foot, press G by a jump to take hold of it, walk to push or pull and turn it, then G to put it down.',
 	'help.paceTitle': 'Choose your pace',
 	'help.paceBody':
 		'Press and release. While standing, ↓ or S starts backing up slowly. ↑ or W stops backing up.',
