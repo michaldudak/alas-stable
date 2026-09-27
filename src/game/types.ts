@@ -26,5 +26,7 @@ export interface Obstacle {
 	x: number;
 	z: number;
 	width: number;
+	/** Rotation about the vertical axis; zero puts the rails along X. */
+	angle?: number;
 	down: number;
 }

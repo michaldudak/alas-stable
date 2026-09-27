@@ -77,7 +77,7 @@ export function startGame() {
 	const raven = createHorse();
 	raven.root.name = 'Raven';
 	scene.add(raven.root);
-	const herd = [raven, ...world.stable.horses].map((model) => {
+	const herd = [raven, ...world.horses].map((model) => {
 		scene.attach(model.root);
 		const state =
 			model === raven
@@ -635,10 +635,7 @@ export function startGame() {
 		},
 		{ signal: events.signal },
 	);
-	const cameraController = createCameraController(
-		camera,
-		world.stable.cameraBlockers,
-	);
+	const cameraController = createCameraController(camera, world.cameraBlockers);
 	function updateCamera(dt: number, snap = false) {
 		cameraController.update(
 			activeState(),
@@ -796,7 +793,11 @@ export function startGame() {
 		}
 		scene.updateMatrixWorld(true);
 		rope.update(walker.leadHand, horse.leadAnchor, leading);
-		world.stable.update(elapsed, horse);
+		herd.forEach((entry, i) => {
+			if (entry === selected) return;
+			entry.model.tail.rotation.z = Math.sin(elapsed * 1.1 + i) * 0.1;
+			entry.model.body.position.y = Math.sin(elapsed * 0.9 + i) * 0.012;
+		});
 		world.update(elapsed, camera);
 		minimap.draw(
 			activeState(),
@@ -831,6 +832,13 @@ export function startGame() {
 				obstacles: world.obstacles.map(({ z, down }) => ({ z, down })),
 				calls: renderer.info.render.calls,
 			}),
+			debug: {
+				teleport(x: number, z: number, heading: number) {
+					Object.assign(activeState(), { x, z, heading, speed: 0, gait: 0 });
+					updateGait();
+					updateCamera(1, true);
+				},
+			},
 		};
 
 	let disposed = false;

@@ -6,7 +6,7 @@ import {
 	leadPathClear,
 	LEAD_LENGTH,
 } from '../src/game/leading.ts';
-import { STABLE, stableSolids } from '../src/world/stable-layout.ts';
+import { STABLE, bayCenter, stableSolids } from '../src/world/stable-layout.ts';
 await test('a led horse follows a walking or running person and stops at a comfortable distance', () => {
 	for (const speed of [1.8, 3.8]) {
 		const horse = { ...createState(), x: 0, z: 0, heading: 0 },
@@ -36,7 +36,8 @@ await test('a led horse stops at obstacles and the rope cannot cross a wall', ()
 });
 await test('each resident can follow a handler through its open stall doorway', () => {
 	for (const side of [-1, 1])
-		for (const z of [-9, -1]) {
+		for (let bay = 0; bay < STABLE.bays - 1; bay++) {
+			const z = bayCenter(STABLE, bay);
 			const horse = {
 				...createState(),
 				x: STABLE.x + side * 6.5,

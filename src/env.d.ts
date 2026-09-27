@@ -23,6 +23,12 @@ declare global {
 				obstacles: { z: number; down: number }[];
 				calls: number;
 			};
+			/** Development shortcuts for browser checks and screenshots. */
+			debug?: {
+				teleport(x: number, z: number, heading: number): void;
+				setTime?(hours: number): void;
+				setWeather?(weather: string): void;
+			};
 		};
 	}
 }

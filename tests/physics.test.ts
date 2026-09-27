@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { WORLD_RADIUS } from '../src/game/tuning.ts';
 import {
 	createState,
 	changeGait,
@@ -54,9 +55,9 @@ await test('solid collisions and world boundary stop gently', () => {
 	step(s, 0.04, 0, [], [{ x: 0, z: 23, w: 2, d: 1 }]);
 	assert.equal(s.z, 24);
 	assert.equal(s.gait, 0);
-	s.x = 113;
+	s.x = WORLD_RADIUS + 1;
 	step(s, 0.016, 0);
-	assert.ok(Math.hypot(s.x, s.z) <= 112.00001);
+	assert.ok(Math.hypot(s.x, s.z) <= WORLD_RADIUS + 0.00001);
 });
 
 await test('jumping clears enclosure fences on either axis and in both directions', () => {

@@ -22,6 +22,8 @@ export type TreeSpec = {
 const BROADLEAF_HEIGHT = 10;
 const CONIFER_HEIGHT = 12;
 export const TREE_VARIANTS = 3;
+/** Edge of the square map chunks that are culled together, in metres. */
+const CHUNK = 70;
 
 type Rgba = Uint8Array;
 function canvas(width: number, height: number) {
@@ -484,46 +486,58 @@ export function createForest(specs: readonly TreeSpec[]) {
 	for (const kind of ['broadleaf', 'conifer'] as const)
 		for (let variant = 0; variant < TREE_VARIANTS; variant++)
 			for (const castShadow of [true, false]) {
-				const chosen = specs.filter(
-					(spec) =>
-						spec.kind === kind &&
-						spec.variant % TREE_VARIANTS === variant &&
-						(spec.castShadow ?? true) === castShadow,
-				);
-				if (!chosen.length) continue;
-				const nominal =
-					kind === 'broadleaf' ? BROADLEAF_HEIGHT : CONIFER_HEIGHT;
-				// Backdrop trees cast no shadows and are only seen from a distance.
-				const [wood, foliage] = shape(kind, variant, !castShadow);
-				const meshes = [
-					new THREE.InstancedMesh(wood, bark, chosen.length),
-					new THREE.InstancedMesh(
-						foliage,
-						kind === 'broadleaf' ? leaves : needles,
-						chosen.length,
-					),
-				];
-				chosen.forEach((spec, i) => {
-					const size = spec.height / nominal;
-					position.set(spec.x, spec.y ?? 0, spec.z);
-					quaternion.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, spec.rotation);
-					matrix.compose(position, quaternion, scale.set(size, size, size));
-					const warm = kind === 'broadleaf' ? 0.18 : 0.08;
-					color.setRGB(
-						0.88 + spec.tint * warm * 1.6,
-						0.92 + spec.tint * warm * 0.6,
-						0.9 - spec.tint * warm,
-					);
+				// Split each shape into map chunks so off-screen groups are culled,
+				// both from the view and from the sun's shadow pass.
+				const chunks = new Map<string, TreeSpec[]>();
+				for (const spec of specs) {
+					if (
+						spec.kind !== kind ||
+						spec.variant % TREE_VARIANTS !== variant ||
+						(spec.castShadow ?? true) !== castShadow
+					)
+						continue;
+					const key = `${Math.floor(spec.x / CHUNK)}:${Math.floor(spec.z / CHUNK)}`;
+					if (!chunks.has(key)) chunks.set(key, []);
+					chunks.get(key)!.push(spec);
+				}
+				for (const chosen of chunks.values()) {
+					const nominal =
+						kind === 'broadleaf' ? BROADLEAF_HEIGHT : CONIFER_HEIGHT;
+					// Backdrop trees cast no shadows and are only seen from a distance.
+					const [wood, foliage] = shape(kind, variant, !castShadow);
+					const meshes = [
+						new THREE.InstancedMesh(wood, bark, chosen.length),
+						new THREE.InstancedMesh(
+							foliage,
+							kind === 'broadleaf' ? leaves : needles,
+							chosen.length,
+						),
+					];
+					chosen.forEach((spec, i) => {
+						const size = spec.height / nominal;
+						position.set(spec.x, spec.y ?? 0, spec.z);
+						quaternion.setFromAxisAngle(
+							THREE.Object3D.DEFAULT_UP,
+							spec.rotation,
+						);
+						matrix.compose(position, quaternion, scale.set(size, size, size));
+						const warm = kind === 'broadleaf' ? 0.18 : 0.08;
+						color.setRGB(
+							0.88 + spec.tint * warm * 1.6,
+							0.92 + spec.tint * warm * 0.6,
+							0.9 - spec.tint * warm,
+						);
+						for (const mesh of meshes) {
+							mesh.setMatrixAt(i, matrix);
+							if (mesh.material !== bark) mesh.setColorAt(i, color);
+						}
+					});
 					for (const mesh of meshes) {
-						mesh.setMatrixAt(i, matrix);
-						if (mesh.material !== bark) mesh.setColorAt(i, color);
+						mesh.castShadow = castShadow;
+						mesh.receiveShadow = true;
+						mesh.computeBoundingSphere();
+						group.add(mesh);
 					}
-				});
-				for (const mesh of meshes) {
-					mesh.castShadow = castShadow;
-					mesh.receiveShadow = true;
-					mesh.computeBoundingSphere();
-					group.add(mesh);
 				}
 			}
 	return {

@@ -44,36 +44,40 @@ await test('third-person camera stays in front of a wall while first-person igno
 	wall.material.dispose();
 });
 
-await test('sun shadows cover actors, tree crowns and ground at every map edge', () => {
+await test('sun shadows follow the player and cover nearby casters anywhere on the map', () => {
 	const sun = createSun();
-	sun.updateMatrixWorld(true);
-	sun.target.updateMatrixWorld(true);
-	sun.shadow.updateMatrices(sun);
-	const frustum = sun.shadow.getFrustum();
-	for (let degrees = 0; degrees < 360; degrees += 5) {
+	for (let degrees = 0; degrees < 360; degrees += 30) {
 		const angle = THREE.MathUtils.degToRad(degrees);
-		for (const radius of [0, WORLD_RADIUS / 2, WORLD_RADIUS + 3]) {
-			for (const height of [0, 4, 12]) {
-				const caster = new THREE.Vector3(
-					Math.cos(angle) * radius,
-					height,
-					Math.sin(angle) * radius,
-				);
-				const groundShadow = caster
-					.clone()
-					.addScaledVector(sun.position, -height / sun.position.y);
-				assert.ok(
-					frustum.containsPoint(caster),
-					`Caster clipped at ${caster.toArray().join(', ')}`,
-				);
-				assert.ok(
-					frustum.containsPoint(groundShadow),
-					`Shadow clipped at ${groundShadow.toArray().join(', ')}`,
-				);
-			}
+		for (const radius of [0, WORLD_RADIUS / 2, WORLD_RADIUS]) {
+			const focus = new THREE.Vector3(
+				Math.cos(angle) * radius,
+				0,
+				Math.sin(angle) * radius,
+			);
+			sun.follow(focus);
+			sun.shadow.updateMatrices(sun);
+			const frustum = sun.shadow.getFrustum();
+			const direction = sun.position.clone().sub(sun.target.position);
+			for (let around = 0; around < 360; around += 45)
+				for (const height of [0, 4, 18]) {
+					const caster = focus
+						.clone()
+						.add(
+							new THREE.Vector3(
+								Math.cos(THREE.MathUtils.degToRad(around)) * 45,
+								height,
+								Math.sin(THREE.MathUtils.degToRad(around)) * 45,
+							),
+						);
+					const groundShadow = caster
+						.clone()
+						.addScaledVector(direction, -height / direction.y);
+					assert.ok(frustum.containsPoint(caster), 'Caster clipped');
+					assert.ok(frustum.containsPoint(groundShadow), 'Shadow clipped');
+				}
 		}
 	}
-	// Expanding coverage must retain at least the original shadow texel density.
+	// Following the player must retain at least the original shadow texel density.
 	assert.ok(
 		(sun.shadow.camera.right - sun.shadow.camera.left) / sun.shadow.mapSize.x <=
 			140 / 2048,

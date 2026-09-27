@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mountSide, stepPerson, clearForPerson } from '../src/game/riding.ts';
 import { createState } from '../src/game/physics.ts';
+import { WORLD_RADIUS } from '../src/game/tuning.ts';
 await test('dismount picks a clear side and rejects blocked landing paths', () => {
 	const horse = createState();
 	horse.heading = 0;
@@ -14,7 +15,7 @@ await test('dismount picks a clear side and rejects blocked landing paths', () =
 		]),
 		undefined,
 	);
-	assert.equal(clearForPerson(113, 0, []), false);
+	assert.equal(clearForPerson(WORLD_RADIUS + 1, 0, []), false);
 });
 await test('walking and running are persistent and stop at walls and the waiting horse', () => {
 	const horse = createState(),
@@ -64,7 +65,7 @@ await test('backward walking respects walls, waiting horses and the world bounda
 		const person = {
 			...createState(),
 			x: kind === 'horse' ? 0 : 3,
-			z: kind === 'boundary' ? 111 : 3,
+			z: kind === 'boundary' ? WORLD_RADIUS - 1 : 3,
 			heading: kind === 'boundary' ? Math.PI : 0,
 			gait: -1,
 		};

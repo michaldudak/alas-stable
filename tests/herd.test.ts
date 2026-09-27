@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { nearbyMount, horseBarrier } from '../src/game/herd.ts';
 import { createState, step } from '../src/game/physics.ts';
-import { stableSolids, STABLE } from '../src/world/stable-layout.ts';
+import { stableSolids, STABLE, bayCenter } from '../src/world/stable-layout.ts';
 import { createAppearanceStore } from '../src/platform/appearance-storage.ts';
 await test('mount selection chooses a reachable nearby horse and rejects distant or blocked horses', () => {
 	const a = { state: { ...createState(), x: 0, z: 0, heading: 0 } },
@@ -15,9 +15,10 @@ await test('mount selection chooses a reachable nearby horse and rejects distant
 		undefined,
 	);
 });
-await test('all four residents can be approached from the aisle and ridden out of their stalls', () => {
+await test('every stall resident can be approached from the aisle and ridden out', () => {
 	for (const side of [-1, 1])
-		for (const z of [-9, -1]) {
+		for (let bay = 0; bay < STABLE.bays - 1; bay++) {
+			const z = bayCenter(STABLE, bay);
 			const state = {
 				...createState(),
 				x: STABLE.x + side * 6.5,

@@ -39,7 +39,7 @@ Audio starts after the first click or key press, as required by browsers. Each h
 
 ## Prototype scope
 
-The world includes a riding stable, meadow, forest loop, three low obstacles, an animated horse and rider, two cameras, a minimap, collisions, pause, synthesized hoofbeats, and nature sounds without music. Both obstacles and enclosure fences can be jumped.
+The world includes three stables around a yard, a jumping arena, a meadow and forest loop, an oval racecourse with a grandstand, a fenced pasture with a field shelter, an animated horse and rider, two cameras, a scrolling minimap, collisions, pause, synthesized hoofbeats, and nature sounds without music. Obstacles, enclosure fences, racecourse rails and pasture fences can all be jumped. Map features share their positions through `src/world/layout.ts`.
 
 The appearance panel has four sections: colors, hairstyles, ornaments, and saddlecloth. The mane and tail each have independent short, long, and braided styles. Ornaments include flowers, a bow, and ribbons (including tail ribbons), with five colors and an option to remove them. Saddlecloth patterns include plain, dots, stripes, and stars. All options are unlocked and saved locally. Older saves retain their colors and flower selection.
 
@@ -57,7 +57,7 @@ Rhythm references: [FEI — Gait](https://www.fei.org/node/38138), [University o
 
 ## Stable
 
-The building west of the arena has two open entrances and a traversable central aisle. Four enclosed stalls house Luna, Fuks, Burza, and Kasztan. The first stall on the left from the main entrance is empty and reserved for Raven, the player's horse. All stall entrances are open so the player can approach and ride any horse in and out. Stalls contain bedding, water, and hay; nameplates identify each horse. Unmounted horses stay in place and have subtle idle animations.
+The main stable west of the arena has two open entrances, a traversable central aisle and five stall bays on each side. Its residents are Iskra, Luna, Fuks, Maks, Burza, and Kasztan. The first stall on the left from the main entrance is empty and reserved for Raven, the player's horse. Two smaller stables south of the bridleway, the red Linden Stable and the timber Meadow Stable, house Bajka, Dukat and Figa and share the same cross-section, so every stable is generated from one layout with a different number of bays and palette. All stall entrances are open so the player can approach and ride any horse in and out. Stalls contain bedding, water, and hay; nameplates identify each horse. Unmounted horses stay in place and have subtle idle animations.
 
 The tack room is on the right when entering through the main entrance. Players can ride inside; it contains saddles on racks, bridles, folded saddlecloths, and a grooming box. These are environmental props; the palette button still opens customization for the most recently ridden horse.
 

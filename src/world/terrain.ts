@@ -2,13 +2,23 @@ import * as THREE from 'three';
 import { WORLD_RADIUS } from '../game/tuning.ts';
 import { fbm, worldNoise } from './noise.ts';
 import { proceduralTexture, rgb, mix } from './textures.ts';
-import { insideStable, STABLE } from './stable-layout.ts';
+import { halfDepth, insideStable, STABLES } from './stable-layout.ts';
 import { isSand } from './locations.ts';
+import {
+	ARENA,
+	PATHS,
+	RACE_TRACK,
+	inPasture,
+	raceTrackDistance,
+} from './layout.ts';
 
 /** Edge length, in metres, of the square covered by the surface mask. */
-export const SURFACE_SIZE = 288;
-const MASK_RESOLUTION = 1024;
+export const SURFACE_SIZE = 416;
+const MASK_RESOLUTION = 1536;
 const FLAT_RADIUS = WORLD_RADIUS + 10;
+// Wooded slopes darken the hills beyond the ridden area.
+const WOODS_START = (WORLD_RADIUS + 38).toFixed(1),
+	WOODS_END = (WORLD_RADIUS + 98).toFixed(1);
 
 type Point = { x: number; z: number };
 type Track = { points: Point[]; halfWidth: number };
@@ -29,9 +39,20 @@ export function terrainHeight(x: number, z: number) {
 
 // Arena footing reaches the fence line, slightly beyond the audible sand area.
 function sandAmount(x: number, z: number, jitter: number) {
-	const outside = Math.max(Math.abs(x) - 17.1, z - 21, -39.1 - z);
 	if (isSand(x, z)) return 1;
-	return 1 - THREE.MathUtils.smoothstep(outside + jitter * 0.4, -0.25, 0.3);
+	const outside = Math.max(
+		Math.abs(x - ARENA.x) - ARENA.halfWidth - 0.1,
+		Math.abs(z - ARENA.z) - ARENA.halfDepth - 0.1,
+	);
+	const track = Math.abs(raceTrackDistance(x, z)) - RACE_TRACK.halfWidth - 0.2;
+	return (
+		1 -
+		THREE.MathUtils.smoothstep(
+			Math.min(outside, track) + jitter * 0.4,
+			-0.25,
+			0.3,
+		)
+	);
 }
 
 function segmentDistance(p: Point, a: Point, b: Point) {
@@ -68,26 +89,29 @@ function surfaceMask(path: readonly Point[]) {
 		},
 		{
 			points: [
-				{ x: STABLE.x, z: STABLE.z + 12 },
-				{ x: STABLE.x - 1, z: STABLE.z + 20 },
+				{ x: STABLES[0].x, z: 11 },
+				{ x: STABLES[0].x - 1, z: 19 },
 				{ x: -44, z: 30 },
 			],
 			halfWidth: 3.3,
 		},
 		{
 			points: [
-				{ x: STABLE.x, z: STABLE.z - 12 },
-				{ x: STABLE.x, z: STABLE.z - 19 },
-			],
-			halfWidth: 3.6,
-		},
-		{
-			points: [
-				{ x: STABLE.x + 12, z: STABLE.z + 17 },
+				{ x: STABLES[0].x + 12, z: 16 },
 				{ x: -17, z: 25 },
 			],
 			halfWidth: 1.6,
 		},
+		...STABLES.flatMap((spec) =>
+			[-1, 1].map((end) => ({
+				points: [
+					{ x: spec.x, z: spec.z + end * (halfDepth(spec) - 1) },
+					{ x: spec.x, z: spec.z + end * (halfDepth(spec) + 7) },
+				],
+				halfWidth: 3.6,
+			})),
+		),
+		...PATHS,
 	];
 	for (const track of tracks)
 		for (let i = 0; i < track.points.length - 1; i++) {
@@ -120,17 +144,29 @@ function surfaceMask(path: readonly Point[]) {
 			// Trampled patches around gates and the stable doors.
 			if (insideStable(x, z, 3)) dirt = Math.max(dirt, 0.85);
 			const forest = THREE.MathUtils.smoothstep(-z, 36, 52);
-			const lush = worldNoise(x, z, 38, 7);
+			const pasture = inPasture(x, z, -0.5) ? 1 : 0;
+			const lush = Math.max(worldNoise(x, z, 38, 7), pasture * 0.95);
 			let grass =
 				(1 - sand) * (1 - THREE.MathUtils.smoothstep(dirt, 0.05, 0.6));
 			grass *= 1 - forest * 0.6 * worldNoise(x, z, 9, 11);
 			if (insideStable(x, z, 0.5)) grass = 0;
-			// Paved apron and hay store outside the south doors.
-			const localX = x - STABLE.x,
-				localZ = z - STABLE.z;
-			if (Math.abs(localX) < 5 && localZ > 12 && localZ < 22) grass = 0;
-			if (localX > -10.2 && localX < -6 && localZ > 14 && localZ < 17.6)
-				grass = 0;
+			for (const spec of STABLES) {
+				// Paved aprons and hay stores outside the doors.
+				const localX = x - spec.x,
+					localZ = z - spec.z,
+					depth = halfDepth(spec);
+				for (const end of spec.id === 'main' ? [1] : [-1, 1]) {
+					const out = end * localZ - depth;
+					if (Math.abs(localX) < 5 && out > -1 && out < 9) grass = 0;
+				}
+				if (
+					localX > -10.2 &&
+					localX < -6 &&
+					localZ > depth + 1 &&
+					localZ < depth + 4.6
+				)
+					grass = 0;
+			}
 			const offset = index * 4;
 			data[offset] = sand * 255;
 			data[offset + 1] = dirt * (1 - sand) * 255;
@@ -231,7 +267,7 @@ groundColor = mix(groundColor, twoScale(sandMap, groundXZ, 3.5), surface.r);
 float forestFloor = (1.0 - smoothstep(-52.0, -36.0, groundXZ.y)) * (1.0 - surface.g) * insideMask;
 groundColor = mix(groundColor, groundColor * vec3(0.72, 0.66, 0.6), forestFloor * 0.6);
 float radius = length(groundXZ);
-float woods = smoothstep(150.0, 210.0, radius) * smoothstep(0.45, 0.55, texture2D(grassMap, groundXZ / 173.0).g * 2.2);
+float woods = smoothstep(${WOODS_START}, ${WOODS_END}, radius) * smoothstep(0.45, 0.55, texture2D(grassMap, groundXZ / 173.0).g * 2.2);
 groundColor = mix(groundColor, vec3(0.13, 0.19, 0.1), woods * 0.75);
 diffuseColor.rgb *= groundColor;`;
 
