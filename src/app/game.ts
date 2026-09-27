@@ -47,6 +47,16 @@ import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
 import { createWander, feed, settle, stepWander } from '../game/wander.ts';
 import { createHearts } from '../rendering/hearts.ts';
+import {
+	carriedPose,
+	grabbable,
+	holdPose,
+	obstacleClear,
+	railSolids,
+	wingSolids,
+} from '../game/obstacles.ts';
+import { placeJump, type Jump } from '../world/jumps.ts';
+import { WORLD_RADIUS } from '../game/tuning.ts';
 import { createSolidGrid } from '../game/spatial.ts';
 import { insideStable, stallAt, stallDoorway } from '../world/stable-layout.ts';
 import { PASTURE, inPasture } from '../world/layout.ts';
@@ -153,6 +163,17 @@ export function startGame() {
 			waitingPlace(entry.state.x, entry.state.z),
 		);
 	const staticSolids = createSolidGrid(world.solids);
+	/** Solids that move with the jumps: wings always, rails for walkers. */
+	const jumpSolids = (rails: boolean, except?: Jump) =>
+		world.obstacles.flatMap((o) =>
+			o === except ? [] : [...wingSolids(o), ...(rails ? railSolids(o) : [])],
+		);
+	const fixedSolids = () => [
+		...world.solids,
+		...jumpSolids(true, carried?.jump),
+	];
+	/** The jump the rider is holding, and its angle relative to her heading. */
+	let carried: { jump: Jump; turn: number } | undefined;
 	const doorways = (horse: { x: number; z: number }) => {
 		const doorway = stallDoorway(horse.x, horse.z);
 		return doorway ? [doorway] : [];
@@ -351,7 +372,10 @@ export function startGame() {
 		$('mount').title = label + ' (E)';
 		requireElement('#mount', HTMLButtonElement).disabled = transferring();
 		requireElement('#jump', HTMLButtonElement).disabled = riding !== 'mounted';
-		requireElement('#treat', HTMLButtonElement).disabled = transferring();
+		requireElement('#treat', HTMLButtonElement).disabled =
+			transferring() || !!carried;
+		requireElement('#grab', HTMLButtonElement).disabled = riding !== 'on-foot';
+		$('grab').setAttribute('aria-pressed', String(!!carried));
 		document
 			.querySelectorAll('.gait-steps b')
 			.forEach((bar, i) => bar.classList.toggle('on', i <= active.gait));
@@ -364,7 +388,13 @@ export function startGame() {
 	function tempo(delta: number) {
 		if (transferring()) return;
 		if (riding === 'mounted') changeGait(state, delta);
-		else person.gait = THREE.MathUtils.clamp(person.gait + delta, -1, 2);
+		// Holding a jump, the rider can only walk it forwards or pull it back.
+		else
+			person.gait = THREE.MathUtils.clamp(
+				person.gait + delta,
+				-1,
+				carried ? 1 : 2,
+			);
 		updateGait();
 		if (!started && riding === 'mounted' && state.gait) {
 			started = true;
@@ -395,6 +425,65 @@ export function startGame() {
 		state.gait = 0;
 		state.speed = 0;
 		leaveHorse(selected);
+	}
+	/** Takes hold of the nearest jump, or puts the held one down. */
+	function grab() {
+		if (riding !== 'on-foot' || feeding) return;
+		if (carried) {
+			carried = undefined;
+			updateGait();
+			hint('hint.jumpPlacedTitle', 'hint.jumpPlacedBody', 3);
+			return;
+		}
+		const jump = grabbable(world.obstacles, person);
+		if (!jump) {
+			hint('hint.grabTitle', 'hint.grabBody');
+			return;
+		}
+		releaseLead();
+		const hold = holdPose(jump, person);
+		const spot = { ...person, x: hold.x, z: hold.z };
+		// Step to the middle of the rails, unless something is in the way.
+		if (
+			[...world.solids, ...jumpSolids(true, jump), ...otherHorseSolids()].some(
+				(b) =>
+					Math.abs(spot.x - b.x) < b.w / 2 + 0.28 &&
+					Math.abs(spot.z - b.z) < b.d / 2 + 0.28,
+			)
+		) {
+			hint('hint.grabTitle', 'hint.grabBody');
+			return;
+		}
+		Object.assign(person, { x: hold.x, z: hold.z, heading: hold.heading });
+		person.gait = Math.min(person.gait, 0);
+		person.speed = 0;
+		jump.down = 0;
+		carried = { jump, turn: hold.turn };
+		updateGait();
+		hint('hint.grabbedTitle', 'hint.grabbedBody', 5);
+	}
+	/** Moves the held jump with the rider, or holds her back when it would hit something. */
+	function carry(previous: typeof person) {
+		if (!carried) return;
+		const { jump, turn } = carried;
+		const pose = carriedPose(person, turn);
+		const candidate = { ...jump, ...pose };
+		staticSolids.near(pose.x, pose.z, jump.width, nearby);
+		nearby.push(
+			...jumpSolids(true, jump),
+			...herd.map((h) => horseBarrier(h.state)),
+		);
+		if (!obstacleClear(candidate, nearby, WORLD_RADIUS)) {
+			Object.assign(person, {
+				x: previous.x,
+				z: previous.z,
+				heading: previous.heading,
+				speed: 0,
+			});
+			return;
+		}
+		Object.assign(jump, pose);
+		placeJump(jump);
 	}
 	const hearts = createHearts(scene);
 	const headPoint = new THREE.Vector3();
@@ -472,7 +561,7 @@ export function startGame() {
 			hint('hint.released', 'hint.waiting', 4, { name: selected.name });
 			return;
 		}
-		const target = nearbyLead(herd, person, world.solids);
+		const target = nearbyLead(herd, person, fixedSolids());
 		if (!target) {
 			hint('hint.approach', 'hint.attach');
 			return;
@@ -495,12 +584,13 @@ export function startGame() {
 		}
 		let side: typeof transferSide | undefined;
 		if (riding === 'on-foot') {
-			const target = nearbyMount(herd, person, world.solids, doorways);
+			const target = nearbyMount(herd, person, fixedSolids(), doorways);
 			if (!target) {
 				hint('hint.approach', 'hint.chooseHorse');
 				return;
 			}
 			releaseLead();
+			carried = undefined;
 			selectHorse(target.horse);
 			side = target.side;
 			// Walk up to the saddle first when the horse is a few steps away.
@@ -519,7 +609,7 @@ export function startGame() {
 				updateGait();
 				return;
 			}
-		} else side = mountSide(state, [...world.solids, ...otherHorseSolids()]);
+		} else side = mountSide(state, [...fixedSolids(), ...otherHorseSolids()]);
 		if (!side) {
 			hint('hint.spaceTitle', 'hint.spaceBody');
 			return;
@@ -615,6 +705,7 @@ export function startGame() {
 	}
 	function home() {
 		releaseLead();
+		carried = undefined;
 		riding = 'mounted';
 		walker.root.visible = false;
 		horse.rider.visible = !firstPerson;
@@ -645,6 +736,10 @@ export function startGame() {
 	};
 	$('slower').onclick = () => {
 		tempo(-1);
+		focusGame();
+	};
+	$('grab').onclick = () => {
+		grab();
 		focusGame();
 	};
 	$('treat').onclick = () => {
@@ -789,6 +884,7 @@ export function startGame() {
 		mount,
 		lead,
 		treat,
+		grab,
 		toggleCamera,
 		pause,
 	});
@@ -829,6 +925,7 @@ export function startGame() {
 		mount,
 		lead,
 		treat,
+		grab,
 		toggleCamera,
 		fullscreen: () => {
 			void toggleFullscreen();
@@ -983,43 +1080,58 @@ export function startGame() {
 	const promptPoint = new THREE.Vector3();
 	let promptTimer = 0,
 		promptTarget: (typeof herd)[number] | undefined,
-		promptMount = false;
+		promptMount = false,
+		promptJump: Jump | undefined;
 	function updatePrompt(dt: number) {
 		promptTimer -= dt;
-		if (riding !== 'on-foot' || leading) promptTarget = undefined;
-		else if (promptTimer <= 0) {
+		if (riding !== 'on-foot' || leading) {
+			promptTarget = undefined;
+			promptJump = undefined;
+		} else if (promptTimer <= 0) {
 			promptTimer = 0.2;
-			const mountable = nearbyMount(
-				herd,
-				person,
-				world.solids,
-				doorways,
-			)?.horse;
+			const mountable = carried
+				? undefined
+				: nearbyMount(herd, person, fixedSolids(), doorways)?.horse;
 			promptMount = !!mountable;
-			promptTarget = mountable ?? nearbyLead(herd, person, world.solids);
+			promptTarget = carried
+				? undefined
+				: (mountable ?? nearbyLead(herd, person, fixedSolids()));
+			promptJump = carried?.jump ?? grabbable(world.obstacles, person);
 		}
 		const element = $('prompt');
-		if (!promptTarget) {
+		// A horse within reach takes precedence over a jump nearby.
+		const jump = promptTarget ? undefined : promptJump;
+		if (!promptTarget && !jump) {
 			element.hidden = true;
 			return;
 		}
-		const target = promptTarget.state;
-		promptPoint.set(target.x, 4.1, target.z).project(camera);
+		const target = promptTarget?.state ?? jump!;
+		promptPoint
+			.set(target.x, promptTarget ? 4.1 : 2.3, target.z)
+			.project(camera);
 		if (promptPoint.z > 1) {
 			element.hidden = true;
 			return;
 		}
 		element.hidden = false;
-		const name = promptTarget.name;
+		const name = promptTarget?.name ?? t('prompt.jump');
 		if ($('prompt-name').textContent !== name)
 			$('prompt-name').textContent = name;
 		const pad = document.documentElement.classList.contains('gamepad-active');
 		$('prompt-mount-key').textContent = pad ? 'B' : 'E';
 		$('prompt-lead-key').textContent = pad ? 'X' : 'L';
-		($('prompt-mount-key').parentElement as HTMLElement).hidden = !promptMount;
 		$('prompt-treat-key').textContent = pad ? 'RT' : 'T';
+		$('prompt-grab-key').textContent = pad ? 'LT' : 'G';
+		($('prompt-mount-key').parentElement as HTMLElement).hidden =
+			!promptTarget || !promptMount;
+		($('prompt-lead-key').parentElement as HTMLElement).hidden = !promptTarget;
 		$('prompt-treat').hidden =
+			!promptTarget ||
 			Math.hypot(target.x - person.x, target.z - person.z) >= 3.6;
+		$('prompt-grab').hidden = !jump;
+		const grabLabel = t(carried ? 'prompt.drop' : 'prompt.grab');
+		if ($('prompt-grab-label').textContent !== grabLabel)
+			$('prompt-grab-label').textContent = grabLabel;
 		// Keep the tag on screen even when the horse's head is out of view.
 		const x = THREE.MathUtils.clamp(
 			((promptPoint.x + 1) / 2) * innerWidth,
@@ -1071,7 +1183,7 @@ export function startGame() {
 					dt,
 					riding === 'mounted' ? turn : 0,
 					world.obstacles,
-					[...world.solids, ...otherHorseSolids()],
+					[...world.solids, ...jumpSolids(false), ...otherHorseSolids()],
 					riding === 'mounted' ? nudge : undefined,
 				)
 			) {
@@ -1082,15 +1194,11 @@ export function startGame() {
 			const previousPerson = { ...person };
 			if (riding === 'mounted' && wasJumping && state.jump < 0)
 				gamepad.pulse(0.4, 120);
-			const barriers = [
-				...world.solids,
-				...otherHorseSolids(),
-				...world.obstacles
-					.filter((o) => !o.down)
-					.map((o) => ({ x: o.x, z: o.z, w: o.width, d: 0.18 })),
-			];
-			if (riding === 'on-foot')
+			const barriers = [...fixedSolids(), ...otherHorseSolids()];
+			if (riding === 'on-foot') {
 				stepPerson(person, dt, turn, barriers, state, nudge);
+				if (carried) carry(previousPerson);
+			}
 			let leadTurn = 0;
 			if (leading) {
 				const taut =
@@ -1111,7 +1219,15 @@ export function startGame() {
 			if (riding === 'approaching') updateApproach(dt);
 			else if (transferring()) updateTransfer(dt);
 			else if (riding === 'on-foot')
-				walker.pose(dt, person.speed, 0, 0, -1, leading, updateFeeding(dt));
+				walker.pose(
+					dt,
+					person.speed,
+					0,
+					0,
+					-1,
+					leading || !!carried,
+					carried ? 0.75 : updateFeeding(dt),
+				);
 			if (activeState().gait !== oldGait) updateGait();
 			walker.root.position.set(person.x, person.height, person.z);
 			walker.root.rotation.y = person.heading;
@@ -1202,7 +1318,13 @@ export function startGame() {
 				firstPerson,
 				cameraDistanceScale: cameraController.distanceScale,
 				cameraLook: input.look,
-				obstacles: world.obstacles.map(({ z, down }) => ({ z, down })),
+				obstacles: world.obstacles.map(({ x, z, angle, down }) => ({
+					x,
+					z,
+					angle: angle ?? 0,
+					down,
+					carried: carried?.jump.x === x && carried.jump.z === z,
+				})),
 				calls: renderer.info.render.calls,
 			}),
 			debug: {

@@ -5,7 +5,8 @@ import { random, worldNoise } from './noise.ts';
 import { createGrass } from './grass.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
 import { box, cylinder, sign } from './primitives.ts';
-import type { Solid, Obstacle } from '../game/types.ts';
+import type { Solid } from '../game/types.ts';
+import { createJumps } from './jumps.ts';
 import * as THREE from 'three';
 import { createStable } from './stable.ts';
 import { insideStable, STABLES } from './stable-layout.ts';
@@ -54,8 +55,7 @@ function segmentDistance(p: Point, a: Point, b: Point) {
 }
 
 export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
-	const solids: Solid[] = [],
-		obstacles: (Obstacle & { rails: THREE.Group })[] = [];
+	const solids: Solid[] = [];
 	const sky = createSky(scene, renderer);
 	const hemisphere = new THREE.HemisphereLight(DAY_SKY, DAY_GROUND, 0.35);
 	scene.add(hemisphere);
@@ -103,48 +103,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	fence(0, arenaNorth, ARENA.halfWidth * 2);
 	fence(-12, arenaSouth, 10);
 	fence(12, arenaSouth, 10);
-	for (const [z, color] of [
-		[7, '#75968a'],
-		[-8, '#bf795f'],
-		[-24, '#d6aa54'],
-	] as const) {
-		const x = 0,
-			width = 8;
-		// Show-jumping wings: a slim standard braced by a painted foot.
-		for (const side of [-1, 1]) {
-			const standard = x + side * 4.2;
-			box(
-				scenery,
-				'#f7edcf',
-				[0.16, 1.9, 0.16],
-				[standard, 0.95, z],
-				0,
-				'post',
-			);
-			box(scenery, color, [0.14, 0.14, 1.1], [standard, 0.07, z]);
-			box(scenery, color, [0.5, 0.12, 0.14], [standard + side * 0.2, 0.06, z]);
-			for (const y of [0.5, 1])
-				box(
-					scenery,
-					'#6f7472',
-					[0.06, 0.1, 0.22],
-					[standard - side * 0.1, y - 0.1, z],
-				);
-			solids.push({ x: standard, z, w: 0.3, d: 0.3 });
-		}
-		const rails = new THREE.Group();
-		rails.position.set(x, 0, z);
-		scene.add(rails);
-		// Round poles painted in alternating bands, resting in the cups.
-		for (const y of [0.5, 1])
-			for (let i = 0; i < 8; i++)
-				cylinder(rails, i % 2 ? '#fff0d3' : color, 0.075, 1, [
-					-3.5 + i,
-					y,
-					0,
-				]).rotation.z = Math.PI / 2;
-		obstacles.push({ x, z, width, rails, down: 0 });
-	}
+	const obstacles = createJumps(scene);
 	const stables = STABLES.map((spec) => createStable(scene, solids, spec));
 	const trees: TreeSpec[] = [];
 	const treeSolid = (x: number, z: number) =>

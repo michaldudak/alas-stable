@@ -1,4 +1,5 @@
 import type { GameState, Obstacle, Solid } from './types.ts';
+import { toObstacle } from './obstacles.ts';
 import {
 	SPEEDS,
 	STICK_PACE_ADJUSTMENT,
@@ -72,13 +73,14 @@ export function step(
 	let hit = false;
 	for (const obstacle of obstacles) {
 		obstacle.down = Math.max(0, (obstacle.down || 0) - dt);
-		const crossing =
-			(previous.z - obstacle.z) * (state.z - obstacle.z) <= 0 &&
-			previous.z !== state.z;
+		// Obstacles may stand at any angle: cross their rails in their own frame.
+		const before = toObstacle(obstacle, previous.x, previous.z),
+			after = toObstacle(obstacle, state.x, state.z);
+		const crossing = before.v * after.v <= 0 && before.v !== after.v;
 		if (
 			!obstacle.down &&
 			crossing &&
-			Math.abs(state.x - obstacle.x) < obstacle.width / 2 + 0.35
+			Math.abs(after.u) < obstacle.width / 2 + 0.35
 		) {
 			if (state.jump < 0) {
 				obstacle.down = 5;

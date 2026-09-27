@@ -91,6 +91,16 @@
 	</button>
 	<button
 		type="button"
+		id="grab"
+		title="{{action.grabShortcut}}"
+		aria-label="{{action.grab}}"
+		aria-pressed="false"
+	>
+		<i data-lucide="grab" aria-hidden="true"></i><span>{{action.grab}}</span
+		><kbd>G</kbd>
+	</button>
+	<button
+		type="button"
 		id="camera"
 		title="{{camera.horseShortcut}}"
 		aria-label="{{camera.horse}}"
@@ -137,6 +147,10 @@
 	>
 	<span class="prompt-action"
 		><kbd id="prompt-lead-key">L</kbd><span>{{prompt.lead}}</span></span
+	>
+	<span class="prompt-action" id="prompt-grab" hidden
+		><kbd id="prompt-grab-key">G</kbd
+		><span id="prompt-grab-label">{{prompt.grab}}</span></span
 	>
 	<span class="prompt-action" id="prompt-treat"
 		><kbd id="prompt-treat-key">T</kbd><span>{{prompt.treat}}</span></span
@@ -253,6 +267,13 @@
 				aria-label="{{action.treat}}"
 			>
 				<i data-lucide="carrot" aria-hidden="true"></i>
+			</button>
+			<button
+				type="button"
+				data-touch-action="grab"
+				aria-label="{{action.grab}}"
+			>
+				<i data-lucide="grab" aria-hidden="true"></i>
 			</button>
 			<button
 				type="button"

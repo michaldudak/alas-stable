@@ -32,6 +32,7 @@ All developer content is written in English. Player-readable content is availabl
 - Space: jump with a forgiving timing window while mounted.
 - E or the mount button: dismount from a stopped horse, or mount any horse within about six metres: the rider walks up to its side by herself, round its head or tail or through its stall door if needed. A tag above the nearest horse shows its name and the keys to use. Every horse in the stables and on the pasture is rideable; the others wait near their places and remain marked on the minimap. Both actions are animated; walls can block dismounting.
 - T or the carrot button: on foot near a horse, hold out a carrot. The horse turns its head to take it, munches, hearts float up and it then follows the rider for about half a minute. From the saddle, T pats the horse's neck.
+- G or the hand button: on foot next to a jump, take hold of the middle of its rails. Walk forwards to push it, backwards to pull it and steer to turn it; press G again to put it down. A held jump cannot be pushed into trees, walls or horses. Jumps can stand anywhere and at any angle, and horses jump them from either side.
 - C: switch between third-person and first-person cameras. Drag the mouse to look around.
 - Escape: pause. Switching tabs or losing focus also pauses the game.
 - Icon buttons: settings, sound, help, horse appearance, return to the stable, and fullscreen.
@@ -91,7 +92,7 @@ Standard gamepads use the browser Gamepad API. On Steam Deck, launch the browser
 - Left stick: analog steering. With a gait selected, up/down smoothly increases/reduces its speed by up to 30% without changing the gait pattern; horse animation cadence follows the adjustment. Releasing restores the selected speed. From standing, hold up/down for fine forward/back steps (up to 1.2 m/s forward and 0.9 m/s backward); release stops immediately. Works mounted, on foot, and while leading; normal collisions still apply.
 - Right stick: horizontal look, returning to center when released; up brings the third-person camera closer, down moves it farther away. Distance stays where you leave it, within 45–180% of the normal distance. Wall avoidance still applies; first-person view stays fixed.
 - LB/RB or D-pad down/up: slower/faster persistent gait.
-- A: jump; B: mount/dismount; X: attach/release lead; Y: camera; RT: treat or pat.
+- A: jump; B: mount/dismount; X: attach/release lead; Y: camera; RT: treat or pat; LT: take hold of or put down a jump.
 - Right-stick click (R3): toggle fullscreen, also available as a button in Pause and Settings. If the browser requires a direct user gesture, tap/click the Fullscreen button.
 - Menu/Start: pause; View/Back: help; D-pad left: appearance; D-pad right: settings.
 - Menus: D-pad or left stick steps through visible controls; A selects; B/Menu returns to riding. Left/right changes a focused language selection.

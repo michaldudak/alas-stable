@@ -111,7 +111,13 @@ try {
 	assert.equal(await page.locator('#slower').isDisabled(), true);
 	assert.ok(reversed.z > beforeReverse.z + 0.8);
 	assert.equal(reversed.heading, beforeReverse.heading);
-	assert.deepEqual(reversed.horse, beforeReverse.horse);
+	// The waiting horse may turn to watch its rider, but stays where it was left.
+	assert.ok(
+		Math.hypot(
+			reversed.horse.x - beforeReverse.horse.x,
+			reversed.horse.z - beforeReverse.horse.z,
+		) < 0.5,
+	);
 	await page.screenshot({ path: 'artifacts/walking-backward.png' });
 	await page.keyboard.press('KeyW');
 	await page.waitForFunction(

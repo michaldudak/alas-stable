@@ -21,7 +21,13 @@ declare global {
 				firstPerson: boolean;
 				cameraDistanceScale: number;
 				cameraLook: number;
-				obstacles: { z: number; down: number }[];
+				obstacles: {
+					x: number;
+					z: number;
+					angle: number;
+					down: number;
+					carried: boolean;
+				}[];
 				calls: number;
 			};
 			/** Development shortcuts for browser checks and screenshots. */
