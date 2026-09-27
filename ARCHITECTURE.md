@@ -20,6 +20,12 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Applying a pose to the model                             | `src/horse/animation.ts`                              |
 | Appearance catalog and validation                        | `src/horse/appearance.ts`                             |
 | Stable walls and colliders                               | `src/world/stable-layout.ts`                          |
+| Map layout: arena, racecourse, pasture, paths            | `src/world/layout.ts`, `fences.ts`                    |
+| Clock, sun path and weather model                        | `src/game/environment.ts`                             |
+| Night sky, clouds, rain, lamps and light pools           | `src/world/sky.ts`, `rain.ts`, `lamps.ts`             |
+| Waiting horses: strolling, grazing, treats               | `src/game/wander.ts`, `src/horse/neck.ts`             |
+| Movable jumps and their collisions                       | `src/game/obstacles.ts`, `src/world/jumps.ts`         |
+| Other riders                                             | `src/game/npc.ts`, `src/app/riders.ts`                |
 | Stable building and residents                            | `src/world/stable.ts`                                 |
 | Scenery layout, fences, obstacles                        | `src/world/world.ts`, `primitives.ts`                 |
 | Sky, haze, clouds, environment lighting, sun             | `src/world/sky.ts`, `sun.ts`                          |
@@ -47,7 +53,9 @@ The environment is procedural and asset-free. `sky.ts` bakes the analytic sky in
 
 Shader extensions use `onBeforeCompile`. Samplers that are only shader uniforms are listed in `material.userData.textures`, which `disposeScene` releases alongside regular material textures. `createWorld().update(time, camera)` advances wind and cloud drift and repositions the grass grid; call it after the camera has moved each frame.
 
-Scenery costs about one to two million triangles per frame from the default camera, dominated by grass, trees and the five horse models. Profile on the target computer before adding more vegetation; lowering `CLUMPS_PER_CHUNK` in `grass.ts` or the backdrop tree count in `world.ts` are the cheapest levers.
+Static scenery (buildings, fences, props) is merged per material by `src/rendering/merge.ts` after it is built, so large buildings cost a few draw calls; meshes marked `userData.dynamic` (movable jumps) are skipped. Trees are instanced per shape and per 70 m map chunk so off-screen chunks are culled. The sun's shadow map covers 160 m around a point ahead of the camera and snaps to whole texels. Horses outside the view are hidden and distant ones skip animation.
+
+Scenery costs about one to two million triangles per frame from the default camera, dominated by grass, trees and the horse models. Profile on the target computer before adding more vegetation; lowering `CLUMPS_PER_CHUNK` in `grass.ts` or the backdrop tree count in `world.ts` are the cheapest levers.
 
 - `platform/` owns browser APIs. Saved data enters as `unknown`, is normalized against the appearance catalog, and never directly becomes trusted game state. Storage failure is optional and does not block play.
 - `ui/` owns HTML, controls and the preview. The appearance panel accepts only the model's appearance setter; the minimap accepts positions and obstacle data rather than a Three.js scene.
