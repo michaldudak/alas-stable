@@ -32,6 +32,8 @@ export interface HorseModel {
 	halter: THREE.Group;
 	bridle: THREE.Group;
 	leadAnchor: THREE.Group;
+	/** Neck root, mid-neck and head bones; rotations bend the neck from its base. */
+	neck: THREE.Bone[];
 	mane: THREE.Group;
 	decoration: THREE.Group;
 	coat: THREE.MeshStandardMaterial;

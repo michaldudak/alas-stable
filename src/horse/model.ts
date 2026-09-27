@@ -1,6 +1,6 @@
 import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
-import { attachSkin, skinMaterial } from './skin.ts';
+import { attachSkin, bindToNeck, skinMaterial } from './skin.ts';
 import { createRider, REIN_HAND, STIRRUP } from './rider.ts';
 import {
 	surface,
@@ -286,10 +286,15 @@ export function createHorse(): HorseModel {
 		clearcoat: 1,
 		clearcoatRoughness: 0.04,
 	});
-	for (const side of [-1, 1]) {
+	const eyes = [-1, 1].map((side) => {
 		const [x, y, z] = rig.eye;
-		oval(body, eyeball, [0.046, 0.046, 0.054], [side * (x - 0.004), y, z]);
-	}
+		return oval(
+			body,
+			eyeball,
+			[0.046, 0.046, 0.054],
+			[side * (x - 0.004), y, z],
+		);
+	});
 
 	const crest = (t: number) => crestAt(rig, t);
 	const mane = new THREE.Group();
@@ -309,7 +314,7 @@ export function createHorse(): HorseModel {
 	body.add(tail);
 	locks(tail, hair, tailHair(40, 1.55, 1));
 	const { legs, knees, fetlocks, hooves, legRigs } = buildLegs(rig, body);
-	attachSkin(
+	const { neck, skeleton } = attachSkin(
 		body,
 		legs,
 		knees,
@@ -560,6 +565,13 @@ export function createHorse(): HorseModel {
 			0.035,
 		);
 
+	// Hair, headgear and ornaments follow the neck and head as they move.
+	bindToNeck(body, skeleton, [mane, bridle, halter, decoration, ...eyes]);
+	const headAnchor = new THREE.Group();
+	headAnchor.name = 'lead-anchor';
+	headAnchor.position.copy(leadAnchor.position);
+	body.add(headAnchor);
+	neck[2].attach(headAnchor);
 	const patterns = createPatternTextures();
 	const channels = { coat, hair, cloth, leather, ornamentColor: petals };
 	let appearance = normalizeAppearance({});
@@ -600,7 +612,8 @@ export function createHorse(): HorseModel {
 		tack,
 		halter,
 		bridle,
-		leadAnchor,
+		leadAnchor: headAnchor,
+		neck,
 		coat,
 		hair,
 		cloth,

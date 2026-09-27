@@ -40,6 +40,31 @@ import {
 import { Soundscape } from '../platform/audio.ts';
 import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
+import { createWander, settle, stepWander } from '../game/wander.ts';
+import { createSolidGrid } from '../game/spatial.ts';
+import { insideStable, stallAt } from '../world/stable-layout.ts';
+import { PASTURE, inPasture } from '../world/layout.ts';
+import type { HeadTarget } from '../horse/animation.ts';
+import type { Solid } from '../game/types.ts';
+
+/** How a horse left at a spot may move about: in its stall, the pasture or nearby. */
+function waitingPlace(x: number, z: number) {
+	const stall = stallAt(x, z);
+	if (stall) return { enclosure: stall, range: 3, grassy: true };
+	if (inPasture(x, z))
+		return {
+			enclosure: {
+				x: PASTURE.x,
+				z: PASTURE.z,
+				halfWidth: PASTURE.halfWidth,
+				halfDepth: PASTURE.halfDepth,
+			},
+			range: 14,
+			grassy: true,
+		};
+	if (insideStable(x, z)) return { range: 1.5, grassy: false };
+	return { range: 5, grassy: !isSand(x, z) };
+}
 import {
 	createEnvironment,
 	isNightHour,
@@ -109,8 +134,23 @@ export function startGame() {
 			store,
 			name: model.root.name,
 			animation: createHorseAnimation(model),
+			wander: createWander(state, waitingPlace(state.x, state.z)),
+			head: { graze: 0, yaw: 0, nod: 0, chew: false } as HeadTarget,
+			turn: 0,
 		};
 	});
+	/** Leaves a horse to potter about where it stands. */
+	const leaveHorse = (entry: (typeof herd)[number]) =>
+		settle(
+			entry.wander,
+			entry.state,
+			waitingPlace(entry.state.x, entry.state.z),
+		);
+	const staticSolids = createSolidGrid(world.solids);
+	const nearby: Solid[] = [];
+	const frustum = new THREE.Frustum(),
+		viewProjection = new THREE.Matrix4(),
+		bounds = new THREE.Sphere();
 	let selected = herd[0];
 	let horse = selected.model,
 		state = selected.state,
@@ -157,6 +197,7 @@ export function startGame() {
 		next.model.tack.visible = true;
 		if (selected === next) return;
 		horse.rider.visible = false;
+		leaveHorse(selected);
 		selected = next;
 		horse = next.model;
 		state = next.state;
@@ -335,6 +376,7 @@ export function startGame() {
 		leadBlocked = false;
 		state.gait = 0;
 		state.speed = 0;
+		leaveHorse(selected);
 	}
 	function lead() {
 		if (riding !== 'on-foot') return;
@@ -433,6 +475,7 @@ export function startGame() {
 		}
 		if (t >= 1) {
 			riding = riding === 'mounting' ? 'mounted' : 'on-foot';
+			if (riding === 'on-foot') leaveHorse(selected);
 			person.height = 0;
 			horse.rider.visible = !firstPerson && riding === 'mounted';
 			walker.root.visible = !firstPerson && riding === 'on-foot';
@@ -747,6 +790,64 @@ export function startGame() {
 	updateGait();
 	updateCamera(1, true);
 	focusGame();
+	/**
+	 * Horses nobody rides or leads stroll, graze and watch passers-by. Only
+	 * horses in view are drawn, and only nearby ones animate every frame.
+	 */
+	function updateWaitingHorses(dt: number, selectedWaits: boolean) {
+		const active = activeState();
+		camera.updateMatrixWorld();
+		viewProjection.multiplyMatrices(
+			camera.projectionMatrix,
+			camera.matrixWorldInverse,
+		);
+		frustum.setFromProjectionMatrix(viewProjection);
+		for (const entry of herd) {
+			const waits = entry !== selected || selectedWaits;
+			const horseState = entry.state;
+			if (waits) {
+				staticSolids.near(horseState.x, horseState.z, 4, nearby);
+				for (const other of herd)
+					if (
+						other !== entry &&
+						Math.abs(other.state.x - horseState.x) < 8 &&
+						Math.abs(other.state.z - horseState.z) < 8
+					)
+						nearby.push(horseBarrier(other.state));
+				if (riding !== 'mounted')
+					nearby.push({ x: person.x, z: person.z, w: 0.6, d: 0.6 });
+				const motion = stepWander(
+					horseState,
+					entry.wander,
+					dt,
+					nearby,
+					riding === 'mounted' && entry === selected ? undefined : active,
+				);
+				entry.turn = motion.turn;
+				entry.head.graze = motion.graze;
+				entry.head.yaw = motion.look;
+				entry.head.chew = motion.graze > 0;
+				entry.model.root.position.set(horseState.x, 0, horseState.z);
+				entry.model.root.rotation.y = horseState.heading;
+			}
+			const root = entry.model.root;
+			bounds.center.set(root.position.x, 1.6, root.position.z);
+			bounds.radius = 3.4;
+			const distance = bounds.center.distanceTo(camera.position);
+			root.visible =
+				(entry === selected && !waits) ||
+				(distance < 220 && frustum.intersectsSphere(bounds));
+			if (waits && root.visible && distance < 110)
+				entry.animation.update(
+					dt,
+					horseState,
+					elapsed,
+					entry.turn,
+					1,
+					entry.head,
+				);
+		}
+	}
 	// Clamp long frames: tab suspension must not teleport the horse through barriers.
 	let previousTime = performance.now();
 	let wasNudging = false;
@@ -775,8 +876,11 @@ export function startGame() {
 			if (!firstPerson) cameraController.adjustDistance(gamepad.zoom, dt);
 			const wasJumping = state.jump >= 0;
 			const oldGait = activeState().gait;
+			// A horse waiting for its dismounted rider potters about like the others.
+			const selectedWaits = riding === 'on-foot' && !leading;
 			if (
 				!leading &&
+				!selectedWaits &&
 				step(
 					state,
 					dt,
@@ -827,15 +931,18 @@ export function startGame() {
 			walker.root.rotation.y = person.heading;
 			horse.root.position.set(state.x, state.height, state.z);
 			horse.root.rotation.y = state.heading;
-			const footfalls = horseAnimation.update(
-				dt,
-				state,
-				elapsed,
-				riding === 'mounted' ? turn : leadTurn,
-				riding === 'mounted' && state.gait !== 0
-					? 1 + (nudge ?? 0) * STICK_PACE_ADJUSTMENT
-					: 1,
-			);
+			const footfalls = selectedWaits
+				? 0
+				: horseAnimation.update(
+						dt,
+						state,
+						elapsed,
+						riding === 'mounted' ? turn : leadTurn,
+						riding === 'mounted' && state.gait !== 0
+							? 1 + (nudge ?? 0) * STICK_PACE_ADJUSTMENT
+							: 1,
+					);
+			updateWaitingHorses(dt, selectedWaits);
 			if (riding === 'mounted' && footfalls > 0)
 				gamepad.pulse(0.08 + Math.abs(state.speed) * 0.012, 35);
 			for (const obstacle of world.obstacles) {
@@ -870,11 +977,6 @@ export function startGame() {
 		}
 		scene.updateMatrixWorld(true);
 		rope.update(walker.leadHand, horse.leadAnchor, leading);
-		herd.forEach((entry, i) => {
-			if (entry === selected) return;
-			entry.model.tail.rotation.z = Math.sin(elapsed * 1.1 + i) * 0.1;
-			entry.model.body.position.y = Math.sin(elapsed * 0.9 + i) * 0.012;
-		});
 		world.update(elapsed, camera, environment, innerHeight);
 		audio.weather(
 			environment.conditions.rain,
@@ -921,6 +1023,13 @@ export function startGame() {
 				setWeather(weather: string) {
 					if (WEATHERS.includes(weather as Weather))
 						environment.setWeather(weather as Weather, true);
+				},
+				graze(name: string, x: number, z: number, heading: number) {
+					const entry = herd.find((h) => h.name === name);
+					if (!entry) return;
+					Object.assign(entry.state, { x, z, heading, speed: 0, gait: 0 });
+					Object.assign(entry.wander, { mode: 'graze', timer: 600 });
+					entry.wander.anchor = { x, z };
 				},
 				teleport(x: number, z: number, heading: number) {
 					Object.assign(activeState(), { x, z, heading, speed: 0, gait: 0 });

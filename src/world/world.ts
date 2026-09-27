@@ -24,6 +24,8 @@ import {
 import { arc, railFence } from './fences.ts';
 import { mergeStatic } from './merge.ts';
 import type { HorseModel } from '../horse/types.ts';
+import { createHorse } from '../horse/model.ts';
+import type { Appearance } from '../horse/appearance.ts';
 import { createLamps, createSurfaceUniforms } from './lamps.ts';
 import { createRain } from './rain.ts';
 import type { Environment } from '../game/environment.ts';
@@ -259,7 +261,10 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	);
 	mergeStatic(scenery);
 	const rain = createRain(scene);
-	const horses: HorseModel[] = stables.flatMap((stable) => stable.horses);
+	const horses: HorseModel[] = [
+		...stables.flatMap((stable) => stable.horses),
+		...pastureHerd(scene),
+	];
 	return {
 		obstacles,
 		solids,
@@ -329,6 +334,38 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 			sky.dispose();
 		},
 	};
+}
+
+/** Horses turned out to graze on the pasture. */
+function pastureHerd(scene: THREE.Scene) {
+	const herd: [string, number, number, number, Partial<Appearance>][] = [
+		['WIATR', -8, 6, 1.2, { coat: '#343330', hair: '#47332d' }],
+		[
+			'ZORZA',
+			5,
+			-4,
+			-2,
+			{ coat: '#e1c39a', hair: '#e9e3d1', maneStyle: 'short' },
+		],
+		[
+			'GRAFIT',
+			2,
+			16,
+			0.4,
+			{ coat: '#e6e0d2', hair: '#47332d', tailStyle: 'short' },
+		],
+	];
+	return herd.map(([name, dx, dz, heading, appearance]) => {
+		const horse = createHorse();
+		horse.setAppearance(appearance);
+		horse.rider.visible = false;
+		horse.tack.visible = false;
+		horse.root.name = name;
+		horse.root.position.set(PASTURE.x + dx, 0, PASTURE.z + dz);
+		horse.root.rotation.y = heading;
+		scene.add(horse.root);
+		return horse;
+	});
 }
 
 /** Oval racecourse with white rails, a finish post and a small grandstand. */

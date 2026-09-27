@@ -72,7 +72,7 @@ try {
 	await turnTo(-Math.PI);
 	await page.keyboard.press('ArrowUp');
 	await page.keyboard.press('ArrowUp');
-	await page.waitForFunction(() => window.__alasStable!.snapshot().z < -17);
+	await page.waitForFunction(() => window.__alasStable!.snapshot().z < -33);
 	await stop();
 	assert.notEqual(await page.locator('#location').textContent(), 'Stajnia');
 	assert.deepEqual(errors, []);

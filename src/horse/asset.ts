@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { Vector3Tuple } from '../rendering/types.ts';
+import { neckWeights } from './neck.ts';
 
 /** Rest-pose joints of one leg, in body space (+Y up, +Z forward). */
 export type LegLandmarks = {
@@ -39,7 +40,8 @@ let current: HorseAsset | undefined;
 
 /**
  * Converts the exported attributes into three.js skinning data. Joint order is
- * body, four legs, four knees, four fetlocks (legs as LH, LF, RH, RF).
+ * body, four legs, four knees, four fetlocks (legs as LH, LF, RH, RF), then the
+ * two neck bones and the head. Each vertex keeps its four strongest influences.
  */
 function skinned(source: THREE.BufferGeometry) {
 	const geometry = new THREE.BufferGeometry();
@@ -49,7 +51,8 @@ function skinned(source: THREE.BufferGeometry) {
 	geometry.setAttribute('ao', source.getAttribute('_ao'));
 	geometry.setAttribute('mask', source.getAttribute('_mask'));
 	const leg = source.getAttribute('_leg'),
-		weight = source.getAttribute('_weight');
+		weight = source.getAttribute('_weight'),
+		position = source.getAttribute('position');
 	const joints = new Uint16Array(leg.count * 4),
 		weights = new Float32Array(leg.count * 4);
 	for (let i = 0; i < leg.count; i++) {
@@ -57,8 +60,27 @@ function skinned(source: THREE.BufferGeometry) {
 		const limb = weight.getX(i),
 			knee = weight.getY(i),
 			fetlock = weight.getZ(i);
-		joints.set([0, 1 + index, 5 + index, 9 + index], i * 4);
-		weights.set([1 - limb - knee - fetlock, limb, knee, fetlock], i * 4);
+		const body = 1 - limb - knee - fetlock;
+		const [trunk, neck, upper, head] = neckWeights(
+			position.getY(i),
+			position.getZ(i),
+		);
+		const influences = [
+			[0, body * trunk],
+			[1 + index, limb],
+			[5 + index, knee],
+			[9 + index, fetlock],
+			[13, body * neck],
+			[14, body * upper],
+			[15, body * head],
+		]
+			.sort((a, b) => b[1] - a[1])
+			.slice(0, 4);
+		const total = influences.reduce((sum, [, w]) => sum + w, 0);
+		influences.forEach(([joint, w], slot) => {
+			joints[i * 4 + slot] = joint;
+			weights[i * 4 + slot] = w / total;
+		});
 	}
 	geometry.setAttribute(
 		'skinIndex',

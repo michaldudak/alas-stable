@@ -27,6 +27,7 @@ declare global {
 			debug?: {
 				teleport(x: number, z: number, heading: number): void;
 				setTime?(hours: number): void;
+				graze?(name: string, x: number, z: number, heading: number): void;
 				setWeather?(weather: string): void;
 			};
 		};

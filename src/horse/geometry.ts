@@ -177,7 +177,11 @@ export function locks(
 	});
 	const merged = mergeGeometries(geometries);
 	for (const geometry of geometries) geometry.dispose();
-	return mesh(parent, merged, material);
+	const result = mesh(parent, merged, material);
+	// Vertices per lock, root ring first, so a rig can move each lock as one.
+	result.userData.strandVertices = (segments + 1) * (radial + 1);
+	result.userData.strandRing = radial + 1;
+	return result;
 }
 
 /** Deterministic pseudo-random numbers, so every horse grows the same hair. */

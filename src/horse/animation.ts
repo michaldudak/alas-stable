@@ -6,11 +6,30 @@ import { createGaitController, solveLeg } from '../game/gaits.ts';
 /** Height of a planted hoof marker above the ground. */
 export const HOOF_MARKER_HEIGHT = 0.12;
 
+/** Where the horse wants its head: grazing, looking aside, eating from a hand. */
+export interface HeadTarget {
+	/** 0 head up, 1 muzzle in the grass. */
+	graze: number;
+	/** Turn of the head to the horse's left (positive) or right, in radians. */
+	yaw: number;
+	/** Extra nod down (positive) or lift (negative) of the head, in radians. */
+	nod: number;
+	/** Chewing makes the head bob gently. */
+	chew: boolean;
+}
+
+const NEUTRAL: HeadTarget = { graze: 0, yaw: 0, nod: 0, chew: false };
+
+/** Grazing lowers mostly from the base of the neck, then tips the head down. */
+const GRAZE = [1.38, 0.32, 0.42];
+
 export function createHorseAnimation(horse: HorseModel) {
 	const controller = createGaitController(),
 		target = new THREE.Vector3(),
 		inverse = new THREE.Quaternion();
 	const rootHeights = horse.legs.map((leg) => leg.position.y);
+	const head = { graze: 0, yaw: 0, nod: 0, chew: 0 };
+	for (const bone of horse.neck) bone.rotation.order = 'YXZ';
 	return {
 		update(
 			dt: number,
@@ -18,8 +37,26 @@ export function createHorseAnimation(horse: HorseModel) {
 			elapsed: number,
 			turn = 0,
 			paceScale = 1,
+			headTarget: HeadTarget = NEUTRAL,
 		) {
 			const pose = controller.update(dt, state, turn, paceScale);
+			// The head eases towards its target: slowly down to graze, quicker to look.
+			const ease = (rate: number) => 1 - Math.exp(-dt * rate);
+			head.graze +=
+				(headTarget.graze - head.graze) *
+				ease(headTarget.graze > head.graze ? 1.4 : 2.4);
+			head.yaw += (headTarget.yaw - head.yaw) * ease(2.5);
+			head.nod += (headTarget.nod - head.nod) * ease(3);
+			head.chew += (Number(headTarget.chew) - head.chew) * ease(4);
+			// Horses nod in rhythm with the walk.
+			const nod =
+				head.nod +
+				pose.weights[1] * 0.05 * Math.sin(pose.phase * Math.PI * 4) +
+				head.chew * 0.035 * Math.sin(elapsed * 9);
+			horse.neck.forEach((bone, i) => {
+				bone.rotation.x = head.graze * GRAZE[i] + nod * (i === 0 ? 0.3 : 0.35);
+				bone.rotation.y = head.yaw * (i === 2 ? 0.3 : 0.35);
+			});
 			horse.body.position.y = pose.y;
 			horse.body.rotation.set(pose.pitch, 0, pose.roll);
 			inverse.copy(horse.body.quaternion).invert();
