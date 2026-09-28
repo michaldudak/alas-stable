@@ -10,7 +10,7 @@ export interface Enclosure {
 }
 
 export type WanderMode =
-	'idle' | 'graze' | 'walk' | 'attend' | 'treat' | 'follow';
+	'idle' | 'graze' | 'walk' | 'attend' | 'treat' | 'follow' | 'go';
 
 export interface Wander {
 	/** Where the horse was left; it strolls around this point. */
@@ -30,6 +30,24 @@ export interface Wander {
 	/** Seconds spent standing idle, and the hind leg it rests (+1 left, -1 right). */
 	idleTime: number;
 	rest: number;
+	/** Waypoints the horse is sent along, e.g. into its stall, and the heading to end with. */
+	route: { x: number; z: number }[];
+	face?: number;
+}
+
+/**
+ * Sends a horse along waypoints, for example through its stall door; it then
+ * turns to `face` and waits there. Enclosures do not stop it on the way.
+ */
+export function guide(
+	wander: Wander,
+	route: readonly { x: number; z: number }[],
+	face?: number,
+) {
+	wander.mode = 'go';
+	wander.route = route.map((p) => ({ ...p }));
+	wander.face = face;
+	wander.timer = 30;
 }
 
 /** How long a horse munches a treat, and then how long it follows its friend. */
@@ -65,6 +83,7 @@ export function createWander(
 		affection: 0,
 		idleTime: 0,
 		rest: 0,
+		route: [],
 	};
 }
 
@@ -180,12 +199,42 @@ export function stepWander(
 	const bearing = person
 		? angleTo(horse.heading, Math.atan2(person.x - horse.x, person.z - horse.z))
 		: 0;
-	const friendly = wander.mode === 'treat' || wander.mode === 'follow';
+	const friendly =
+		wander.mode === 'treat' || wander.mode === 'follow' || wander.mode === 'go';
 	if (near && wander.mode !== 'attend' && !friendly) {
 		wander.mode = 'attend';
 		wander.timer = 0;
 	}
-	if (wander.mode === 'treat') {
+	if (wander.mode === 'go') {
+		// A horse that cannot get through gives up and waits where it is.
+		if (wander.timer <= 0) {
+			wander.route = [];
+			wander.face = undefined;
+		}
+		const next = wander.route[0];
+		if (next) {
+			const dx = next.x - horse.x,
+				dz = next.z - horse.z;
+			const error = angleTo(horse.heading, Math.atan2(dx, dz));
+			wander.look = error * 0.3;
+			if (Math.hypot(dx, dz) < 0.45) wander.route.shift();
+			else {
+				turn = Math.max(-1, Math.min(1, error * 1.8));
+				targetSpeed = Math.abs(error) < 0.9 ? STROLL_SPEED : 0.25;
+			}
+		} else {
+			// Turn round on the spot to face the way it should wait.
+			const error =
+				wander.face === undefined ? 0 : angleTo(horse.heading, wander.face);
+			if (Math.abs(error) > 0.08 && wander.timer > 0)
+				turn = Math.sign(error) * Math.min(1, Math.abs(error) * 2 + 0.3);
+			else {
+				wander.anchor = { x: horse.x, z: horse.z };
+				wander.mode = 'idle';
+				wander.timer = 2 + random() * 3;
+			}
+		}
+	} else if (wander.mode === 'treat') {
 		// Munching from the person's hand, head turned towards it.
 		wander.look = Math.max(-1.1, Math.min(1.1, bearing));
 		if (wander.timer <= 0) wander.mode = person ? 'follow' : 'idle';
@@ -268,12 +317,10 @@ export function stepWander(
 	horse.heading += turn * dt * 1.1;
 	const x = horse.x + Math.sin(horse.heading) * horse.speed * dt,
 		z = horse.z + Math.cos(horse.heading) * horse.speed * dt;
-	if (
-		horse.speed > 0 &&
-		(!inside(wander.enclosure, x, z) || blocked(x, z, solids))
-	) {
+	const fenced = wander.mode !== 'go' && !inside(wander.enclosure, x, z);
+	if (horse.speed > 0 && (fenced || blocked(x, z, solids))) {
 		horse.speed = 0;
-		if (wander.mode !== 'follow') {
+		if (wander.mode !== 'follow' && wander.mode !== 'go') {
 			wander.mode = 'idle';
 			wander.timer = 1 + random() * 2;
 		}

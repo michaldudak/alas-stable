@@ -15,6 +15,7 @@ import { createAppearanceStore } from '../platform/appearance-storage.ts';
 import { createWalkingRider } from '../horse/walking-rider.ts';
 import {
 	APPROACH_SPEED,
+	transferFrame,
 	mountSide,
 	stepPerson,
 	MOUNT_DURATION,
@@ -244,7 +245,7 @@ export function startGame() {
 		$('sky').title = label;
 		refreshIcons();
 	}
-	const riders = createRiders(scene, world.points);
+	const riders = createRiders(scene);
 	const otherHorseSolids = () => [
 		...herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state)),
 		...riders.barriers(),
@@ -756,19 +757,22 @@ export function startGame() {
 					p;
 			walker.pose(dt, { speed: 1.8 });
 		} else {
-			const u = riding === 'mounting' ? 1 - (t - 0.25) / 0.75 : t;
-			const across = ease(u / 0.8);
-			person.x = THREE.MathUtils.lerp(state.x, transferSide.x, across);
-			person.z = THREE.MathUtils.lerp(state.z, transferSide.z, across);
-			person.heading = state.heading;
-			person.height =
-				(horse.getAppearance().equipment === 'bareback' ? 1.32 : 1.4) *
-					(1 - ease((u - 0.15) / 0.85)) +
-				0.18 * Math.sin(Math.PI * u);
+			const frame = transferFrame(
+				state,
+				transferSide,
+				riding === 'mounting' ? 1 - (t - 0.25) / 0.75 : t,
+				horse.getAppearance().equipment === 'bareback',
+			);
+			Object.assign(person, {
+				x: frame.x,
+				z: frame.z,
+				heading: frame.heading,
+				height: frame.height,
+			});
 			walker.pose(dt, {
 				speed: 0,
-				seat: 1 - ease(u),
-				swing: Math.sin(Math.PI * u),
+				seat: frame.seat,
+				swing: frame.swing,
 				side: transferSide.side,
 			});
 		}
@@ -1358,6 +1362,7 @@ export function startGame() {
 			riders.update(
 				dt,
 				elapsed,
+				environment.hour,
 				world.obstacles,
 				riding === 'mounted'
 					? [horseBarrier(state)]
@@ -1367,7 +1372,6 @@ export function startGame() {
 					.map((h) => horseBarrier(h.state)),
 				frustum,
 				camera,
-				isNightHour(environment.hour),
 			);
 			if (riding === 'mounted' && footfalls > 0)
 				gamepad.pulse(0.08 + Math.abs(state.speed) * 0.012, 35);
@@ -1412,12 +1416,16 @@ export function startGame() {
 			environment.conditions.wind,
 			environment.darkness,
 		);
+		const others = riders.markers();
 		minimap.draw(
 			activeState(),
-			herd
-				.filter((h) => riding !== 'mounted' || h !== selected)
-				.map((h) => h.state),
-			riders.riders.filter((r) => r.out).map((r) => r.npc.state),
+			[
+				...herd
+					.filter((h) => riding !== 'mounted' || h !== selected)
+					.map((h) => h.state),
+				...others.standing,
+			],
+			others.ridden,
 		);
 		renderer.render(scene, camera);
 		if (dialog('dress-dialog').open) preview.render();
@@ -1458,7 +1466,11 @@ export function startGame() {
 					z: r.npc.state.z,
 					gait: r.npc.state.gait,
 					height: r.npc.state.height,
-					out: r.out,
+					person: { x: r.person.x, z: r.person.z },
+					where: r.where,
+					activity: r.activity,
+					horseMode: r.horseMode,
+					task: r.task?.kind ?? '',
 				})),
 			}),
 			debug: {
@@ -1475,6 +1487,70 @@ export function startGame() {
 					Object.assign(entry.state, { x, z, heading, speed: 0, gait: 0 });
 					Object.assign(entry.wander, { mode: 'graze', timer: 600 });
 					entry.wander.anchor = { x, z };
+				},
+				/** Runs the clock and the other riders ahead, without drawing frames. */
+				fastForward(seconds: number) {
+					const step = 1 / 30;
+					for (let t = 0; t < seconds; t += step) {
+						elapsed += step;
+						environment.update(step);
+						riders.update(
+							step,
+							elapsed,
+							environment.hour,
+							world.obstacles,
+							[],
+							[],
+							frustum,
+							camera,
+						);
+					}
+				},
+				/** Ways the other riders use that pass through solids, with a margin. */
+				navCheck(margin = 0.8) {
+					const blocked: string[] = [];
+					const hits = (
+						a: { x: number; z: number },
+						b: { x: number; z: number },
+					) => {
+						const steps = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.3);
+						for (let i = 0; i <= steps; i++) {
+							const x = a.x + ((b.x - a.x) * i) / steps,
+								z = a.z + ((b.z - a.z) * i) / steps;
+							const solid = world.solids.find(
+								(s) =>
+									Math.abs(x - s.x) < s.w / 2 + margin &&
+									Math.abs(z - s.z) < s.d / 2 + margin,
+							);
+							if (solid)
+								return `${x.toFixed(1)},${z.toFixed(1)} in ${solid.x.toFixed(1)},${solid.z.toFixed(1)} ${solid.w.toFixed(1)}x${solid.d.toFixed(1)}${solid.jumpable ? ' fence' : ''}`;
+						}
+						return undefined;
+					};
+					const { graph, loops, restSpots, pastureView } = riders.paths;
+					graph.links.forEach((links, i) => {
+						for (const j of links)
+							if (j > i) {
+								const hit = hits(graph.nodes[i], graph.nodes[j]);
+								if (hit)
+									blocked.push(
+										`${graph.nodes[i].name}-${graph.nodes[j].name}: ${hit}`,
+									);
+							}
+					});
+					for (const [name, points] of Object.entries(loops))
+						points.forEach((p, i) => {
+							const hit = hits(p, points[(i + 1) % points.length]);
+							if (hit) blocked.push(`${name}[${i}]: ${hit}`);
+						});
+					for (const spot of [...restSpots, pastureView]) {
+						const hit = hits(spot, spot);
+						if (hit)
+							blocked.push(
+								`spot ${spot.x.toFixed(1)},${spot.z.toFixed(1)}: ${hit}`,
+							);
+					}
+					return blocked;
 				},
 				teleport(x: number, z: number, heading: number) {
 					Object.assign(activeState(), { x, z, heading, speed: 0, gait: 0 });

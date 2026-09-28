@@ -179,6 +179,35 @@ export function planApproach(
 	return undefined;
 }
 
+const settle = (value: number) => {
+	const t = Math.min(1, Math.max(0, value));
+	return t * t * (3 - 2 * t);
+};
+
+/**
+ * The rider climbing on or off: `ground` runs from 0 in the saddle to 1
+ * standing at `side`. Gives her place, height, how seated her pose is and the
+ * swing of the leg over the horse's back.
+ */
+export function transferFrame(
+	horse: GameState,
+	side: { x: number; z: number },
+	ground: number,
+	bareback = false,
+) {
+	const across = settle(ground / 0.8);
+	return {
+		x: horse.x + (side.x - horse.x) * across,
+		z: horse.z + (side.z - horse.z) * across,
+		heading: horse.heading,
+		height:
+			(bareback ? 1.32 : 1.4) * (1 - settle((ground - 0.15) / 0.85)) +
+			0.18 * Math.sin(Math.PI * ground),
+		seat: 1 - settle(ground),
+		swing: Math.sin(Math.PI * ground),
+	};
+}
+
 export function stepPerson(
 	state: GameState,
 	dt: number,

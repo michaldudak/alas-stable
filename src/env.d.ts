@@ -36,7 +36,11 @@ declare global {
 					z: number;
 					gait: number;
 					height: number;
-					out: boolean;
+					person: { x: number; z: number };
+					where: string;
+					activity: string;
+					horseMode: string;
+					task: string;
 				}[];
 			};
 			/** Development shortcuts for browser checks and screenshots. */
@@ -45,6 +49,8 @@ declare global {
 				setTime?(hours: number): void;
 				graze?(name: string, x: number, z: number, heading: number): void;
 				setWeather?(weather: string): void;
+				navCheck?(margin?: number): string[];
+				fastForward?(seconds: number): void;
 			};
 		};
 	}

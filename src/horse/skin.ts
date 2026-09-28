@@ -158,9 +158,13 @@ export function bindToNeck(
 		toBody.multiplyMatrices(bodyInverse, mesh.matrixWorld);
 		const joints = new Uint16Array(position.count * 4),
 			weights = new Float32Array(position.count * 4);
-		// Hair locks move as a whole with their root, so they never fan out.
-		const strand = Number(mesh.userData.strandVertices) || 1,
-			ring = Number(mesh.userData.strandRing) || 1;
+		// Hair locks move as a whole with their root, so they never fan out;
+		// knots, rings and eyes move as one piece with their middle.
+		const whole = shared;
+		const strand = whole
+				? position.count
+				: Number(mesh.userData.strandVertices) || 1,
+			ring = whole ? position.count : Number(mesh.userData.strandRing) || 1;
 		for (let start = 0; start < position.count; start += strand) {
 			bodyPoint.set(0, 0, 0);
 			for (let i = 0; i < ring; i++)

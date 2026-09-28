@@ -55,14 +55,48 @@ await test('a rider on a straight line jumps the fence across it', () => {
 	assert.equal(fence.down, 0);
 });
 
-await test('riders wait for someone in the way and pass a standing horse later', () => {
+await test('riders wait for someone in the way, then step round them', () => {
 	const points = Array.from({ length: 60 }, (_, i) => ({ x: 0, z: -i * 2 }));
 	const route = routeFromPoints(points, 2);
 	const npc = createNpc(route);
 	const person = { x: 0, z: -12, w: 0.8, d: 0.8 };
-	for (let i = 0; i < 60 * 10; i++) stepNpc(npc, 1 / 60, [], [person]);
+	let closest = Infinity;
+	for (let i = 0; i < 60 * 3; i++) stepNpc(npc, 1 / 60, [], [person]);
+	// First the rider stops short and waits.
 	assert.ok(npc.state.z > -12 && npc.state.speed < 0.2);
-	const horse = { x: 0, z: -12, w: 1.3, d: 2.5 };
-	for (let i = 0; i < 60 * 12; i++) stepNpc(npc, 1 / 60, [], [], 0, [horse]);
-	assert.ok(npc.state.z < -14);
+	for (let i = 0; i < 60 * 14; i++) {
+		stepNpc(npc, 1 / 60, [], [person]);
+		closest = Math.min(
+			closest,
+			Math.hypot(npc.state.x - person.x, npc.state.z - person.z),
+		);
+	}
+	// Then she goes round without walking through them, and rides on.
+	assert.ok(npc.state.z < -16, String(npc.state.z));
+	assert.ok(closest > 1.1, String(closest));
+});
+
+await test('riders keep right of an oncoming rider and queue behind one ahead', () => {
+	const east = routeFromPoints(
+		Array.from({ length: 40 }, (_, i) => ({ x: i * 2, z: 0 })),
+		2,
+		2,
+		0.25,
+		0,
+		false,
+	);
+	const a = createNpc(east);
+	const oncoming = { x: 30, z: 0, heading: -Math.PI / 2, speed: 5.5, rank: 1 };
+	let widest = 0;
+	for (let i = 0; i < 60 * 4; i++) {
+		stepNpc(a, 1 / 60, [], [], 0, [], [oncoming], 0);
+		widest = Math.max(widest, Math.abs(a.state.z));
+		oncoming.x -= 5.5 / 60;
+	}
+	assert.ok(widest > 0.8, String(widest));
+	const b = createNpc(east);
+	const ahead = { x: 5, z: 0, heading: Math.PI / 2, speed: 0, rank: 1 };
+	for (let i = 0; i < 60 * 3; i++)
+		stepNpc(b, 1 / 60, [], [], 0, [], [ahead], 0);
+	assert.ok(b.state.x < 5 - 1.2);
 });

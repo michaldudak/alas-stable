@@ -23,6 +23,7 @@ import {
 	type Point,
 } from './layout.ts';
 import { arc, railFence } from './fences.ts';
+import { createClubhouse } from './clubhouse.ts';
 import { mergeStatic } from '../rendering/merge.ts';
 import type { HorseModel } from '../horse/types.ts';
 import { createHorse } from '../horse/model.ts';
@@ -109,6 +110,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const treeSolid = (x: number, z: number) =>
 		solids.push({ x, z, w: 0.65, d: 0.65 });
 	buildRaceTrack(scenery, solids);
+	const clubhouse = createClubhouse(scenery, solids);
 	buildPasture(scenery, solids, trees, treeSolid);
 	sign(scenery, 'sign.arena', -9, 26);
 	sign(scenery, 'sign.forest', 39, 34, -0.3);
@@ -137,6 +139,8 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		// The stable yard west of the arena and the meadow stables to the south.
 		(x > -58 && x < -18 && z > -36 && z < 72) ||
 		(x > -24 && x < 12 && z > 20 && z < 72) ||
+		// The clubhouse west of the yard.
+		(x > -72 && x < -48 && z > 26 && z < 46) ||
 		// The grandstand beside the racecourse.
 		(x > 70 && x < 104 && z > 58 && z < 76) ||
 		nearPath(x, z, 3 + margin);
@@ -293,6 +297,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 				stable.lampMaterial.emissiveIntensity = 0.4 + night * 0.6;
 				stable.windowMaterial.emissiveIntensity = night * 0.9;
 			}
+			clubhouse.windowMaterial.emissiveIntensity = night * 1.1;
 		},
 		dispose() {
 			sky.dispose();
