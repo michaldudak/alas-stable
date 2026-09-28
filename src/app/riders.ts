@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { createHorse } from '../horse/model.ts';
 import { createHorseAnimation } from '../horse/animation.ts';
 import { dressFigure, type Outfit } from '../horse/figure.ts';
-import type { Appearance } from '../horse/appearance.ts';
+import { profile } from '../world/roster.ts';
 import {
 	createNpc,
 	routeFromPoints,
@@ -17,66 +17,44 @@ type RouteName = 'race-inner' | 'race-outer' | 'trail' | 'arena';
 
 const RIDERS: {
 	name: string;
+	/** Roster ID of the rider's own horse. */
+	horse: string;
 	route: RouteName;
 	/** Share of the route already ridden at the start. */
 	start: number;
 	pace: number;
-	appearance: Partial<Appearance>;
 	outfit: Outfit;
 }[] = [
 	{
 		name: 'Zosia',
+		horse: 'SZAFIR',
 		route: 'race-inner',
 		start: 0,
 		pace: 0.25,
-		appearance: {
-			coat: '#665046',
-			hair: '#47332d',
-			cloth: '#b75f59',
-			maneStyle: 'short',
-			tailStyle: 'braided',
-		},
 		outfit: { jacket: '#9c3b3b', helmet: '#26211d' },
 	},
 	{
 		name: 'Kuba',
+		horse: 'GROM',
 		route: 'race-outer',
 		start: 0.06,
 		pace: 0.05,
-		appearance: {
-			coat: '#343330',
-			hair: '#47332d',
-			cloth: '#b3a45a',
-			leather: '#343330',
-		},
 		outfit: { jacket: '#c8a23a', helmet: '#3a3a3a', hair: '#2b2018' },
 	},
 	{
 		name: 'Ola',
+		horse: 'KARMEL',
 		route: 'trail',
 		start: 0.55,
 		pace: 0,
-		appearance: {
-			coat: '#e1c39a',
-			hair: '#e9e3d1',
-			cloth: '#7275a3',
-			ornament: 'bow',
-			ornamentColor: '#9982b6',
-		},
 		outfit: { jacket: '#4c6a8c', helmet: '#7275a3', hair: '#a8773f' },
 	},
 	{
 		name: 'Hania',
+		horse: 'KOMETA',
 		route: 'arena',
 		start: 0,
 		pace: 0,
-		appearance: {
-			coat: '#aa6941',
-			hair: '#d7b879',
-			cloth: '#437f79',
-			maneStyle: 'braided',
-			pattern: 'stars',
-		},
 		outfit: { jacket: '#35584c', helmet: '#26211d', hair: '#3a2718' },
 	},
 ];
@@ -148,8 +126,8 @@ export function createRiders(
 	const riders = RIDERS.map((spec) => {
 		const route = paths[spec.route];
 		const model = createHorse();
-		model.setAppearance(spec.appearance);
-		model.root.name = spec.name;
+		model.setAppearance(profile(spec.horse)?.appearance ?? {});
+		model.root.name = spec.horse;
 		model.halter.visible = false;
 		model.bridle.visible = true;
 		dressFigure(model.rider, spec.outfit);

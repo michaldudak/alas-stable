@@ -2,7 +2,6 @@ import { t, onLanguageChange, type MessageKey } from '../i18n/index.ts';
 import type { HorseModel } from '../horse/types.ts';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import type { Solid } from '../game/types.ts';
-import type { Appearance } from '../horse/appearance.ts';
 import { context2d } from '../platform/dom.ts';
 import * as THREE from 'three';
 import { createHorse } from '../horse/model.ts';
@@ -16,6 +15,7 @@ import {
 	type StableSpec,
 } from './stable-layout.ts';
 import { mergeStatic } from '../rendering/merge.ts';
+import { profile, resident, stallNumber } from './roster.ts';
 
 // Building colours double as material keys for their surface finish.
 const FINISHES: Record<string, Finish> = {
@@ -115,78 +115,6 @@ const PALETTES: Record<StableSpec['id'], Palette> = {
 	},
 };
 
-type Resident = {
-	bay: number;
-	side: -1 | 1;
-	name: string;
-	appearance?: Partial<Appearance>;
-};
-
-/** Stall occupants; an entry without appearance is an empty, named stall. */
-const RESIDENTS: Record<StableSpec['id'], Resident[]> = {
-	main: [
-		{
-			bay: 0,
-			side: -1,
-			name: 'ISKRA',
-			appearance: { coat: '#e1c39a', hair: '#e9e3d1', maneStyle: 'short' },
-		},
-		{
-			bay: 2,
-			side: -1,
-			name: 'LUNA',
-			appearance: { coat: '#e6e0d2', hair: '#47332d', maneStyle: 'braided' },
-		},
-		{
-			bay: 3,
-			side: -1,
-			name: 'FUKS',
-			appearance: { coat: '#aa6941', hair: '#47332d' },
-		},
-		{ bay: 4, side: -1, name: 'Raven' },
-		{
-			bay: 1,
-			side: 1,
-			name: 'MAKS',
-			appearance: { coat: '#665046', hair: '#47332d', tailStyle: 'braided' },
-		},
-		{
-			bay: 2,
-			side: 1,
-			name: 'BURZA',
-			appearance: { coat: '#343330', hair: '#d7b879' },
-		},
-		{
-			bay: 3,
-			side: 1,
-			name: 'KASZTAN',
-			appearance: { coat: '#665046', hair: '#d7b879' },
-		},
-	],
-	linden: [
-		{
-			bay: 0,
-			side: 1,
-			name: 'BAJKA',
-			appearance: { coat: '#aa6941', hair: '#8d5236', maneStyle: 'short' },
-		},
-		{
-			bay: 2,
-			side: -1,
-			name: 'DUKAT',
-			appearance: { coat: '#e1c39a', hair: '#d7b879' },
-		},
-	],
-	meadow: [
-		{
-			bay: 1,
-			side: -1,
-			name: 'FIGA',
-			appearance: { coat: '#e6e0d2', hair: '#e9e3d1', tailStyle: 'short' },
-		},
-	],
-};
-
 export function createStable(
 	scene: THREE.Scene,
 	solids: Solid[],
@@ -255,6 +183,66 @@ export function createStable(
 		object.castShadow = true;
 		parent.add(object);
 		return object;
+	}
+	/**
+	 * A stall nameplate: the stall number on a brass disc and the resident's
+	 * name, or a horseshoe on a vacant stall. Returns a renamer.
+	 */
+	function nameplate(
+		number: number,
+		name: string | undefined,
+		pos: Vector3Tuple,
+		rotation: number,
+	) {
+		const canvas = document.createElement('canvas');
+		canvas.width = 512;
+		canvas.height = 128;
+		const ctx = context2d(canvas);
+		const draw = (text: string | undefined) => {
+			ctx.fillStyle = '#2f4a3f';
+			ctx.fillRect(0, 0, 512, 128);
+			ctx.strokeStyle = '#cfb47b';
+			ctx.lineWidth = 7;
+			ctx.strokeRect(9, 9, 494, 110);
+			ctx.fillStyle = '#d8bd82';
+			ctx.beginPath();
+			ctx.arc(70, 64, 40, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.fillStyle = '#2f4a3f';
+			ctx.font = '700 44px sans-serif';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(String(number), 70, 67, 64);
+			if (text) {
+				ctx.fillStyle = '#fff2d4';
+				ctx.font = '600 46px sans-serif';
+				ctx.textAlign = 'left';
+				ctx.fillText(text.toLocaleUpperCase('pl'), 132, 67, 360);
+			} else {
+				// A vacant stall shows a horseshoe instead of a name.
+				ctx.strokeStyle = '#a8a58f';
+				ctx.lineWidth = 12;
+				ctx.lineCap = 'round';
+				ctx.beginPath();
+				ctx.arc(300, 60, 30, Math.PI * 0.15, Math.PI * 0.85, true);
+				ctx.stroke();
+			}
+		};
+		draw(name);
+		const texture = new THREE.CanvasTexture(canvas);
+		texture.colorSpace = THREE.SRGBColorSpace;
+		texture.anisotropy = 4;
+		const plate = new THREE.Mesh(
+			new THREE.BoxGeometry(1.6, 0.4, 0.06),
+			new THREE.MeshStandardMaterial({ map: texture, roughness: 0.6 }),
+		);
+		plate.position.set(...pos);
+		plate.rotation.y = rotation;
+		root.add(plate);
+		return (text: string) => {
+			draw(text);
+			texture.needsUpdate = true;
+		};
 	}
 	function label(text: string, pos: Vector3Tuple, width = 3, rotation = 0) {
 		const canvas = document.createElement('canvas');
@@ -459,8 +447,9 @@ export function createStable(
 				box('#f0e1bc', [0.06, 1.5, 0.09], [x + face * 0.04, 4.25, z]);
 			}
 		}
-	const occupants = RESIDENTS[spec.id];
-	const residents: [Resident, number][] = [];
+	/** Horses that begin the day in their stalls, and a renamer for every plate. */
+	const residents: { id: string; x: number; z: number; side: -1 | 1 }[] = [];
+	const plates = new Map<string, (name: string) => void>();
 	for (const side of [-1, 1] as const)
 		for (let bay = 0; bay < spec.bays; bay++) {
 			if (side > 0 && spec.tackRoom && bay === spec.bays - 1) continue;
@@ -482,15 +471,17 @@ export function createStable(
 			cylinder('#8cb6b8', 0.3, 0.025, [side * 4.5, 0.65, z - 2.8]);
 			box('#8e7045', [1.5, 0.55, 0.9], [side * 10.5, 0.48, z - 2.8]);
 			oval('#c9b170', [0.65, 0.28, 0.36], [side * 10.5, 0.87, z - 2.8]);
-			const resident = occupants.find((r) => r.bay === bay && r.side === side);
-			if (resident) {
-				label(
-					resident.name,
-					[side * 3.53, 2.05, z + 2.8],
-					1.6,
-					(-side * Math.PI) / 2,
-				);
-				residents.push([resident, z]);
+			const horse = resident(spec.id, bay, side);
+			const rename = nameplate(
+				stallNumber(spec, bay, side),
+				horse?.name,
+				[side * 3.53, 2.05, z + 2.8],
+				(-side * Math.PI) / 2,
+			);
+			if (horse) {
+				plates.set(horse.id, rename);
+				if (horse.starts === 'stall')
+					residents.push({ id: horse.id, x: side * 6.5, z, side });
 			}
 		}
 	if (spec.tackRoom) {
@@ -549,15 +540,13 @@ export function createStable(
 	const cameraBlockers = mergeStatic(root, blockers).filter(
 		(mesh) => mesh.userData.blocker,
 	);
-	for (const [resident, z] of residents) {
-		if (!resident.appearance) continue;
-		const side = resident.side;
+	for (const { id, x, z, side } of residents) {
 		const horse = createHorse();
-		horse.setAppearance(resident.appearance);
+		horse.setAppearance(profile(id)?.appearance ?? {});
 		horse.rider.visible = false;
 		horse.tack.visible = false;
-		horse.root.name = resident.name;
-		horse.root.position.set(side * 6.5, 0.09, z);
+		horse.root.name = id;
+		horse.root.position.set(x, 0.09, z);
 		horse.root.rotation.y = (-side * Math.PI) / 2;
 		root.add(horse.root);
 		horses.push(horse);
@@ -566,5 +555,13 @@ export function createStable(
 	const windowMaterial = mat('#a0bbc0');
 	windowMaterial.emissive.set('#ffc987');
 	windowMaterial.emissiveIntensity = 0;
-	return { root, cameraBlockers, horses, lamps, lampMaterial, windowMaterial };
+	return {
+		root,
+		cameraBlockers,
+		horses,
+		plates,
+		lamps,
+		lampMaterial,
+		windowMaterial,
+	};
 }

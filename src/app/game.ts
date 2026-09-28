@@ -45,6 +45,9 @@ import {
 import { Soundscape } from '../platform/audio.ts';
 import { createHorseAnimation } from '../horse/animation.ts';
 import { locationName, isSand } from '../world/locations.ts';
+import { createNameStore } from '../platform/name-storage.ts';
+import { normalizeHorseName, suggestName } from '../horse/names.ts';
+import { profile } from '../world/roster.ts';
 import { createWander, feed, settle, stepWander } from '../game/wander.ts';
 import { createHearts } from '../rendering/hearts.ts';
 import { createRiders } from './riders.ts';
@@ -126,6 +129,9 @@ export function startGame() {
 	const raven = createHorse();
 	raven.root.name = 'Raven';
 	scene.add(raven.root);
+	// The player may rename horses; IDs stay fixed for saved data.
+	const names = createNameStore();
+	const nameOf = (id: string) => names.load(id, profile(id)?.name ?? id);
 	const herd = [raven, ...world.horses].map((model) => {
 		scene.attach(model.root);
 		const state =
@@ -149,13 +155,28 @@ export function startGame() {
 			model,
 			state,
 			store,
-			name: model.root.name,
+			id: model.root.name,
+			name: nameOf(model.root.name),
 			animation: createHorseAnimation(model),
 			wander: createWander(state, waitingPlace(state.x, state.z)),
 			head: { graze: 0, yaw: 0, nod: 0, chew: false } as HeadTarget,
 			turn: 0,
 		};
 	});
+	for (const entry of herd) world.rename(entry.id, entry.name);
+	const nameInput = requireElement('#horse-name', HTMLInputElement);
+	/** Shows the selected horse's name in the appearance dialog. */
+	function renderName() {
+		$('dress-title').textContent = selected.name;
+		if (document.activeElement !== nameInput) nameInput.value = selected.name;
+	}
+	function rename(value: string, save: boolean) {
+		const fallback = profile(selected.id)?.name ?? selected.id;
+		selected.name = normalizeHorseName(value, fallback);
+		$('dress-title').textContent = selected.name;
+		world.rename(selected.id, selected.name);
+		if (save) names.save(selected.id, selected.name);
+	}
 	/** Leaves a horse to potter about where it stands. */
 	const leaveHorse = (entry: (typeof herd)[number]) =>
 		settle(
@@ -248,7 +269,7 @@ export function startGame() {
 			selected.store,
 			horse.getAppearance(),
 		);
-		requireElement('#dress-dialog h2', HTMLElement).textContent = selected.name;
+		renderName();
 		$('preview-rider').setAttribute('aria-pressed', 'false');
 	}
 	const person = createState();
@@ -816,6 +837,25 @@ export function startGame() {
 	for (const id of ['close-help', 'help-play'])
 		$(id).onclick = () => closeDialog(dialog('help-dialog'));
 	$('wardrobe').onclick = () => showDialog(dialog('dress-dialog'));
+	nameInput.oninput = () => rename(nameInput.value, false);
+	nameInput.onchange = () => {
+		rename(nameInput.value, true);
+		nameInput.value = selected.name;
+	};
+	nameInput.onkeydown = (event) => {
+		if (event.key === 'Enter') nameInput.blur();
+	};
+	$('horse-name-random').onclick = () => {
+		rename(
+			suggestName(
+				getLanguage(),
+				herd.map((entry) => entry.name),
+			),
+			true,
+		);
+		nameInput.value = selected.name;
+	};
+	renderName();
 	$('preview-left').onclick = () => preview.rotate(-1);
 	$('preview-right').onclick = () => preview.rotate(1);
 	$('preview-in').onclick = () => preview.zoom(1);
@@ -1324,9 +1364,10 @@ export function startGame() {
 			snapshot: () => ({
 				...activeState(),
 				riding,
-				activeHorse: selected.name,
+				activeHorse: selected.id,
 				leading,
 				horses: herd.map((h) => ({
+					id: h.id,
 					name: h.name,
 					x: h.state.x,
 					z: h.state.z,
@@ -1365,7 +1406,7 @@ export function startGame() {
 						environment.setWeather(weather as Weather, true);
 				},
 				graze(name: string, x: number, z: number, heading: number) {
-					const entry = herd.find((h) => h.name === name);
+					const entry = herd.find((h) => h.id === name);
 					if (!entry) return;
 					Object.assign(entry.state, { x, z, heading, speed: 0, gait: 0 });
 					Object.assign(entry.wander, { mode: 'graze', timer: 600 });

@@ -374,7 +374,7 @@
 </dialog>
 <dialog id="dress-dialog">
 	<div class="dialog-top">
-		<h2>Raven</h2>
+		<h2 id="dress-title">Raven</h2>
 		<button
 			type="button"
 			id="close-dress"
@@ -385,6 +385,26 @@
 		</button>
 	</div>
 	<p>{{appearance.body}}</p>
+	<div class="name-row">
+		<label for="horse-name">{{appearance.name}}</label>
+		<input
+			id="horse-name"
+			type="text"
+			maxlength="14"
+			autocomplete="off"
+			spellcheck="false"
+			enterkeyhint="done"
+		/>
+		<button
+			type="button"
+			id="horse-name-random"
+			title="{{appearance.randomName}}"
+			aria-label="{{appearance.randomName}}"
+		>
+			<i data-lucide="dices" aria-hidden="true"></i
+			><span>{{appearance.randomName}}</span>
+		</button>
+	</div>
 	<div class="dress-layout">
 		<div class="horse-preview">
 			<canvas

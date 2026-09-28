@@ -26,7 +26,7 @@ import { arc, railFence } from './fences.ts';
 import { mergeStatic } from '../rendering/merge.ts';
 import type { HorseModel } from '../horse/types.ts';
 import { createHorse } from '../horse/model.ts';
-import type { Appearance } from '../horse/appearance.ts';
+import { ROSTER } from './roster.ts';
 import { createLamps, createSurfaceUniforms } from './lamps.ts';
 import { createRain } from './rain.ts';
 import type { Environment } from '../game/environment.ts';
@@ -224,12 +224,17 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		...stables.flatMap((stable) => stable.horses),
 		...pastureHerd(scene),
 	];
+	const plates = new Map(stables.flatMap((stable) => [...stable.plates]));
 	return {
 		obstacles,
 		solids,
 		points,
 		stables,
 		horses,
+		/** Renames the horse on its stall nameplate. */
+		rename(id: string, name: string) {
+			plates.get(id)?.(name);
+		},
 		cameraBlockers: stables.flatMap((stable) => stable.cameraBlockers),
 		update(
 			time: number,
@@ -297,31 +302,15 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 
 /** Horses turned out to graze on the pasture. */
 function pastureHerd(scene: THREE.Scene) {
-	const herd: [string, number, number, number, Partial<Appearance>][] = [
-		['WIATR', -8, 6, 1.2, { coat: '#343330', hair: '#47332d' }],
-		[
-			'ZORZA',
-			5,
-			-4,
-			-2,
-			{ coat: '#e1c39a', hair: '#e9e3d1', maneStyle: 'short' },
-		],
-		[
-			'GRAFIT',
-			2,
-			16,
-			0.4,
-			{ coat: '#e6e0d2', hair: '#47332d', tailStyle: 'short' },
-		],
-	];
-	return herd.map(([name, dx, dz, heading, appearance]) => {
+	return ROSTER.filter((horse) => horse.starts === 'pasture').map((entry) => {
+		const spot = entry.pasture ?? { x: 0, z: 0, heading: 0 };
 		const horse = createHorse();
-		horse.setAppearance(appearance);
+		horse.setAppearance(entry.appearance ?? {});
 		horse.rider.visible = false;
 		horse.tack.visible = false;
-		horse.root.name = name;
-		horse.root.position.set(PASTURE.x + dx, 0, PASTURE.z + dz);
-		horse.root.rotation.y = heading;
+		horse.root.name = entry.id;
+		horse.root.position.set(PASTURE.x + spot.x, 0, PASTURE.z + spot.z);
+		horse.root.rotation.y = spot.heading;
 		scene.add(horse.root);
 		return horse;
 	});

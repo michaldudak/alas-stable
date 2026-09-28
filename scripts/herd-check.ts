@@ -75,10 +75,10 @@ try {
 	await page.waitForFunction(
 		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
-	const parked = (await state()).horses.find((h) => h.name === 'Raven')!;
+	const parked = (await state()).horses.find((h) => h.id === 'Raven')!;
 	// Waiting horses potter about, but only a few steps from where they were left.
 	const near = async (name: string, spot: { x: number; z: number }) => {
-		const h = (await state()).horses.find((entry) => entry.name === name)!;
+		const h = (await state()).horses.find((entry) => entry.id === name)!;
 		assert.ok(Math.hypot(h.x - spot.x, h.z - spot.z) < 4, name);
 	};
 	await go(-38, 2, 2);
@@ -94,12 +94,20 @@ try {
 	assert.equal((await state()).activeHorse, 'FUKS');
 	await near('Raven', parked);
 	await page.locator('#wardrobe').click();
-	assert.equal(await page.locator('#dress-dialog h2').textContent(), 'FUKS');
+	assert.equal(await page.locator('#dress-dialog h2').textContent(), 'Fuks');
+	// Renaming shows at once and ignores unsafe characters.
+	await page.locator('#horse-name').fill('  <Pierniczek>  ');
+	await page.locator('#horse-name').press('Enter');
+	assert.equal(
+		await page.locator('#dress-dialog h2').textContent(),
+		'Pierniczek',
+	);
+	assert.equal(await page.locator('#horse-name').inputValue(), 'Pierniczek');
 	await page.getByRole('button', { name: 'Maść: Siwa', exact: true }).click();
 	await page.screenshot({ path: 'artifacts/fuks-appearance.jpg' });
 	await page.locator('#close-dress').click();
 	assert.equal(
-		(await state()).horses.find((h) => h.name === 'FUKS')!.appearance.coat,
+		(await state()).horses.find((h) => h.id === 'FUKS')!.appearance.coat,
 		'#e6e0d2',
 	);
 	await near('Raven', parked);
@@ -110,9 +118,9 @@ try {
 	await page.waitForFunction(
 		() => window.__alasStable!.snapshot().riding === 'on-foot',
 	);
-	const fuks = (await state()).horses.find((h) => h.name === 'FUKS')!;
+	const fuks = (await state()).horses.find((h) => h.id === 'FUKS')!;
 	// Walk towards Raven; mounting walks the last steps round to its side.
-	const raven = (await state()).horses.find((h) => h.name === 'Raven')!;
+	const raven = (await state()).horses.find((h) => h.id === 'Raven')!;
 	await go(-36, raven.z - 3, 1);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
@@ -125,16 +133,20 @@ try {
 	await page.reload();
 	await page.waitForFunction(() => window.__alasStable?.snapshot().calls);
 	assert.equal(
-		(await state()).horses.find((h) => h.name === 'FUKS')!.appearance.coat,
+		(await state()).horses.find((h) => h.id === 'FUKS')!.appearance.coat,
 		'#e6e0d2',
 	);
 	assert.equal(
-		(await state()).horses.find((h) => h.name === 'Raven')!.appearance.coat,
+		(await state()).horses.find((h) => h.id === 'Raven')!.appearance.coat,
 		parked.appearance.coat,
+	);
+	assert.equal(
+		(await state()).horses.find((h) => h.id === 'FUKS')!.name,
+		'Pierniczek',
 	);
 	assert.deepEqual(errors, []);
 	console.log(
-		'Herd browser checks passed: switch horses, ride out of a stall, independent decoration, return to Raven, persistence.',
+		'Herd browser checks passed: switch horses, ride out of a stall, independent decoration, renaming, return to Raven, persistence.',
 	);
 } finally {
 	await browser.close();

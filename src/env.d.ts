@@ -7,6 +7,7 @@ declare global {
 				activeHorse: string;
 				leading: boolean;
 				horses: {
+					id: string;
 					name: string;
 					x: number;
 					z: number;

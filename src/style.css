@@ -1266,3 +1266,37 @@ dialog > p {
 .prompt-action[hidden] {
 	display: none;
 }
+
+/* Naming the horse, above the appearance preview. */
+.name-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin-top: 14px;
+}
+
+.name-row label {
+	font-weight: 600;
+}
+
+#horse-name {
+	flex: 1 1 180px;
+	max-width: 280px;
+	padding: 10px 12px;
+	border: 1px solid #8a9d8e;
+	border-radius: 10px;
+	background: #fffaf0;
+	color: #29483b;
+	font: inherit;
+	font-weight: 600;
+}
+
+#horse-name:focus-visible {
+	outline: 3px solid #c9853f;
+	outline-offset: 1px;
+}
+
+#horse-name-random {
+	min-height: 42px;
+}

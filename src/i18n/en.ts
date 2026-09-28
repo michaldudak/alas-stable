@@ -147,6 +147,8 @@ export const en = {
 	'error.title': 'Unable to open the 3D world',
 	'error.body': 'Try an up-to-date browser with graphics acceleration enabled.',
 	'appearance.sections': 'Horse appearance sections',
+	'appearance.name': 'Horse name',
+	'appearance.randomName': 'Pick a name',
 	'appearance.colors': 'Colors',
 	'appearance.hair': 'Hairstyles',
 	'appearance.ornaments': 'Decorations',

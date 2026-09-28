@@ -149,6 +149,8 @@ export const pl = {
 	'error.body':
 		'Spróbuj w aktualnej przeglądarce z włączoną akceleracją grafiki.',
 	'appearance.sections': 'Sekcje wyglądu konia',
+	'appearance.name': 'Imię konia',
+	'appearance.randomName': 'Losuj imię',
 	'appearance.colors': 'Kolory',
 	'appearance.hair': 'Fryzury',
 	'appearance.ornaments': 'Ozdoby',
