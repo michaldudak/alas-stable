@@ -312,6 +312,9 @@ try {
 	);
 	await press(14);
 	await expect(page.locator('#dress-dialog')).toBeVisible();
+	// The name dice comes first, then the preview controls.
+	await press(13);
+	await expect(page.locator('#horse-name-random')).toBeFocused();
 	await press(13);
 	await expect(page.locator('#preview-left')).toBeFocused();
 	await press(0);
