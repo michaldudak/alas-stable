@@ -315,7 +315,7 @@ export function createHorse(): HorseModel {
 	body.add(tail);
 	locks(tail, hair, tailHair(40, 1.55, 1));
 	const { legs, knees, fetlocks, hooves, legRigs } = buildLegs(rig, body);
-	const { neck, skeleton } = attachSkin(
+	const { neck, croup, skeleton } = attachSkin(
 		body,
 		legs,
 		knees,
@@ -571,6 +571,8 @@ export function createHorse(): HorseModel {
 			0.035,
 		);
 
+	// The tail hangs from the croup and moves with the hindquarters.
+	croup.attach(tail);
 	// Hair, headgear and ornaments follow the neck and head as they move.
 	bindToNeck(body, skeleton, [mane, bridle, halter, decoration, ...eyes]);
 	const headAnchor = new THREE.Group();
@@ -627,6 +629,7 @@ export function createHorse(): HorseModel {
 		leadAnchor: headAnchor,
 		forehead,
 		neck,
+		croup,
 		gesture(lean: number, lift: number, side = -1) {
 			patTarget.copy(patPoint).sub(seat.position);
 			patTarget.x *= side;

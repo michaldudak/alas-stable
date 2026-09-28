@@ -27,6 +27,9 @@ export interface Wander {
 	grassy: boolean;
 	/** Seconds the horse keeps following the person who gave it a treat. */
 	affection: number;
+	/** Seconds spent standing idle, and the hind leg it rests (+1 left, -1 right). */
+	idleTime: number;
+	rest: number;
 }
 
 /** How long a horse munches a treat, and then how long it follows its friend. */
@@ -60,6 +63,8 @@ export function createWander(
 		look: 0,
 		grassy: options.grassy ?? true,
 		affection: 0,
+		idleTime: 0,
+		rest: 0,
 	};
 }
 
@@ -161,6 +166,12 @@ export function stepWander(
 	random: () => number = Math.random,
 ) {
 	wander.timer -= dt;
+	// A horse left standing for a while shifts its weight off one hind leg.
+	if (wander.mode === 'idle' && horse.speed === 0) {
+		if (wander.idleTime === 0)
+			wander.rest = random() < 0.65 ? (random() < 0.5 ? 1 : -1) : 0;
+		wander.idleTime += dt;
+	} else wander.idleTime = 0;
 	let turn = 0,
 		targetSpeed = 0;
 	const near =
@@ -277,5 +288,6 @@ export function stepWander(
 		graze: wander.mode === 'graze' ? 1 : wander.mode === 'treat' ? 0.5 : 0,
 		look: wander.look,
 		chew: wander.mode === 'graze' || wander.mode === 'treat',
+		rest: wander.idleTime > 2.5 ? wander.rest : 0,
 	};
 }

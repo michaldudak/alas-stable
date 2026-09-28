@@ -1159,6 +1159,7 @@ export function startGame() {
 				entry.head.graze = motion.graze;
 				entry.head.yaw = motion.look;
 				entry.head.chew = motion.chew;
+				entry.head.rest = motion.rest;
 				entry.model.root.position.set(horseState.x, 0, horseState.z);
 				entry.model.root.rotation.y = horseState.heading;
 			}

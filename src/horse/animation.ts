@@ -16,6 +16,8 @@ export interface HeadTarget {
 	nod: number;
 	/** Chewing makes the head bob gently. */
 	chew: boolean;
+	/** Standing, a hind leg rests on the toe: +1 left, -1 right, 0 neither. */
+	rest?: number;
 }
 
 const NEUTRAL: HeadTarget = { graze: 0, yaw: 0, nod: 0, chew: false };
@@ -26,9 +28,14 @@ const GRAZE = [1.38, 0.32, 0.42];
 export function createHorseAnimation(horse: HorseModel) {
 	const controller = createGaitController(),
 		target = new THREE.Vector3(),
-		inverse = new THREE.Quaternion();
+		inverse = new THREE.Quaternion(),
+		croupInverse = new THREE.Quaternion();
 	const rootHeights = horse.legs.map((leg) => leg.position.y);
+	const croupPivot = horse.croup.position.clone();
 	const head = { graze: 0, yaw: 0, nod: 0, chew: 0 };
+	let rest = 0;
+	// Each horse breathes and fidgets on its own rhythm.
+	const seed = Math.random() * 100;
 	for (const bone of horse.neck) bone.rotation.order = 'YXZ';
 	return {
 		update(
@@ -48,39 +55,70 @@ export function createHorseAnimation(horse: HorseModel) {
 			head.yaw += (headTarget.yaw - head.yaw) * ease(2.5);
 			head.nod += (headTarget.nod - head.nod) * ease(3);
 			head.chew += (Number(headTarget.chew) - head.chew) * ease(4);
-			// Horses nod in rhythm with the walk.
+			// Standing still, the horse breathes, looks about and may rest a hind leg.
+			const still =
+				pose.weights[0] *
+				(1 - Math.min(1, Math.abs(turn) * 2)) *
+				(state.jump < 0 ? 1 : 0);
+			rest += ((headTarget.rest ?? 0) * still - rest) * ease(1.1);
+			const breath = Math.sin(elapsed * 1.25 + seed);
+			// The neck swings with the stride and bends into turns; the head keeps
+			// its angle to the ground while the neck lifts and lowers it.
+			const swing = pose.neck;
 			const nod =
 				head.nod +
-				pose.weights[1] * 0.05 * Math.sin(pose.phase * Math.PI * 4) +
-				head.chew * 0.035 * Math.sin(elapsed * 9);
+				head.chew * 0.035 * Math.sin(elapsed * 9) +
+				still * 0.03 * Math.sin(elapsed * 0.41 + seed * 1.3);
+			const yaw =
+				head.yaw +
+				Math.max(-1, Math.min(1, turn)) * 0.22 +
+				still * 0.07 * Math.sin(elapsed * 0.29 + seed);
 			horse.neck.forEach((bone, i) => {
-				bone.rotation.x = head.graze * GRAZE[i] + nod * (i === 0 ? 0.3 : 0.35);
-				bone.rotation.y = head.yaw * (i === 2 ? 0.3 : 0.35);
+				bone.rotation.x =
+					head.graze * GRAZE[i] +
+					nod * (i === 0 ? 0.3 : 0.35) +
+					swing * [0.62, 0.38, -0.35][i];
+				bone.rotation.y = yaw * (i === 2 ? 0.3 : 0.35);
 			});
-			horse.body.position.y = pose.y;
+			horse.body.position.set(pose.sway, pose.y + still * 0.004 * breath, 0);
 			horse.body.rotation.set(pose.pitch, 0, pose.roll);
+			// A resting hind leg lets that hip drop.
+			horse.croup.rotation.set(
+				pose.croupPitch,
+				0,
+				pose.croupRoll - rest * 0.05,
+			);
 			inverse.copy(horse.body.quaternion).invert();
+			croupInverse.copy(horse.croup.quaternion).invert();
+			const restLeg = rest > 0 ? 0 : 2,
+				resting = Math.abs(rest);
 			horse.legs.forEach((leg, i) => {
 				const rig = horse.legRigs[i],
 					foot = pose.feet[i],
-					front = i % 2 === 1;
+					front = i % 2 === 1,
+					hind = leg.parent === horse.croup;
+				const tipped = i === restLeg ? resting : 0;
 				leg.position.y = rootHeights[i];
 				target.set(
 					rig.foot[0] + foot.x,
-					HOOF_MARKER_HEIGHT + foot.lift,
-					rig.foot[1] + foot.z,
+					HOOF_MARKER_HEIGHT + foot.lift + 0.04 * tipped,
+					rig.foot[1] + foot.z + 0.12 * tipped,
 				);
-				target
-					.sub(horse.body.position)
-					.applyQuaternion(inverse)
-					.sub(leg.position);
+				target.sub(horse.body.position).applyQuaternion(inverse);
+				// Hind legs hang from the croup, which rolls and tilts at the loins.
+				if (hind) target.sub(croupPivot).applyQuaternion(croupInverse);
+				target.sub(leg.position);
 				const lift = THREE.MathUtils.clamp(foot.lift / 0.22, 0, 1);
 				const raised = lift * lift * (3 - 2 * lift);
 				// Planted pasterns keep their slope to the ground; the heel breaks over
-				// at the end of a long stride and lifted hooves fold back.
+				// at the end of a long stride, lifted hooves fold back and a resting
+				// hind hoof tips onto its toe.
 				const breakOver = THREE.MathUtils.smoothstep(-foot.z, 0.35, 0.8) * 0.6;
 				const pastern =
-					Math.max(breakOver, raised * (front ? 1.15 : 0.85)) - pose.pitch;
+					Math.max(breakOver, raised * (front ? 1.15 : 0.85)) +
+					0.9 * tipped -
+					pose.pitch -
+					(hind ? horse.croup.rotation.x : 0);
 				const cos = Math.cos(pastern),
 					sin = Math.sin(pastern);
 				const [py, pz] = rig.pastern;
@@ -110,9 +148,14 @@ export function createHorseAnimation(horse: HorseModel) {
 				2.7 * (1 - Math.cos(pose.riderPitch)) + pose.riderY,
 				-2.7 * Math.sin(pose.riderPitch),
 			);
-			horse.tail.rotation.z = Math.sin(elapsed * 2) * 0.07;
+			// Standing horses swish at flies in bursts; moving, the tail swings with
+			// the hind legs and lifts at the trot and canter.
+			const swish =
+				Math.sin(elapsed * 2.1 + seed) *
+				(0.04 + 0.06 * Math.max(0, Math.sin(elapsed * 0.37 + seed * 2)));
+			horse.tail.rotation.z = swish * (0.4 + 0.6 * still) + pose.tailSwing;
 			horse.tail.rotation.x =
-				-0.06 * pose.weights[3] + 0.025 * Math.sin(pose.phase * Math.PI * 2);
+				pose.tailLift + 0.02 * Math.sin(pose.phase * Math.PI * 2);
 			return pose.footfalls;
 		},
 	};

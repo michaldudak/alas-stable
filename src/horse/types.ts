@@ -34,6 +34,8 @@ export interface HorseModel {
 	leadAnchor: THREE.Group;
 	/** Neck root, mid-neck and head bones; rotations bend the neck from its base. */
 	neck: THREE.Bone[];
+	/** The hindquarters, carrying the hind legs and the tail; rolls and tilts at the loins. */
+	croup: THREE.Bone;
 	/** A point on the forehead, following the head, for a stroking hand. */
 	forehead: THREE.Object3D;
 	/**

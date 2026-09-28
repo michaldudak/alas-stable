@@ -121,7 +121,7 @@ try {
 	const fuks = (await state()).horses.find((h) => h.id === 'FUKS')!;
 	// Walk towards Raven; mounting walks the last steps round to its side.
 	const raven = (await state()).horses.find((h) => h.id === 'Raven')!;
-	await go(-36, raven.z - 3, 1);
+	await go(-36, raven.z - 1.5, 1);
 	await page.keyboard.press('KeyE');
 	await page.waitForFunction(
 		() => window.__alasStable!.snapshot().riding === 'mounted',

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { horseAsset } from './asset.ts';
-import { NECK_PIVOTS, neckWeights } from './neck.ts';
+import { CROUP_PIVOT, NECK_PIVOTS, neckWeights } from './neck.ts';
 
 /** The sculpted body from `src/assets/horse.glb`, shared by every horse. */
 export function createSkinGeometry() {
@@ -68,7 +68,8 @@ diffuseColor.rgb *= vOcclusion;`,
 
 /**
  * Binds the shared body to this horse's bones: body root, then legs, knees and
- * fetlocks in LH, LF, RH, RF order, then the neck chain ending at the head.
+ * fetlocks in LH, LF, RH, RF order, then the neck chain ending at the head,
+ * then the croup, which carries the hind legs.
  */
 export function attachSkin(
 	body: THREE.Group,
@@ -93,6 +94,15 @@ export function attachSkin(
 		parent = bone;
 		previous = pivot;
 	}
+	// The hindquarters roll and tilt at the loins; the hind legs hang from them.
+	const croup = new THREE.Bone();
+	croup.name = 'croup';
+	croup.position.set(0, CROUP_PIVOT[0], CROUP_PIVOT[1]);
+	root.add(croup);
+	for (const leg of [legs[0], legs[2]]) {
+		croup.add(leg);
+		leg.position.sub(croup.position);
+	}
 	const skin = new THREE.SkinnedMesh(createSkinGeometry(), material);
 	skin.name = 'horse-skin';
 	body.add(skin);
@@ -103,13 +113,14 @@ export function attachSkin(
 		...knees,
 		...fetlocks,
 		...neck,
+		croup,
 	]);
 	skin.bind(skeleton);
 	skin.castShadow = true;
 	skin.receiveShadow = true;
 	// Animated bounds vary during jumping; this hero mesh should never be culled by its bind pose.
 	skin.frustumCulled = false;
-	return { skin, neck, skeleton };
+	return { skin, neck, croup, skeleton };
 }
 
 const bodyPoint = new THREE.Vector3(),

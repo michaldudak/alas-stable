@@ -66,3 +66,14 @@ export function neckWeights(
 		head = smooth(0.9, 1.06, u);
 	return [1 - root, root * (1 - middle), middle * (1 - head), head];
 }
+
+/** The hindquarters pivot at the loins, behind the saddle; (y, z) in body space. */
+export const CROUP_PIVOT: YZ = [2.3, -0.62];
+
+/**
+ * Share of a vertex that moves with the hindquarters: none under the saddle,
+ * all of it from the point of the hip backwards.
+ */
+export function croupWeight(z: number) {
+	return smooth(-0.5, -0.95, z);
+}

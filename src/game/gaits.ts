@@ -35,6 +35,19 @@ export const GAIT_CYCLES = [
 	},
 ];
 const tau = Math.PI * 2;
+/**
+ * Whole-body motion besides the body's bounce, pitch and roll: sideways sway
+ * of the barrel, roll and tilt of the hindquarters at the loins, neck swing
+ * (positive lowers the head) and tail swing and lift.
+ */
+const STILL = {
+	sway: 0,
+	croupRoll: 0,
+	croupPitch: 0,
+	neck: 0,
+	tailSwing: 0,
+	tailLift: 0,
+};
 const wrap = (value: number) => ((value % 1) + 1) % 1;
 const clamp = (value: number, min: number, max: number) =>
 	Math.max(min, Math.min(max, value));
@@ -53,6 +66,7 @@ export function sampleGait(gait: number, phase: number) {
 			roll: 0,
 			riderY: 0,
 			riderPitch: 0,
+			...STILL,
 		};
 	const p = wrap(phase);
 	const feet = cycle.offsets.map((offset) => {
@@ -72,33 +86,56 @@ export function sampleGait(gait: number, phase: number) {
 	});
 	if (gait === 4) for (const foot of feet) foot.z *= -1;
 	if (gait === 1 || gait === 4)
+		// The walk: the barrel swings over the supporting legs, each hip rises
+		// as its hind leg carries the weight and the head nods as a forefoot lands.
 		return {
 			feet,
-			y: -0.17 + 0.006 * Math.cos(tau * p * 2),
-			pitch: 0.006 * Math.sin(tau * p * 2),
-			roll: 0.005 * Math.sin(tau * p),
+			y: -0.17 + 0.012 * Math.cos(tau * p * 2),
+			pitch: 0.01 * Math.sin(tau * p * 2),
+			roll: 0.014 * Math.sin(tau * p),
 			riderY: 0,
 			riderPitch: 0.015 * Math.sin(tau * p),
+			sway: 0.022 * Math.sin(tau * (p - 0.1)),
+			croupRoll: 0.05 * Math.cos(tau * (p - 0.35)),
+			croupPitch: 0.012 * Math.cos(tau * 2 * (p - 0.1)),
+			neck: 0.065 * Math.cos(tau * 2 * (p - 0.3)),
+			tailSwing: 0.12 * Math.sin(tau * (p - 0.35)),
+			tailLift: 0,
 		};
 	if (gait === 2) {
 		const bounce = Math.sin(tau * (p - 0.2)) ** 2;
+		// The trot: a springy two-beat bounce with a steady head and a lifted tail.
 		return {
 			feet,
 			y: -0.23 + 0.04 * bounce,
-			pitch: 0,
-			roll: 0,
+			pitch: 0.008 * Math.sin(tau * 2 * (p - 0.1)),
+			roll: 0.01 * Math.sin(tau * p),
 			riderY: 0.035 * bounce,
 			riderPitch: 0.035,
+			sway: 0.008 * Math.sin(tau * p),
+			croupRoll: 0.028 * Math.cos(tau * (p - 0.2)),
+			croupPitch: 0.015 * Math.cos(tau * 2 * (p - 0.2)),
+			neck: 0.03 - 0.025 * bounce,
+			tailSwing: 0.05 * Math.sin(tau * (p - 0.2)),
+			tailLift: 0.12 + 0.04 * bounce,
 		};
 	}
 	const flight = p > 0.85 ? Math.sin((Math.PI * (p - 0.85)) / 0.15) : 0;
+	// The canter rocks: the hindquarters tuck under as they land, the forehand
+	// rises, and the neck swings down over the leading foreleg.
 	return {
 		feet,
 		y: -0.29 + 0.02 * Math.sin(tau * p) + 0.045 * flight,
-		pitch: 0.035 * Math.sin(tau * (p - 0.1)),
-		roll: 0.01 * Math.sin(tau * p),
+		pitch: 0.06 * Math.sin(tau * (p - 0.1)),
+		roll: 0.015 * Math.sin(tau * p),
 		riderY: 0.025 + 0.025 * Math.sin(tau * p),
-		riderPitch: 0.1 - 0.045 * Math.sin(tau * p),
+		riderPitch: 0.1 - 0.065 * Math.sin(tau * p),
+		sway: 0,
+		croupRoll: 0.02 * Math.sin(tau * p),
+		croupPitch: -0.05 * Math.sin(tau * (p - 0.05)),
+		neck: 0.13 * Math.sin(tau * (p - 0.4)),
+		tailSwing: 0.04 * Math.sin(tau * p),
+		tailLift: 0.28 + 0.1 * Math.sin(tau * (p - 0.5)),
 	};
 }
 /** Rest offsets (y, z) of the upper and lower leg segments in the leg's plane. */
@@ -172,6 +209,12 @@ export function createGaitController() {
 					'roll',
 					'riderY',
 					'riderPitch',
+					'sway',
+					'croupRoll',
+					'croupPitch',
+					'neck',
+					'tailSwing',
+					'tailLift',
 				] as const)
 					pose[key] += sample[key] * weight;
 				for (let i = 0; i < 4; i++) {
@@ -224,6 +267,15 @@ export function createGaitController() {
 				pose.pitch += (jump.pitch - pose.pitch) * blend;
 				pose.y *= 1 - blend;
 				pose.roll *= 1 - blend;
+				// Over the fence the horse stretches its neck and tucks its hindquarters.
+				for (const key of ['sway', 'croupRoll', 'tailSwing'] as const)
+					pose[key] *= 1 - blend;
+				pose.neck += (0.24 * Math.sin(Math.PI * progress) - pose.neck) * blend;
+				pose.croupPitch +=
+					(-0.08 * Math.sin(Math.PI * Math.min(1, progress * 1.6)) -
+						pose.croupPitch) *
+					blend;
+				pose.tailLift += (0.35 - pose.tailLift) * blend;
 				pose.riderPitch += (jump.riderPitch - pose.riderPitch) * blend;
 				pose.riderY += (jump.riderY - pose.riderY) * blend;
 				pose.feet.forEach((foot, i) => {

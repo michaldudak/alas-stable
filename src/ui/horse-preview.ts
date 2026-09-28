@@ -42,7 +42,13 @@ export function createHorsePreview(
 	const body = model.getObjectByName(horse.body.name)!;
 	body.position.set(0, 0, 0);
 	body.rotation.set(0, 0, 0);
-	// Build the preview once at startup, before locomotion changes the pose.
+	// Show the horse standing square, whatever it was doing when cloned: the
+	// skeleton returns to its bind pose and the tail hangs still.
+	model.traverse((object) => {
+		if (object instanceof THREE.SkinnedMesh && object.name === 'horse-skin')
+			object.skeleton.pose();
+	});
+	model.getObjectByName(horse.tail.name)?.rotation.set(0, 0, 0);
 	scene.add(model);
 	const rider = model.getObjectByName(horse.rider.name)!;
 	rider.visible = false;

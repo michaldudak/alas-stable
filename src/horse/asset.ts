@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import type { Vector3Tuple } from '../rendering/types.ts';
-import { neckWeights } from './neck.ts';
+import { croupWeight, neckWeights } from './neck.ts';
 
 /** Rest-pose joints of one leg, in body space (+Y up, +Z forward). */
 export type LegLandmarks = {
@@ -41,7 +41,8 @@ let current: HorseAsset | undefined;
 /**
  * Converts the exported attributes into three.js skinning data. Joint order is
  * body, four legs, four knees, four fetlocks (legs as LH, LF, RH, RF), then the
- * two neck bones and the head. Each vertex keeps its four strongest influences.
+ * two neck bones, the head and the croup. Each vertex keeps its four strongest
+ * influences.
  */
 function skinned(source: THREE.BufferGeometry) {
 	const geometry = new THREE.BufferGeometry();
@@ -65,8 +66,10 @@ function skinned(source: THREE.BufferGeometry) {
 			position.getY(i),
 			position.getZ(i),
 		);
+		const croup = croupWeight(position.getZ(i));
 		const influences = [
-			[0, body * trunk],
+			[0, body * trunk * (1 - croup)],
+			[16, body * trunk * croup],
 			[1 + index, limb],
 			[5 + index, knee],
 			[9 + index, fetlock],
