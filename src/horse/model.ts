@@ -445,7 +445,10 @@ export function createHorse(): HorseModel {
 	const seat = new THREE.Group();
 	seat.name = 'rider-seat';
 	body.add(seat);
-	const rider = createRider(seat);
+	// The rider pats the side of the crest, just in front of the withers.
+	const patPoint = new THREE.Vector3(0.12, topline(rig, 0.74).y - 0.03, 0.74),
+		patTarget = new THREE.Vector3();
+	const { rider, gesture } = createRider(seat, patTarget);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
 	decoration.position.copy(onHead(rig, 0.02, 0.1, 1, 0.04));
@@ -575,6 +578,12 @@ export function createHorse(): HorseModel {
 	headAnchor.position.copy(leadAnchor.position);
 	body.add(headAnchor);
 	neck[2].attach(headAnchor);
+	// Where a hand strokes the face, on the forehead between the eyes.
+	const forehead = new THREE.Group();
+	forehead.name = 'forehead';
+	forehead.position.copy(headPoint(rig, 0.32, -0.04));
+	body.add(forehead);
+	neck[2].attach(forehead);
 	const patterns = createPatternTextures();
 	const channels = { coat, hair, cloth, leather, ornamentColor: petals };
 	let appearance = normalizeAppearance({});
@@ -616,7 +625,13 @@ export function createHorse(): HorseModel {
 		halter,
 		bridle,
 		leadAnchor: headAnchor,
+		forehead,
 		neck,
+		gesture(lean: number, lift: number, side = -1) {
+			patTarget.copy(patPoint).sub(seat.position);
+			patTarget.x *= side;
+			gesture(lean, lift, side);
+		},
 		coat,
 		hair,
 		cloth,

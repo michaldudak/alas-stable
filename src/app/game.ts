@@ -512,17 +512,26 @@ export function startGame() {
 	}
 	const hearts = createHearts(scene);
 	const headPoint = new THREE.Vector3();
-	/** The rider holding out a carrot, and the horse taking it. */
+	/** The rider holding out a carrot, then stroking the horse's forehead. */
 	let feeding: { entry: (typeof herd)[number]; time: number } | undefined;
-	let patTime = 9;
+	/** Seconds since the rider began patting the neck from the saddle. */
+	let patTime = 9,
+		patSide = -1;
+	const PAT_DURATION = 2.3;
+	const mountedHead: HeadTarget = { graze: 0, yaw: 0, nod: 0, chew: false };
+	const smooth = THREE.MathUtils.smoothstep;
 	function treat() {
 		if (riding === 'mounted') {
-			// From the saddle, a pat on the neck.
-			if (patTime < 1.2) return;
+			// From the saddle, a few pats on the neck.
+			if (patTime < PAT_DURATION) return;
 			patTime = 0;
-			horse.neck[1].getWorldPosition(headPoint);
-			hearts.burst(headPoint.setY(headPoint.y + 0.6), 4);
-			audio.nicker();
+			// Pat the side of the neck that faces the camera, so the pat is seen.
+			patSide =
+				(camera.position.x - state.x) * Math.cos(state.heading) -
+					(camera.position.z - state.z) * Math.sin(state.heading) >=
+				0
+					? 1
+					: -1;
 			hint('hint.patTitle', 'hint.patBody', 3, { name: selected.name });
 			return;
 		}
@@ -545,38 +554,83 @@ export function startGame() {
 		person.speed = 0;
 		updateGait();
 	}
-	/** Faces the rider to the horse's head and plays the hand-over. */
+	/** Leans over, pats the neck three times and sits up again; the horse nods. */
+	function updatePat(dt: number) {
+		const before = patTime;
+		patTime += dt;
+		const time = patTime;
+		if (before >= PAT_DURATION + 0.1) return;
+		if (riding !== 'mounted') {
+			patTime = PAT_DURATION + 1;
+			horse.gesture(0, 0);
+			return;
+		}
+		const lean = smooth(time, 0, 0.45) * (1 - smooth(time, 1.75, 2.25));
+		// Three pats: the hand lifts and comes down on the neck.
+		const beat = (time - 0.5) / 0.38;
+		const lift = beat > 0 && beat < 3 ? Math.abs(Math.sin(Math.PI * beat)) : 0;
+		horse.gesture(lean, lift, patSide);
+		for (const contact of [0.5, 0.88, 1.26])
+			if (before < contact && time >= contact) audio.pat();
+		if (before < 0.55 && time >= 0.55) {
+			horse.neck[1].getWorldPosition(headPoint);
+			hearts.burst(headPoint.setY(headPoint.y + 0.7), 4);
+		}
+		if (before < 1.1 && time >= 1.1) audio.nicker();
+	}
+	/** How the ridden horse holds its head: it turns towards a patting hand. */
+	function ridingHead() {
+		const react =
+			patTime < PAT_DURATION
+				? smooth(patTime, 0.5, 1) * (1 - smooth(patTime, 1.7, 2.3))
+				: 0;
+		mountedHead.yaw = 0.3 * react * patSide;
+		mountedHead.nod = 0.12 * react;
+		return mountedHead;
+	}
+	/**
+	 * Faces the rider to the horse's head and plays the hand-over: the carrot is
+	 * taken, then the rider strokes the forehead until she walks on.
+	 */
 	function updateFeeding(dt: number) {
-		if (!feeding) return 0;
+		if (!feeding) return undefined;
 		feeding.time += dt;
 		const { entry, time } = feeding;
-		entry.model.neck[2].getWorldPosition(headPoint);
+		entry.model.forehead.getWorldPosition(headPoint);
 		const bearing = Math.atan2(headPoint.x - person.x, headPoint.z - person.z);
 		person.heading +=
 			Math.atan2(
 				Math.sin(bearing - person.heading),
 				Math.cos(bearing - person.heading),
 			) * Math.min(1, dt * 6);
-		person.gait = 0;
-		person.speed = 0;
+		// Once the carrot is gone, walking on ends the stroking early.
+		const done = time > 3.9 || (time > 1.3 && person.gait !== 0);
+		if (!done) {
+			person.gait = 0;
+			person.speed = 0;
+		}
 		// The carrot disappears as the horse takes it.
 		walker.treat.visible = time < 1.15;
 		if (time >= 1.15 && time - dt < 1.15) {
 			audio.crunch();
-			hearts.burst(headPoint.setY(headPoint.y + 0.4), 5);
+			hearts.burst(headPoint.clone().setY(headPoint.y + 0.5), 5);
 			hint('hint.treatDone', 'hint.treatFollow', 4, { name: entry.name });
 		}
 		if (time >= 1.6 && time - dt < 1.6) audio.nicker();
-		// The rider is free again once the carrot is gone; the horse keeps munching.
-		if (time > 1.9) {
+		if (done) {
 			feeding = undefined;
 			walker.treat.visible = false;
-			return 0;
+			updateGait();
+			return undefined;
 		}
-		return (
-			THREE.MathUtils.smoothstep(time, 0, 0.45) *
-			(1 - THREE.MathUtils.smoothstep(time, 1.3, 1.8))
-		);
+		return {
+			offer: smooth(time, 0, 0.45) * (1 - smooth(time, 1.2, 1.6)),
+			touch: {
+				target: headPoint,
+				amount: smooth(time, 1.25, 1.75) * (1 - smooth(time, 3.4, 3.9)),
+				stroke: smooth(time, 1.6, 1.9),
+			},
+		};
 	}
 	function lead() {
 		if (riding !== 'on-foot') return;
@@ -666,7 +720,7 @@ export function startGame() {
 		if (distance > stride) {
 			person.x += (dx / distance) * stride;
 			person.z += (dz / distance) * stride;
-			walker.pose(dt, APPROACH_SPEED);
+			walker.pose(dt, { speed: APPROACH_SPEED });
 			return;
 		}
 		person.x = next.x;
@@ -700,7 +754,7 @@ export function startGame() {
 					Math.cos(state.heading - approach.heading),
 				) *
 					p;
-			walker.pose(dt, 1.8);
+			walker.pose(dt, { speed: 1.8 });
 		} else {
 			const u = riding === 'mounting' ? 1 - (t - 0.25) / 0.75 : t;
 			const across = ease(u / 0.8);
@@ -711,7 +765,12 @@ export function startGame() {
 				(horse.getAppearance().equipment === 'bareback' ? 1.32 : 1.4) *
 					(1 - ease((u - 0.15) / 0.85)) +
 				0.18 * Math.sin(Math.PI * u);
-			walker.pose(dt, 0, 1 - ease(u), Math.sin(Math.PI * u), transferSide.side);
+			walker.pose(dt, {
+				speed: 0,
+				seat: 1 - ease(u),
+				swing: Math.sin(Math.PI * u),
+				side: transferSide.side,
+			});
 		}
 		if (t >= 1) {
 			riding = riding === 'mounting' ? 'mounted' : 'on-foot';
@@ -1178,10 +1237,11 @@ export function startGame() {
 		if ($('prompt-grab-label').textContent !== grabLabel)
 			$('prompt-grab-label').textContent = grabLabel;
 		// Keep the tag on screen even when the horse's head is out of view.
+		const half = element.offsetWidth / 2 + 12;
 		const x = THREE.MathUtils.clamp(
 			((promptPoint.x + 1) / 2) * innerWidth,
-			110,
-			innerWidth - 110,
+			half,
+			Math.max(half, innerWidth - half),
 		);
 		const y = THREE.MathUtils.clamp(
 			((1 - promptPoint.y) / 2) * innerHeight,
@@ -1263,16 +1323,18 @@ export function startGame() {
 			}
 			if (riding === 'approaching') updateApproach(dt);
 			else if (transferring()) updateTransfer(dt);
-			else if (riding === 'on-foot')
-				walker.pose(
-					dt,
-					person.speed,
-					0,
-					0,
-					-1,
-					leading || !!carried,
-					carried ? 0.75 : updateFeeding(dt),
-				);
+			else if (riding === 'on-foot') {
+				const hands = carried ? undefined : updateFeeding(dt);
+				walker.pose(dt, {
+					speed: person.speed,
+					turn: dt > 0 ? (person.heading - previousPerson.heading) / dt : 0,
+					lead: leading,
+					carry: !!carried,
+					offer: hands?.offer,
+					touch: hands?.touch,
+					look: hands ? headPoint : undefined,
+				});
+			}
 			if (activeState().gait !== oldGait) updateGait();
 			walker.root.position.set(person.x, person.height, person.z);
 			walker.root.rotation.y = person.heading;
@@ -1288,6 +1350,7 @@ export function startGame() {
 						riding === 'mounted' && state.gait !== 0
 							? 1 + (nudge ?? 0) * STICK_PACE_ADJUSTMENT
 							: 1,
+						ridingHead(),
 					);
 			updateWaitingHorses(dt, selectedWaits);
 			// Other riders wait for the player; horses left standing only for a while.
@@ -1323,7 +1386,7 @@ export function startGame() {
 					footstepTimer = Math.abs(person.speed) > 2.5 ? 0.23 : 0.36;
 				}
 			} else footstepTimer = 0;
-			patTime += dt;
+			updatePat(dt);
 			hearts.update(dt);
 			audio.tick(
 				dt,

@@ -62,6 +62,10 @@ export class Soundscape {
 				i * 95,
 			);
 	}
+	/** A soft pat of a flat hand on the neck. */
+	pat() {
+		this.tone(150, 0.07, 0.05, 80, 'sine');
+	}
 	/** Crunching a carrot: short bursts of filtered noise. */
 	crunch() {
 		const ctx = this.context;

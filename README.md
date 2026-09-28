@@ -31,7 +31,7 @@ All developer content is written in English. Player-readable content is availabl
 - A/D or Left/Right: steer, including while standing still.
 - Space: jump with a forgiving timing window while mounted.
 - E or the mount button: dismount from a stopped horse, or mount any horse within about six metres: the rider walks up to its side by herself, round its head or tail or through its stall door if needed. A tag above the nearest horse shows its name and the keys to use. Every horse in the stables and on the pasture is rideable; the others wait near their places and remain marked on the minimap. Both actions are animated; walls can block dismounting.
-- T or the carrot button: on foot near a horse, hold out a carrot. The horse turns its head to take it, munches, hearts float up and it then follows the rider for about half a minute. From the saddle, T pats the horse's neck.
+- T or the carrot button: on foot near a horse, hold out a carrot. The horse turns its head to take it, munches, hearts float up, the rider strokes its forehead and it then follows her for about half a minute; walking on ends the stroking early. From the saddle, T makes the rider lean forward and pat the side of the neck that faces the camera three times, and the horse turns its head towards the hand.
 - G or the hand button: on foot next to a jump, take hold of the middle of its rails. Walk forwards to push it, backwards to pull it and steer to turn it; press G again to put it down. A held jump cannot be pushed into trees, walls or horses. Jumps can stand anywhere and at any angle, and horses jump them from either side.
 - C: switch between third-person and first-person cameras. Drag the mouse to look around.
 - Escape: pause. Switching tabs or losing focus also pauses the game.
@@ -68,6 +68,10 @@ The walk has four distinct beats with continuous support. The trot uses diagonal
 Rhythm references: [FEI — Gait](https://www.fei.org/node/38138), [University of Arizona — Horse gaits](https://opentextbooks.library.arizona.edu/app/uploads/sites/274/2023/11/Horse-Gaits.pdf).
 
 `node scripts/gait-check.ts` saves a side-view comparison of four phases per gait to `artifacts/gait-phases.png`. It requires Vite on port 5173. `tests/gaits.test.ts` checks foot-contact order, suspension, transitions, muted hoofbeats during jumps, and hoof positions.
+
+## The rider on foot
+
+`src/horse/walking-rider.ts` animates the rider procedurally from her speed alone. Each foot follows a stance and a swing: a planted foot moves back under the body exactly as far as the body travels, rolling from heel to ball of the foot, so it never skids; the swinging foot arcs forward and slows to the speed of the ground before landing. Cadence and the share of time on the ground change with speed, blending a heel-to-toe walk into a run with a flight phase. The hips sway over the planted foot, rotate with the stride, drop on the side of the swinging leg and sit as high as the planted legs allow; the shoulders counter-rotate, the head stays level and looks at what the rider handles, and the arms swing against the legs, pumping with bent elbows when running. Standing still, the rider breathes, shifts her weight from leg to leg and glances about. `node scripts/walk-check.ts` saves side and front views of walking, running, walking backwards, starting, stopping, standing, turning and the hand gestures to `artifacts/walk-phases.png`; `tests/walking.test.ts` checks that planted feet stay put.
 
 ## Stable
 

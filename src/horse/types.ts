@@ -34,6 +34,13 @@ export interface HorseModel {
 	leadAnchor: THREE.Group;
 	/** Neck root, mid-neck and head bones; rotations bend the neck from its base. */
 	neck: THREE.Bone[];
+	/** A point on the forehead, following the head, for a stroking hand. */
+	forehead: THREE.Object3D;
+	/**
+	 * The seated rider leans over to pat the neck (`lean` 0–1) on `side`
+	 * (+1 left, -1 right) and lifts the hand between pats.
+	 */
+	gesture(lean: number, lift: number, side?: number): void;
 	mane: THREE.Group;
 	decoration: THREE.Group;
 	coat: THREE.MeshStandardMaterial;

@@ -57,6 +57,7 @@ try {
 		'leading-check',
 		'stable-check',
 		'gait-check',
+		'walk-check',
 		'lifecycle-check',
 	]) {
 		console.log(`Running ${script} against ${baseURL}`);
