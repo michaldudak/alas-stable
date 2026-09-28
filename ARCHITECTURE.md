@@ -25,7 +25,10 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Night sky, clouds, rain, lamps and light pools           | `src/world/sky.ts`, `rain.ts`, `lamps.ts`             |
 | Waiting horses: strolling, grazing, treats               | `src/game/wander.ts`, `src/horse/neck.ts`             |
 | Movable jumps and their collisions                       | `src/game/obstacles.ts`, `src/world/jumps.ts`         |
-| Other riders                                             | `src/game/npc.ts`, `src/app/riders.ts`                |
+| Other riders: riding and path finding                    | `src/game/npc.ts`, `navigation.ts`                    |
+| Other riders' days, stabling routine, clubhouse          | `src/app/riders.ts`, `src/world/clubhouse.ts`         |
+| Path network and stall access                            | `src/world/paths.ts`                                  |
+| Every horse, its home stall and name; nameplates         | `src/world/roster.ts`, `src/horse/names.ts`           |
 | Stable building and residents                            | `src/world/stable.ts`                                 |
 | Scenery layout, fences, obstacles                        | `src/world/world.ts`, `primitives.ts`                 |
 | Sky, haze, clouds, environment lighting, sun             | `src/world/sky.ts`, `sun.ts`                          |
