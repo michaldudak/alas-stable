@@ -9,5 +9,7 @@ export default defineConfig({
 				html.replace('{{app.title}}', en['app.title']),
 		},
 	],
+	// Tools that pick a free port pass it in PORT; `--port` still takes precedence.
+	server: process.env.PORT ? { port: Number(process.env.PORT) } : {},
 	build: { rollupOptions: { output: { manualChunks: { three: ['three'] } } } },
 });
