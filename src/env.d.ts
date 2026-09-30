@@ -36,6 +36,16 @@ declare global {
 					carried: boolean;
 				}[];
 				calls: number;
+				race: {
+					phase: string;
+					place: number;
+					time: number;
+					racers: {
+						x: number;
+						z: number;
+						lap: { at: number; posts: number; finished: boolean };
+					}[];
+				};
 				riders: {
 					name: string;
 					x: number;

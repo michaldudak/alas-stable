@@ -1,6 +1,12 @@
 import type { MessageKey } from '../i18n/index.ts';
 import { regionAt } from '../game/regions.ts';
-import { BEACH, MOUNTAINS, PARKING } from './region-layout.ts';
+import {
+	BEACH,
+	HIPPODROME,
+	MOUNTAINS,
+	PARKING,
+	hippodromeDistance,
+} from './region-layout.ts';
 import { stableAt, inTackRoom } from './stable-layout.ts';
 import {
 	ARENA,
@@ -45,7 +51,20 @@ export function locationName(x: number, z: number): MessageKey {
 		if (Math.hypot(x - parked.x, z - parked.z) < 14) return 'location.carPark';
 		return 'location.valley';
 	}
-	if (region !== 'home') return `region.${region}`;
+	if (region === 'hippodrome') {
+		const d = hippodromeDistance(x, z);
+		const { stand } = HIPPODROME;
+		if (Math.abs(d) < HIPPODROME.halfWidth + 0.5) return 'location.racecourse';
+		if (d < 0) return 'location.infield';
+		if (
+			Math.abs(x - HIPPODROME.x - stand.x) < stand.halfWidth + 4 &&
+			z - HIPPODROME.z > stand.z - stand.depth
+		)
+			return 'location.grandstand';
+		const parked = PARKING.hippodrome;
+		if (Math.hypot(x - parked.x, z - parked.z) < 16) return 'location.carPark';
+		return 'region.hippodrome';
+	}
 	if (inTackRoom(x, z)) return 'location.tack';
 	if (insideClubhouse(x, z)) return 'location.clubhouse';
 	const stable = stableAt(x, z);

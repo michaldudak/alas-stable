@@ -52,6 +52,8 @@ import { profile } from '../world/roster.ts';
 import { createWander, feed, settle, stepWander } from '../game/wander.ts';
 import { createHearts } from '../rendering/hearts.ts';
 import { createRiders } from './riders.ts';
+import { createRacing, type RaceEvent } from './racing.ts';
+import { formatTime } from '../game/race.ts';
 import {
 	carriedPose,
 	grabbable,
@@ -284,9 +286,14 @@ export function startGame() {
 		refreshIcons();
 	}
 	const riders = createRiders(scene);
+	const racing = createRacing(scene);
+	/** The fastest lap of the racecourse, kept between visits. */
+	let bestLap =
+		Number(readStoredValue(localStorage, 'alas-stable.best-lap') ?? 0) || 0;
 	const otherHorseSolids = () => [
 		...herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state)),
 		...riders.barriers(),
+		...racing.barriers(),
 	];
 	function selectHorse(next: typeof selected) {
 		next.model.tack.visible = true;
@@ -502,6 +509,64 @@ export function startGame() {
 			Object.assign(inside.state, stallPose(rig), { speed: 0, gait: 0 });
 	}
 	/** Drives to another place: fades out, parks there and fades back in. */
+	/** Hints and sounds for the start, the countdown and the finish. */
+	function onRace(event: RaceEvent) {
+		if (event.kind === 'near')
+			hint('hint.raceNearTitle', 'hint.raceNearBody', 6);
+		else if (event.kind === 'count') {
+			hint('hint.raceCount', 'hint.raceReadyBody', 1.2, { n: String(event.n) });
+			audio.tone(660, 0.18, 0.06, 660, 'square');
+		} else if (event.kind === 'go') {
+			hint('hint.raceGoTitle', 'hint.raceGoBody', 3);
+			audio.tone(990, 0.5, 0.07, 990, 'square');
+			gamepad.pulse(0.6, 200);
+		} else if (event.kind === 'false-start')
+			hint('hint.falseStartTitle', 'hint.falseStartBody', 4);
+		else if (event.kind === 'abandon')
+			hint('hint.raceAbandonTitle', 'hint.raceAbandonBody', 5);
+		else if (event.kind === 'finish') {
+			const record = !bestLap || event.time < bestLap;
+			if (record) {
+				bestLap = event.time;
+				try {
+					localStorage.setItem('alas-stable.best-lap', String(bestLap));
+				} catch {
+					/* The record lasts for this session. */
+				}
+			}
+			hint(
+				'hint.finishTitle',
+				record ? 'hint.recordBody' : 'hint.finishBody',
+				7,
+				{
+					place: String(event.place),
+					time: formatTime(event.time),
+					best: formatTime(bestLap),
+				},
+			);
+			for (let i = 0; i < 3; i++)
+				setTimeout(
+					() => audio.tone(784 + i * 196, 0.25, 0.05, 784 + i * 196),
+					i * 160,
+				);
+			if (event.place === 1) {
+				horse.neck[1].getWorldPosition(headPoint);
+				hearts.burst(headPoint.setY(headPoint.y + 0.8), 8);
+			}
+		}
+	}
+	let raceShown = '';
+	/** The race clock and the player's place, shown while racing. */
+	function renderRace() {
+		const running = racing.phase === 'running' && world.region === 'hippodrome';
+		const text = running
+			? `${formatTime(racing.time)} · ${t('race.place', { place: String(racing.place) })}`
+			: '';
+		if (text === raceShown) return;
+		raceShown = text;
+		$('race').hidden = !running;
+		$('race').textContent = text;
+	}
 	function travel(id: RegionId) {
 		closeDialog(dialog('travel-dialog'));
 		releaseLead();
@@ -1743,6 +1808,18 @@ export function startGame() {
 				frustum,
 				camera,
 			);
+			const raceEvents = racing.update(
+				dt,
+				elapsed,
+				world.region === 'hippodrome' && riding === 'mounted'
+					? state
+					: undefined,
+				frustum,
+				camera,
+			);
+			for (const event of raceEvents) onRace(event);
+			world.cheer(racing.cheer());
+			renderRace();
 			if (riding === 'mounted' && footfalls > 0)
 				gamepad.pulse(0.08 + Math.abs(state.speed) * 0.012, 35);
 			for (const obstacle of world.obstacles) {
@@ -1839,6 +1916,16 @@ export function startGame() {
 					carried: carried?.jump.x === x && carried.jump.z === z,
 				})),
 				calls: renderer.info.render.calls,
+				race: {
+					phase: racing.phase,
+					place: racing.place,
+					time: racing.time,
+					racers: racing.racers.map((r) => ({
+						x: r.npc.state.x,
+						z: r.npc.state.z,
+						lap: { ...r.lap },
+					})),
+				},
 				riders: riders.riders.map((r) => ({
 					name: r.name,
 					x: r.npc.state.x,

@@ -40,8 +40,10 @@ export const HIPPODROME = {
 	radius: 52,
 	halfWidth: 8,
 	/** The rails open onto the track here, on the north straight. */
-	gateX: 60,
+	gateX: 40,
 	gateHalfWidth: 5,
+	/** The grandstand faces the finish from beyond the south rail. */
+	stand: { x: 0, z: 76, halfWidth: 50, depth: 18 },
 };
 
 /** The distance from a point to the racecourse centre line (negative inside). */
@@ -63,3 +65,35 @@ export const PARKING: Readonly<Record<keyof typeof REGIONS, RigPose>> = {
 		heading: -Math.PI / 2,
 	},
 };
+
+/** Length of a racecourse lane, `lane` metres outside the centre line. */
+export function hippodromeLength(lane = 0) {
+	return 4 * HIPPODROME.straight + 2 * Math.PI * (HIPPODROME.radius + lane);
+}
+
+/**
+ * The point `u` ∈ [0, 1) of the way round the racecourse, `lane` metres
+ * outside the centre line. Racing starts and finishes at u = 0, in front of
+ * the grandstand on the south straight, and runs east from there.
+ */
+export function hippodromePoint(u: number, lane = 0) {
+	const { x, z, straight } = HIPPODROME;
+	const r = HIPPODROME.radius + lane;
+	let s = (((u % 1) + 1) % 1) * hippodromeLength(lane);
+	if (s < straight) return { x: x + s, z: z + r };
+	s -= straight;
+	const bend = Math.PI * r;
+	if (s < bend) {
+		const a = s / r;
+		return { x: x + straight + Math.sin(a) * r, z: z + Math.cos(a) * r };
+	}
+	s -= bend;
+	if (s < 2 * straight) return { x: x + straight - s, z: z - r };
+	s -= 2 * straight;
+	if (s < bend) {
+		const a = s / r;
+		return { x: x - straight - Math.sin(a) * r, z: z - Math.cos(a) * r };
+	}
+	s -= bend;
+	return { x: x - straight + s, z: z + r };
+}

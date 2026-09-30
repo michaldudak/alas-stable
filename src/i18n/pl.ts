@@ -289,6 +289,31 @@ export const pl = {
 	'sign.beach': 'PLAŻA',
 	'sign.kiosk': 'LODY · GOFRY',
 	'sign.hut': 'SCHRONISKO',
+	'sign.hippodrome': 'HIPODROM',
+	'race.place': 'miejsce {place} z 4',
+	'hint.raceNearTitle': 'Wyścig na czas',
+	'hint.raceNearBody':
+		'Zatrzymaj konia w białym boksie startowym przy celowniku, przy wewnętrznej bandzie, żeby zacząć wyścig.',
+	'hint.raceReadyBody': 'Stój spokojnie w boksie startowym…',
+	'hint.raceCount': '{n}…',
+	'hint.raceGoTitle': 'Start!',
+	'hint.raceGoBody':
+		'Galop przez jedno okrążenie. Przy wewnętrznej bandzie jest najkrócej.',
+	'hint.falseStartTitle': 'Falstart!',
+	'hint.falseStartBody':
+		'Zatrzymaj konia w boksie i poczekaj na odliczanie jeszcze raz.',
+	'hint.raceAbandonTitle': 'Wyścig przerwany',
+	'hint.raceAbandonBody':
+		'Wróć do boksu startowego, żeby pościgać się jeszcze raz.',
+	'hint.finishTitle': 'Meta! Miejsce {place}.',
+	'hint.finishBody': 'Czas {time}. Rekord toru: {best}.',
+	'hint.recordBody': 'Czas {time} to nowy rekord toru!',
+	'help.raceTitle': 'Wyścigi',
+	'help.raceBody':
+		'Na hipodromie zatrzymaj konia w białym boksie startowym przy mecie i poczekaj na odliczanie, a potem galopuj jedno okrążenie z trzema końmi.',
+	'location.racecourse': 'Na torze',
+	'location.infield': 'Murawa',
+	'location.grandstand': 'Trybuny',
 	'location.hut': 'Schronisko',
 	'location.tarn': 'Zamarznięty staw',
 	'location.valley': 'Śnieżna dolina',

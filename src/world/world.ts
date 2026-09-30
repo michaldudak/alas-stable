@@ -31,6 +31,7 @@ import { ROSTER } from './roster.ts';
 import { createLamps, createSurfaceUniforms } from './lamps.ts';
 import { createRain, createSnow } from './rain.ts';
 import { createMountains } from './mountains.ts';
+import { createHippodrome } from './hippodrome.ts';
 import type { Environment } from '../game/environment.ts';
 import { REGIONS, type RegionId } from '../game/regions.ts';
 import { createBeach } from './beach.ts';
@@ -264,6 +265,8 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		fog: 1,
 	};
 	const places = new Map<RegionId, Place>([['home', home]]);
+	/** Sets the grandstand's cheering, once the racecourse is built. */
+	let cheer: (level: number) => void = () => {};
 	let place = home,
 		region: RegionId = 'home';
 	/** Builds a place the first time the car drives there. */
@@ -277,6 +280,22 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 				fog: beach.fog,
 				update: (time, environment) =>
 					beach.update(
+						time,
+						environment.conditions.wind,
+						environment.windPhase,
+					),
+			};
+		}
+		if (id === 'hippodrome') {
+			const hippodrome = createHippodrome(scene, solids, surface);
+			cheer = (level) => hippodrome.cheer(level);
+			return {
+				objects: [hippodrome.root, ...hippodrome.extra],
+				grass: hippodrome.grass,
+				ground: hippodrome.ground,
+				fog: hippodrome.fog,
+				update: (time, environment) =>
+					hippodrome.update(
 						time,
 						environment.conditions.wind,
 						environment.windPhase,
@@ -330,6 +349,10 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		solids,
 		vehicle,
 		enter,
+		/** How loudly the racecourse crowd cheers, 0–1. */
+		cheer(level: number) {
+			cheer(level);
+		},
 		get region() {
 			return region;
 		},

@@ -10,7 +10,7 @@ import { ARENA, CLUBHOUSE, PASTURE, RACE_TRACK } from '../world/layout.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
 import { REGIONS, type RegionId } from '../game/regions.ts';
 import type { RigPose } from '../game/trailer.ts';
-import { BEACH, MOUNTAINS } from '../world/region-layout.ts';
+import { BEACH, HIPPODROME, MOUNTAINS } from '../world/region-layout.ts';
 
 const SIZE = 180;
 /** Pixels per metre; the map scrolls with the player. */
@@ -45,6 +45,7 @@ export function createMinimap(
 		map.clearRect(0, 0, SIZE, SIZE);
 		if (region === 'beach') drawBeach(point);
 		else if (region === 'mountains') drawMountains(point, rect);
+		else if (region === 'hippodrome') drawHippodrome(point, rect);
 		else drawHome(point, rect);
 		for (const [list, fill] of [
 			[horses, '#825632'],
@@ -127,6 +128,44 @@ export function createMinimap(
 		map.moveTo(pierStart, pierY);
 		map.lineTo(pierEnd, pierY);
 		map.stroke();
+	}
+	/** The racecourse oval, the grandstand, the pond and the stables. */
+	function drawHippodrome(
+		point: Project,
+		rect: (x: number, z: number, w: number, d: number) => void,
+	) {
+		const { x, z, straight, radius, halfWidth, stand } = HIPPODROME;
+		map.fillStyle = '#7d9460';
+		map.fillRect(0, 0, SIZE, SIZE);
+		map.fillStyle = '#9fb37c';
+		map.beginPath();
+		map.arc(...point(x, z), HIPPODROME.radius * SCALE * 3.8, 0, Math.PI * 2);
+		map.fill();
+		map.strokeStyle = '#b79a72';
+		map.lineWidth = halfWidth * 2 * SCALE;
+		map.beginPath();
+		const r = radius * SCALE;
+		const [wx, wy] = point(x - straight, z);
+		const [ex] = point(x + straight, z);
+		map.arc(wx, wy, r, Math.PI / 2, (Math.PI * 3) / 2);
+		map.lineTo(ex, wy - r);
+		map.arc(ex, wy, r, -Math.PI / 2, Math.PI / 2);
+		map.closePath();
+		map.stroke();
+		map.strokeStyle = '#f7f4ec';
+		map.lineWidth = 2;
+		map.beginPath();
+		map.moveTo(...point(x, z + radius - halfWidth));
+		map.lineTo(...point(x, z + radius + halfWidth));
+		map.stroke();
+		map.fillStyle = '#4f7f8c';
+		map.beginPath();
+		map.ellipse(...point(x - 52, z), 20 * SCALE, 11 * SCALE, 0, 0, Math.PI * 2);
+		map.fill();
+		map.fillStyle = '#2f5a3d';
+		rect(x + stand.x, z + stand.z, stand.halfWidth, stand.depth / 2);
+		map.fillStyle = '#a2524a';
+		rect(x - 70, z - 118, 20, 5);
 	}
 	/** The snowy valley, its trail, the hut and the frozen tarn. */
 	function drawMountains(

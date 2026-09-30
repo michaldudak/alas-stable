@@ -272,6 +272,27 @@ header {
 	display: none;
 }
 
+/* The race clock and place, at the top while racing. */
+.race {
+	position: fixed;
+	top: 24px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 10px 20px;
+	border-radius: 999px;
+	background: #fffbefed;
+	box-shadow: 0 5px 25px #223c2520;
+	color: #294c3e;
+	font-size: 18px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	pointer-events: none;
+}
+
+.race[hidden] {
+	display: none;
+}
+
 /* Darkens the screen while the rider sleeps or travels. */
 .fade {
 	position: fixed;

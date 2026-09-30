@@ -49,6 +49,17 @@ export function paintedTexture(
 	return texture;
 }
 
+/** Stripes for windbreaks, towels, umbrellas and racing silks. */
+export function stripes(colors: readonly string[], count = 8, vertical = true) {
+	return paintedTexture(128, 128, (c, w, h) => {
+		for (let i = 0; i < count; i++) {
+			c.fillStyle = colors[i % colors.length];
+			if (vertical) c.fillRect((i * w) / count, 0, w / count + 1, h);
+			else c.fillRect(0, (i * h) / count, w, h / count + 1);
+		}
+	});
+}
+
 /** A box wearing a painted texture, for quilts, rugs and pictures. */
 export function texturedBox(
 	parent: THREE.Object3D,

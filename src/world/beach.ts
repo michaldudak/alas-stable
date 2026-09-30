@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Solid } from '../game/types.ts';
 import { box, cylinder, ellipsoid, sign } from './primitives.ts';
-import { paintedTexture, texturedBox, placed } from './furniture.ts';
+import { stripes, texturedBox, placed } from './furniture.ts';
 import { random, worldNoise } from './noise.ts';
 import { createRegionGround } from './terrain.ts';
 import { createForest, type TreeSpec } from './trees.ts';
@@ -26,17 +26,6 @@ export function beachHeight(x: number, z: number) {
 		(1 - smooth(lx, BEACH.parkEnd + 1, BEACH.parkEnd + 9));
 	const inland = smooth(lx, 80, 420) * (10 + 25 * worldNoise(x, z, 90, 7));
 	return rise * dune * (1 - gap) + inland;
-}
-
-/** Stripes for windbreaks, towels and umbrellas. */
-function stripes(colors: readonly string[], count = 8, vertical = true) {
-	return paintedTexture(128, 128, (c, w, h) => {
-		for (let i = 0; i < count; i++) {
-			c.fillStyle = colors[i % colors.length];
-			if (vertical) c.fillRect((i * w) / count, 0, w / count + 1, h);
-			else c.fillRect(0, (i * h) / count, w, h / count + 1);
-		}
-	});
 }
 
 const seaVertex = /* glsl */ `
