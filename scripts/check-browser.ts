@@ -58,6 +58,7 @@ try {
 		'stable-check',
 		'gait-check',
 		'walk-check',
+		'travel-check',
 		'riders-check',
 		'lifecycle-check',
 	]) {

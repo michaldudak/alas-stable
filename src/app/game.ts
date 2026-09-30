@@ -288,8 +288,13 @@ export function startGame() {
 	const riders = createRiders(scene);
 	const racing = createRacing(scene);
 	/** The fastest lap of the racecourse, kept between visits. */
-	let bestLap =
-		Number(readStoredValue(localStorage, 'alas-stable.best-lap') ?? 0) || 0;
+	let bestLap = 0;
+	try {
+		bestLap =
+			Number(readStoredValue(localStorage, 'alas-stable.best-lap') ?? 0) || 0;
+	} catch {
+		/* Without storage the record lasts for this session. */
+	}
 	const otherHorseSolids = () => [
 		...herd.filter((h) => h !== selected).map((h) => horseBarrier(h.state)),
 		...riders.barriers(),

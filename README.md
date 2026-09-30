@@ -35,7 +35,9 @@ All developer content is written in English. Player-readable content is availabl
 - G or the hand button: on foot next to a jump, take hold of the middle of its rails. Walk forwards to push it, backwards to pull it and steer to turn it; press G again to put it down. A held jump cannot be pushed into trees, walls or horses. Jumps can stand anywhere and at any angle, and horses jump them from either side.
 - C: switch between third-person and first-person cameras. Drag the mouse to look around.
 - Escape: pause. Switching tabs or losing focus also pauses the game.
-- Icon buttons: settings, sound, help, horse appearance, return to the stable, and fullscreen.
+- E at the car's driver door: open the map of places to drive to. E beside the clubhouse bed: sleep until seven in the morning.
+- L behind the horse trailer's ramp: lead the horse in the trailer back out.
+- Icon buttons: settings, sound, help, horse appearance, return to the stable (the car comes home too), and fullscreen.
 
 Audio starts after the first click or key press, as required by browsers. Each horse has its own appearance saved in localStorage; if storage is unavailable, changes still work for the current session.
 
@@ -48,6 +50,20 @@ The appearance panel has four sections: colors, hairstyles, ornaments, and saddl
 This is a desktop keyboard prototype, not a finished mobile game. Sounds and models are provisional. Playtesting with a child should assess steering speed, camera height, how clearly the horse reads on screen, jump difficulty, and performance on the target computer.
 
 The horse body is sculpted in Blender from anatomical masses by `tools/horse/build_horse.py` and exported to `src/assets/horse.glb`; `src/horse/model.ts` rigs it with three-bone legs and fits mane and tail strands, saddlecloth, saddle, bridle and halter to its surface. The appearance preview supports rotation and zoom, with an optional rider. Color changes appear immediately. Drag to rotate and use the mouse wheel to zoom; buttons and arrow keys are also available when the preview has focus.
+
+## Clubhouse
+
+The clubhouse west of the yard has an open door and one cosy room: a bed and a bunk bed, a brick fireplace with a flickering fire, a sofa and an armchair on a rug, a dining table, a kitchen under the window, books, trophies and rosettes, horse paintings, coats, boots and a saddle by the door. The third-person camera stays inside the room, grass and rain stay out, and two lamps light it at night. Pressing E beside the bed fades to black and sleeps until seven in the morning; the other riders turn in at the same time. The furniture is built by `src/world/furniture.ts` and the room by `clubhouse.ts`.
+
+## Travelling by car
+
+A green four-by-four with a horse trailer is parked beside the clubhouse. Lead a horse on the lead rope up behind the lowered ramp and it walks up into the trailer by itself; stand at the driver's door and press E to open an illustrated map of places to drive to. The horse in the trailer rides along; behind the ramp, L leads it back out on the lead rope. The car can also go without a horse, and a horse left somewhere waits there until you drive back for it.
+
+- **Beach**: a wide sandy beach with surf running up the sand and the sea to wade into, a long pier, windbreaks and umbrellas, a lifeguard's chair, an ice-cream kiosk and beach huts, dunes of marram grass behind a rope fence and pines beyond. The sea is to the west, so the sun sets over the water.
+- **Mountains**: a valley under deep snow, ringed by wooded foothills and rocky peaks, with a log mountain hut with smoke rising from its chimney, a fenced frozen tarn, snowy spruces, snowmen, a hay rack for the deer and a trail signpost. Cloud brings a light snowfall and rain a heavy one.
+- **Hippodrome**: a grand racecourse with a dirt track inside white rails, a covered grandstand full of cheering spectators, a judges' tower, a starting gate, a tote board, a pond in the infield and the racing stables. Stop in the white start box by the finishing post, on the inside rail, and a countdown starts a one-lap race against three horses. A lap only counts after passing every quarter post; the race clock and your place show at the top, and the best time is kept as the course record.
+
+Every place is a flat disc far from the others in world coordinates (`src/game/regions.ts`), with its own edge, ground, grass, haze and camera angle, built the first time the car drives there. `src/game/trailer.ts` holds the car and trailer geometry and the walk up and down the ramp, `src/game/race.ts` the rules of a race; `tests/trailer.test.ts` and `tests/race.test.ts` cover them, and `node scripts/travel-check.ts` sleeps, loads a horse, drives to every place and unloads it.
 
 ## Other riders
 

@@ -22,7 +22,7 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Stable walls and colliders                               | `src/world/stable-layout.ts`                          |
 | Map layout: arena, racecourse, pasture, paths            | `src/world/layout.ts`, `fences.ts`                    |
 | Clock, sun path and weather model                        | `src/game/environment.ts`                             |
-| Night sky, clouds, rain, lamps and light pools           | `src/world/sky.ts`, `rain.ts`, `lamps.ts`             |
+| Night sky, clouds, rain, snow, lamps and light pools     | `src/world/sky.ts`, `rain.ts`, `lamps.ts`             |
 | Waiting horses: strolling, grazing, treats               | `src/game/wander.ts`, `src/horse/neck.ts`             |
 | Movable jumps and their collisions                       | `src/game/obstacles.ts`, `src/world/jumps.ts`         |
 | Other riders: riding and path finding                    | `src/game/npc.ts`, `navigation.ts`                    |
@@ -30,6 +30,12 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Path network and stall access                            | `src/world/paths.ts`                                  |
 | Every horse, its home stall and name; nameplates         | `src/world/roster.ts`, `src/horse/names.ts`           |
 | Stable building and residents                            | `src/world/stable.ts`                                 |
+| Clubhouse room, furniture and the bed                    | `src/world/clubhouse.ts`, `furniture.ts`              |
+| Places to drive to and their edges                       | `src/game/regions.ts`, `src/world/region-layout.ts`   |
+| Beach, mountains and hippodrome scenery                  | `src/world/beach.ts`, `mountains.ts`, `hippodrome.ts` |
+| Car, trailer, loading and unloading a horse              | `src/game/trailer.ts`, `src/world/vehicle.ts`         |
+| Travel map                                               | `src/ui/travel-map.ts`                                |
+| Races at the hippodrome                                  | `src/game/race.ts`, `src/app/racing.ts`               |
 | Scenery layout, fences, obstacles                        | `src/world/world.ts`, `primitives.ts`                 |
 | Sky, haze, clouds, environment lighting, sun             | `src/world/sky.ts`, `sun.ts`                          |
 | Ground surface mask, terrain textures, distant hills     | `src/world/terrain.ts`                                |
@@ -55,6 +61,8 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 The environment is procedural and asset-free. `sky.ts` bakes the analytic sky into a prefiltered environment map once at startup; `createWorld().dispose()` releases it, since it is not reachable from scene meshes. `terrain.ts` paints one mask texture (sand, worn earth, lushness, grass density) that both the terrain shader and the grass shader sample, so paths, the arena and the stable apron stay consistent. Grass is a fixed grid of instanced tiles that follows the camera; distant tiles draw fewer tufts and blades shrink to nothing before the grid edge. Trees are a few pre-built shapes per kind drawn as instanced meshes; backdrop trees on the hills use lighter shapes and cast no shadows. Tree placement keeps the original random sequence so existing trunk colliders stay where they were.
 
 Shader extensions use `onBeforeCompile`. Samplers that are only shader uniforms are listed in `material.userData.textures`, which `disposeScene` releases alongside regular material textures. `createWorld().update(time, camera)` advances wind and cloud drift and repositions the grass grid; call it after the camera has moved each frame.
+
+The places the car drives to are flat discs about three kilometres apart in the same world coordinates, so physics, animation and every scene system keep working unchanged and nothing of one place is ever in view from another. `src/game/regions.ts` gives each its centre and edge; `createWorld().enter(id)` builds a place the first time it is visited (its ground, scenery, colliders and trees), shows it and hides the others, switches the grass to its painted surface and sets its haze and ground light. `createRegionGround` in `terrain.ts` paints a surface mask for a place from a function and shapes its ground from a height field, with the same shader as home plus snow, rock on steep slopes and wet sand behind the surf. The sky dome and cloud deck follow the camera.
 
 Static scenery (buildings, fences, props) is merged per material by `src/rendering/merge.ts` after it is built, so large buildings cost a few draw calls; meshes marked `userData.dynamic` (movable jumps) are skipped. Trees are instanced per shape and per 70 m map chunk so off-screen chunks are culled. The sun's shadow map covers 160 m around a point ahead of the camera and snaps to whole texels. Horses outside the view are hidden and distant ones skip animation.
 
