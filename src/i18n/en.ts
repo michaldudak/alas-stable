@@ -291,6 +291,11 @@ export const en = {
 	'location.pier': 'Pier',
 	'sign.beach': 'BEACH',
 	'sign.kiosk': 'ICE CREAM · WAFFLES',
+	'sign.hut': 'MOUNTAIN HUT',
+	'location.hut': 'Mountain hut',
+	'location.tarn': 'Frozen tarn',
+	'location.valley': 'Snowy valley',
+	'weather.snowy': 'Snowing',
 	'help.carTitle': 'Car and trailer',
 	'help.carBody':
 		'Lead a horse up to the trailer ramp and it walks in by itself. At the driver’s door, E opens the map of places to drive to. Behind the ramp, L leads the horse out.',

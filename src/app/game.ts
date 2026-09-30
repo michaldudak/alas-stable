@@ -107,6 +107,14 @@ import {
 	type Weather,
 } from '../game/environment.ts';
 
+/** How level the camera looks in each place: higher to take in the peaks. */
+const CAMERA_LIFT: Record<RegionId, number> = {
+	home: 0,
+	beach: 0.5,
+	mountains: 1,
+	hippodrome: 0.35,
+};
+
 // Horses are built from the sculpted asset: load it before calling startGame().
 export { loadHorseAsset } from '../horse/asset.ts';
 export { loadRiderAsset } from '../horse/rider-asset.ts';
@@ -251,8 +259,11 @@ export function startGame() {
 		if ($('clock').textContent !== clock) $('clock').textContent = clock;
 		const night = isNightHour(hour);
 		const weather = environment.weather;
-		const name =
-			weather === 'rainy'
+		// In the mountains rain falls as snow.
+		const snowing = weather === 'rainy' && world.region === 'mountains';
+		const name = snowing
+			? 'cloud-snow'
+			: weather === 'rainy'
 				? 'cloud-rain'
 				: weather === 'cloudy'
 					? night
@@ -263,7 +274,7 @@ export function startGame() {
 						: night
 							? 'moon'
 							: 'sun';
-		const label = t(`weather.${weather}`);
+		const label = t(snowing ? 'weather.snowy' : `weather.${weather}`);
 		const key = name + label;
 		if (key === skyIcon) return;
 		skyIcon = key;
@@ -1356,6 +1367,7 @@ export function startGame() {
 			snap,
 			riding !== 'mounted',
 			leading,
+			CAMERA_LIFT[world.region],
 		);
 	}
 	const minimap = createMinimap(
@@ -1770,7 +1782,7 @@ export function startGame() {
 		rope.update(walker.leadHand, horse.leadAnchor, leading);
 		world.update(elapsed, camera, environment, innerHeight);
 		audio.weather(
-			environment.conditions.rain,
+			world.region === 'mountains' ? 0 : environment.conditions.rain,
 			environment.conditions.wind,
 			environment.darkness,
 			world.region === 'beach'

@@ -29,7 +29,8 @@ import type { HorseModel } from '../horse/types.ts';
 import { createHorse } from '../horse/model.ts';
 import { ROSTER } from './roster.ts';
 import { createLamps, createSurfaceUniforms } from './lamps.ts';
-import { createRain } from './rain.ts';
+import { createRain, createSnow } from './rain.ts';
+import { createMountains } from './mountains.ts';
 import type { Environment } from '../game/environment.ts';
 import { REGIONS, type RegionId } from '../game/regions.ts';
 import { createBeach } from './beach.ts';
@@ -50,7 +51,9 @@ interface Place {
 	ground: THREE.Color;
 	/** Scales the haze: clear mountain air, salty sea air. */
 	fog: number;
-	update?(time: number, wind: number, windPhase: number): void;
+	/** Snow falls instead of rain. */
+	snowy?: boolean;
+	update?(time: number, environment: Environment): void;
 }
 
 const smooth = THREE.MathUtils.smoothstep;
@@ -272,7 +275,23 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 				grass: beach.grass,
 				ground: beach.ground,
 				fog: beach.fog,
-				update: (time, wind, windPhase) => beach.update(time, wind, windPhase),
+				update: (time, environment) =>
+					beach.update(
+						time,
+						environment.conditions.wind,
+						environment.windPhase,
+					),
+			};
+		}
+		if (id === 'mountains') {
+			const mountains = createMountains(scene, solids, surface);
+			return {
+				objects: [mountains.root],
+				ground: mountains.ground,
+				fog: mountains.fog,
+				snowy: mountains.snowy,
+				update: (time, environment) =>
+					mountains.update(time, environment.darkness),
 			};
 		}
 		return home;
@@ -300,6 +319,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	}
 	const vehicle = createVehicle(scene);
 	const rain = createRain(scene);
+	const snow = createSnow(scene);
 	const horses: HorseModel[] = [
 		...stables.flatMap((stable) => stable.horses),
 		...pastureHerd(scene),
@@ -373,13 +393,34 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 				windPhase: environment.windPhase,
 			});
 			sky.fog.density *= place.fog;
-			place.update?.(time, conditions.wind, environment.windPhase);
+			place.update?.(time, environment);
 			vehicle.update(darkness);
 			surface.wind.value = conditions.wind;
-			surface.wetness.value = environment.wetness;
 			grass.update(environment.windPhase, camera);
 			forest.update(environment.windPhase, conditions.wind);
-			rain.update(time, camera, conditions.rain, conditions.wind, daylight);
+			// In the mountains, cloud brings a light snowfall and rain a heavy one.
+			const snowfall = place.snowy
+				? Math.min(
+						1,
+						conditions.rain + smooth(conditions.overcast, 0.3, 0.9) * 0.45,
+					)
+				: 0;
+			rain.update(
+				time,
+				camera,
+				place.snowy ? 0 : conditions.rain,
+				conditions.wind,
+				daylight,
+			);
+			snow.update(
+				time,
+				camera,
+				snowfall,
+				conditions.wind,
+				daylight,
+				viewportHeight,
+			);
+			surface.wetness.value = place.snowy ? 0 : environment.wetness;
 			lamps.update(camera, darkness, viewportHeight);
 			// Lit stables glow through their windows after dusk.
 			const night = smooth(darkness, 0.25, 0.7);

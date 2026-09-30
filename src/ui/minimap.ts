@@ -10,7 +10,7 @@ import { ARENA, CLUBHOUSE, PASTURE, RACE_TRACK } from '../world/layout.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
 import { REGIONS, type RegionId } from '../game/regions.ts';
 import type { RigPose } from '../game/trailer.ts';
-import { BEACH } from '../world/region-layout.ts';
+import { BEACH, MOUNTAINS } from '../world/region-layout.ts';
 
 const SIZE = 180;
 /** Pixels per metre; the map scrolls with the player. */
@@ -44,6 +44,7 @@ export function createMinimap(
 			map.fillRect(...point(x - w, z - d), w * 2 * SCALE, d * 2 * SCALE);
 		map.clearRect(0, 0, SIZE, SIZE);
 		if (region === 'beach') drawBeach(point);
+		else if (region === 'mountains') drawMountains(point, rect);
 		else drawHome(point, rect);
 		for (const [list, fill] of [
 			[horses, '#825632'],
@@ -126,6 +127,43 @@ export function createMinimap(
 		map.moveTo(pierStart, pierY);
 		map.lineTo(pierEnd, pierY);
 		map.stroke();
+	}
+	/** The snowy valley, its trail, the hut and the frozen tarn. */
+	function drawMountains(
+		point: Project,
+		rect: (x: number, z: number, w: number, d: number) => void,
+	) {
+		const { x, z, radius, hut, tarn } = MOUNTAINS;
+		map.fillStyle = '#8f9aa6';
+		map.fillRect(0, 0, SIZE, SIZE);
+		map.fillStyle = '#eef2f6';
+		map.beginPath();
+		map.arc(...point(x, z), radius * SCALE, 0, Math.PI * 2);
+		map.fill();
+		map.strokeStyle = '#cdd5de';
+		map.lineWidth = 3;
+		map.beginPath();
+		for (let i = 0; i <= 48; i++) {
+			const a = (i / 48) * Math.PI * 2;
+			const r = 92 + 14 * Math.sin(a * 3 + 1);
+			const [px, py] = point(x + Math.sin(a) * r, z + Math.cos(a) * r);
+			if (i) map.lineTo(px, py);
+			else map.moveTo(px, py);
+		}
+		map.stroke();
+		map.fillStyle = '#b9d4e3';
+		map.beginPath();
+		map.ellipse(
+			...point(x + tarn.x, z + tarn.z),
+			tarn.radiusX * SCALE,
+			tarn.radiusZ * SCALE,
+			0,
+			0,
+			Math.PI * 2,
+		);
+		map.fill();
+		map.fillStyle = '#7a5a3e';
+		rect(x + hut.x, z + hut.z, hut.halfWidth, hut.halfDepth);
 	}
 	/** The stable yard with its stables, arena, racecourse and pasture. */
 	function drawHome(

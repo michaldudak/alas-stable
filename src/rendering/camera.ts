@@ -24,6 +24,8 @@ export function createCameraController(
 		snap = false,
 		onFoot = false,
 		leading = false,
+		/** 0–1: how level the view is, to take in distant scenery. */
+		lift = 0,
 	) {
 		const heading = state.heading + look;
 		const indoors = insideStable(state.x, state.z, 1.5);
@@ -63,9 +65,12 @@ export function createCameraController(
 			const ahead = onFoot ? (leading ? -1.5 : 0.5) : indoors ? 0 : 2.5;
 			target.set(
 				state.x + Math.sin(state.heading) * ahead,
-				(onFoot ? 1.3 : indoors ? 2.2 : 1.7) + state.height * 0.65,
+				(onFoot ? 1.3 : indoors ? 2.2 : 1.7) +
+					state.height * 0.65 +
+					lift * (onFoot ? 0.9 : 1.2),
 				state.z + Math.cos(state.heading) * ahead,
 			);
+			desiredCamera.y -= lift * (onFoot ? 0.8 : 1.4);
 		}
 		if (!firstPerson)
 			desiredCamera.sub(target).multiplyScalar(distanceScale).add(target);

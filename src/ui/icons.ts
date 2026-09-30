@@ -38,6 +38,7 @@ import {
 	MountainSnow,
 	Trophy,
 	Car,
+	CloudSnow,
 } from 'lucide';
 export const icons = {
 	Menu,
@@ -78,6 +79,7 @@ export const icons = {
 	MountainSnow,
 	Trophy,
 	Car,
+	CloudSnow,
 };
 export const refreshIcons = () => createIcons({ icons });
 

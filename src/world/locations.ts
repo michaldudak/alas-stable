@@ -1,6 +1,6 @@
 import type { MessageKey } from '../i18n/index.ts';
 import { regionAt } from '../game/regions.ts';
-import { BEACH } from './region-layout.ts';
+import { BEACH, MOUNTAINS, PARKING } from './region-layout.ts';
 import { stableAt, inTackRoom } from './stable-layout.ts';
 import {
 	ARENA,
@@ -29,6 +29,21 @@ export function locationName(x: number, z: number): MessageKey {
 		if (lx < BEACH.shore) return 'location.sea';
 		if (lx > BEACH.dunes) return 'location.carPark';
 		return 'location.beach';
+	}
+	if (region === 'mountains') {
+		const lx = x - MOUNTAINS.x,
+			lz = z - MOUNTAINS.z;
+		const { hut, tarn } = MOUNTAINS;
+		if (Math.hypot(lx - hut.x, lz - hut.z) < 16) return 'location.hut';
+		if (
+			((lx - tarn.x) / (tarn.radiusX + 8)) ** 2 +
+				((lz - tarn.z) / (tarn.radiusZ + 8)) ** 2 <
+			1
+		)
+			return 'location.tarn';
+		const parked = PARKING.mountains;
+		if (Math.hypot(x - parked.x, z - parked.z) < 14) return 'location.carPark';
+		return 'location.valley';
 	}
 	if (region !== 'home') return `region.${region}`;
 	if (inTackRoom(x, z)) return 'location.tack';

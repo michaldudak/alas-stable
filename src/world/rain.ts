@@ -112,3 +112,89 @@ export function createRain(scene: THREE.Scene) {
 		},
 	};
 }
+
+const FLAKES = 6000;
+const SNOW_SIZE = 40;
+const SNOW_HEIGHT = 18;
+
+const snowVertex = /* glsl */ `
+attribute vec3 seed;
+uniform float time, intensity, drift, scale;
+uniform vec3 center;
+varying float vAlpha;
+void main() {
+	// Flakes tumble through a box that wraps around the camera.
+	float fall = mod(seed.z * ${SNOW_HEIGHT.toFixed(1)} - time * (0.9 + seed.x * 0.5), ${SNOW_HEIGHT.toFixed(1)});
+	vec2 sway = vec2(sin(time * 0.9 + seed.y * 31.0), cos(time * 0.7 + seed.x * 17.0)) * 0.6;
+	vec2 blown = vec2(0.8, 0.35) * drift * (${SNOW_HEIGHT.toFixed(1)} - fall) * 0.4;
+	vec2 xz = mod(seed.xy * ${SNOW_SIZE.toFixed(1)} + sway + blown - center.xz, ${SNOW_SIZE.toFixed(1)}) + center.xz - ${(SNOW_SIZE / 2).toFixed(1)};
+	vec3 p = vec3(xz.x, center.y + fall - 6.0, xz.y);
+	float shown = step(fract(seed.x * 57.3 + seed.y * 11.9), intensity);
+	vAlpha = shown * (1.0 - smoothstep(0.6, 1.0, distance(p.xz, center.xz) / ${(SNOW_SIZE / 2).toFixed(1)}));
+	vec4 view = viewMatrix * vec4(p, 1.0);
+	gl_Position = projectionMatrix * view;
+	gl_PointSize = min(9.0, scale * (0.035 + seed.z * 0.03) / -view.z);
+}`;
+
+const snowFragment = /* glsl */ `
+uniform vec3 color;
+varying float vAlpha;
+void main() {
+	float d = length(gl_PointCoord - 0.5) * 2.0;
+	if (vAlpha <= 0.0 || d > 1.0) discard;
+	gl_FragColor = vec4(color, vAlpha * (1.0 - d * d) * 0.9);
+}`;
+
+/** Snowflakes drifting down around the camera, for the mountains. */
+export function createSnow(scene: THREE.Scene) {
+	const next = random(1717);
+	const seeds = new Float32Array(FLAKES * 3);
+	for (let i = 0; i < FLAKES * 3; i++) seeds[i] = next();
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute(
+		'position',
+		new THREE.BufferAttribute(new Float32Array(FLAKES * 3), 3),
+	);
+	geometry.setAttribute('seed', new THREE.BufferAttribute(seeds, 3));
+	const material = new THREE.ShaderMaterial({
+		name: 'Snow',
+		uniforms: {
+			time: { value: 0 },
+			intensity: { value: 0 },
+			drift: { value: 0 },
+			scale: { value: 800 },
+			center: { value: new THREE.Vector3() },
+			color: { value: new THREE.Color('#ffffff') },
+		},
+		vertexShader: snowVertex,
+		fragmentShader: snowFragment,
+		transparent: true,
+		depthWrite: false,
+	});
+	const snow = new THREE.Points(geometry, material);
+	snow.name = 'snow';
+	snow.frustumCulled = false;
+	snow.visible = false;
+	scene.add(snow);
+	return {
+		update(
+			time: number,
+			camera: THREE.Camera,
+			intensity: number,
+			wind: number,
+			daylight: number,
+			viewportHeight: number,
+		) {
+			snow.visible = intensity > 0.02;
+			const uniforms = material.uniforms;
+			uniforms.time.value = time;
+			uniforms.intensity.value = intensity;
+			uniforms.drift.value = 0.2 + wind;
+			uniforms.scale.value = viewportHeight * 1.2;
+			(uniforms.center.value as THREE.Vector3).copy(camera.position);
+			(uniforms.color.value as THREE.Color)
+				.setRGB(1, 1, 1)
+				.multiplyScalar(0.3 + 0.7 * daylight);
+		},
+	};
+}

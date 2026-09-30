@@ -303,8 +303,9 @@ groundColor = mix(groundColor, vec3(0.13, 0.19, 0.1), woods * 0.75 * woodedHills
 // Snow lies everywhere but on trodden tracks; steep mountain faces show rock.
 vec3 snow = twoScale(snowMap, groundXZ, 6.0);
 groundColor = mix(groundColor, snow, snowCover * (1.0 - surface.g * 0.55));
-float steep = smoothstep(0.8, 0.6, vGroundNormal.y) * rockSlopes;
-vec3 rock = mix(vec3(0.3, 0.3, 0.32), vec3(0.46, 0.45, 0.44), texture2D(dirtMap, groundXZ / 23.0).r);
+float crags = texture2D(grassMap, groundXZ / 61.0).g;
+float steep = smoothstep(0.9, 0.74, vGroundNormal.y + (crags - 0.5) * 0.25) * rockSlopes;
+vec3 rock = mix(vec3(0.13, 0.13, 0.15), vec3(0.33, 0.32, 0.31), texture2D(dirtMap, groundXZ / 23.0).r);
 groundColor = mix(groundColor, rock, steep);
 // Sand darkens where the waves have just run up the beach.
 float wetSand = shore.z * (1.0 - smoothstep(shore.x, shore.x + shore.y, maskXZ.x));
@@ -320,11 +321,12 @@ function groundGeometry(
 	origin: Point,
 	flatRadius: number,
 	segments = 192,
+	growth = 0.08,
 	outer = 900,
 ) {
 	const radii: number[] = [];
 	for (let r = 0; r < flatRadius; r += 6) radii.push(r);
-	for (let r = flatRadius; r < outer; r += 6 + (r - flatRadius) * 0.08)
+	for (let r = flatRadius; r < outer; r += 6 + (r - flatRadius) * growth)
 		radii.push(r);
 	const positions: number[] = [],
 		indices: number[] = [];
@@ -459,6 +461,8 @@ export function createRegionGround(
 		height: HeightField;
 		flatRadius: number;
 		segments?: number;
+		/** How quickly rings of vertices thin out beyond the flat. */
+		growth?: number;
 	},
 	surfaceUniforms: SurfaceUniforms,
 ) {
@@ -477,7 +481,13 @@ export function createRegionGround(
 	const mask = maskTexture(data, size);
 	const { material, shore } = groundMaterial(mask, look, surfaceUniforms);
 	const ground = new THREE.Mesh(
-		groundGeometry(look.height, look.origin, look.flatRadius, look.segments),
+		groundGeometry(
+			look.height,
+			look.origin,
+			look.flatRadius,
+			look.segments,
+			look.growth,
+		),
 		material,
 	);
 	ground.name = 'region-ground';

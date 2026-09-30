@@ -288,6 +288,11 @@ export const pl = {
 	'location.pier': 'Molo',
 	'sign.beach': 'PLAŻA',
 	'sign.kiosk': 'LODY · GOFRY',
+	'sign.hut': 'SCHRONISKO',
+	'location.hut': 'Schronisko',
+	'location.tarn': 'Zamarznięty staw',
+	'location.valley': 'Śnieżna dolina',
+	'weather.snowy': 'Pada śnieg',
 	'help.carTitle': 'Samochód i przyczepa',
 	'help.carBody':
 		'Podprowadź konia na lonży do rampy przyczepy, a wejdzie sam. Przy drzwiach kierowcy E otwiera mapę miejsc. Za rampą L wyprowadza konia.',
