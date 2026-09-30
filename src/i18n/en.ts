@@ -249,4 +249,10 @@ export const en = {
 	'settings.body': 'Choose the game language. Your choice will be remembered.',
 	'language.pl': 'Polski',
 	'language.en': 'English',
+	'location.clubhouse': 'Clubhouse',
+	'prompt.bed': 'Bed',
+	'prompt.sleep': 'sleep',
+	'hint.wakeTitle': 'Good morning!',
+	'hint.wakeBody':
+		'Ala slept until seven. The horses are waiting for breakfast.',
 };

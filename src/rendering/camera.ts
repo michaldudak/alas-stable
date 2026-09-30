@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import type { GameState } from '../game/types.ts';
 import { insideStable } from '../world/stable-layout.ts';
+import { CLUBHOUSE, insideClubhouse } from '../world/layout.ts';
+
+/** Keeps the camera this far inside the clubhouse walls, under the ceiling. */
+const ROOM_MARGIN = 0.45;
 
 /** Reuses scratch vectors every frame; raycasts pull TPP in front of nearby walls. */
 export function createCameraController(
@@ -23,6 +27,8 @@ export function createCameraController(
 	) {
 		const heading = state.heading + look;
 		const indoors = insideStable(state.x, state.z, 1.5);
+		// In the low clubhouse room the camera stays inside, close and high.
+		const room = insideClubhouse(state.x, state.z, -0.3);
 		if (firstPerson) {
 			desiredCamera.set(
 				state.x - Math.sin(state.heading) * 0.3,
@@ -35,10 +41,18 @@ export function createCameraController(
 				desiredCamera.z + Math.cos(heading) * 15,
 			);
 		} else {
-			const distance = onFoot ? (leading ? 8.5 : 4.5) : indoors ? 7.2 : 9;
+			const distance = room
+				? 3.4
+				: onFoot
+					? leading
+						? 8.5
+						: 4.5
+					: indoors
+						? 7.2
+						: 9;
 			desiredCamera.set(
 				state.x - Math.sin(heading) * distance,
-				(onFoot ? (leading ? 4.7 : 3.1) : indoors ? 5.15 : 5.7) +
+				(room ? 2.55 : onFoot ? (leading ? 4.7 : 3.1) : indoors ? 5.15 : 5.7) +
 					state.height * 0.55,
 				state.z - Math.cos(heading) * distance,
 			);
@@ -55,6 +69,20 @@ export function createCameraController(
 		}
 		if (!firstPerson)
 			desiredCamera.sub(target).multiplyScalar(distanceScale).add(target);
+		if (room && !firstPerson) {
+			const { x, z, halfWidth, halfDepth } = CLUBHOUSE;
+			desiredCamera.x = THREE.MathUtils.clamp(
+				desiredCamera.x,
+				x - halfWidth + ROOM_MARGIN,
+				x + halfWidth - ROOM_MARGIN,
+			);
+			desiredCamera.z = THREE.MathUtils.clamp(
+				desiredCamera.z,
+				z - halfDepth + ROOM_MARGIN,
+				z + halfDepth - ROOM_MARGIN,
+			);
+			desiredCamera.y = Math.min(desiredCamera.y, 2.9);
+		}
 		camera.position.lerp(desiredCamera, snap ? 1 : 1 - Math.exp(-dt * 7));
 		if (!firstPerson) {
 			cameraDirection.copy(camera.position).sub(target);

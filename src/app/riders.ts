@@ -740,6 +740,10 @@ export function createRiders(
 	return {
 		riders,
 		paths,
+		/** Everyone turns in: riders to the clubhouse, horses to their stalls. */
+		restAll() {
+			for (const rider of riders) sendHome(rider);
+		},
 		/** The other riders' horses, as solids for everyone else. */
 		barriers(): Solid[] {
 			return riders.map((rider) => horseBarrier(rider.npc.state));

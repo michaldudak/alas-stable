@@ -293,6 +293,51 @@ export function startGame() {
 		riding === 'mounting' ||
 		riding === 'dismounting' ||
 		riding === 'approaching';
+	/** A fade through black, with the change made while the screen is dark. */
+	let fade:
+		| { time: number; midway: () => void; done?: () => void; fired: boolean }
+		| undefined;
+	function fadeThrough(midway: () => void, done?: () => void) {
+		fade = { time: 0, midway, done, fired: false };
+		$('fade').classList.add('on');
+		input.clear();
+		touch.clear();
+	}
+	function updateFade(dt: number) {
+		if (!fade) return;
+		fade.time += dt;
+		if (!fade.fired && fade.time >= 0.9) {
+			fade.fired = true;
+			fade.midway();
+			updateGait();
+			updateCamera(1, true);
+		}
+		if (fade.fired && fade.time >= 1.6) $('fade').classList.remove('on');
+		if (fade.time >= 2.4) {
+			const done = fade.done;
+			fade = undefined;
+			done?.();
+		}
+	}
+	/** Close enough to the clubhouse bed to lie down. */
+	const nearBed = () =>
+		riding === 'on-foot' &&
+		!leading &&
+		!carried &&
+		Math.hypot(person.x - world.bed.x, person.z - world.bed.z) < 2.4;
+	/** Sleeps until seven in the morning; the other riders turn in too. */
+	function sleep() {
+		fadeThrough(
+			() => {
+				riders.restAll();
+				environment.setHour(7);
+				const { x, z, heading } = world.bed.wake;
+				Object.assign(person, { x, z, heading, gait: 0, speed: 0 });
+				input.resetLook();
+			},
+			() => hint('hint.wakeTitle', 'hint.wakeBody', 5),
+		);
+	}
 	let firstPerson = false,
 		paused = false,
 		elapsed = 0,
@@ -412,7 +457,7 @@ export function startGame() {
 		touch.sync();
 	}
 	function tempo(delta: number) {
-		if (transferring()) return;
+		if (transferring() || fade) return;
 		if (riding === 'mounted') changeGait(state, delta);
 		// Holding a jump, the rider can only walk it forwards or pull it back.
 		else
@@ -654,7 +699,11 @@ export function startGame() {
 		hint('hint.leading', 'hint.follow', 4, { name: selected.name });
 	}
 	function mount() {
-		if (transferring()) return;
+		if (transferring() || fade) return;
+		if (nearBed()) {
+			sleep();
+			return;
+		}
 		if (
 			riding === 'mounted' &&
 			(state.gait !== 0 || Math.abs(state.speed) > 0.12 || state.jump >= 0)
@@ -1190,13 +1239,31 @@ export function startGame() {
 	let promptTimer = 0,
 		promptTarget: (typeof herd)[number] | undefined,
 		promptMount = false,
-		promptJump: Jump | undefined;
+		promptJump: Jump | undefined,
+		promptUse:
+			| { x: number; y: number; z: number; name: MessageKey; label: MessageKey }
+			| undefined;
+	/** Something to use nearby with the mount key: the bed. */
+	function useTarget() {
+		if (fade) return undefined;
+		if (nearBed())
+			return {
+				x: world.bed.x,
+				y: 1.6,
+				z: world.bed.z,
+				name: 'prompt.bed' as const,
+				label: 'prompt.sleep' as const,
+			};
+		return undefined;
+	}
 	function updatePrompt(dt: number) {
 		promptTimer -= dt;
 		if (riding !== 'on-foot' || leading) {
 			promptTarget = undefined;
 			promptJump = undefined;
+			promptUse = undefined;
 		} else if (promptTimer <= 0) {
+			promptUse = useTarget();
 			promptTimer = 0.2;
 			const mountable = carried
 				? undefined
@@ -1209,21 +1276,22 @@ export function startGame() {
 		}
 		const element = $('prompt');
 		// A horse within reach takes precedence over a jump nearby.
-		const jump = promptTarget ? undefined : promptJump;
-		if (!promptTarget && !jump) {
+		const use = promptTarget ? undefined : promptUse;
+		const jump = promptTarget || use ? undefined : promptJump;
+		if (!promptTarget && !jump && !use) {
 			element.hidden = true;
 			return;
 		}
-		const target = promptTarget?.state ?? jump!;
+		const target = promptTarget?.state ?? use ?? jump!;
 		promptPoint
-			.set(target.x, promptTarget ? 4.1 : 2.3, target.z)
+			.set(target.x, promptTarget ? 4.1 : (use?.y ?? 2.3), target.z)
 			.project(camera);
 		if (promptPoint.z > 1) {
 			element.hidden = true;
 			return;
 		}
 		element.hidden = false;
-		const name = promptTarget?.name ?? t('prompt.jump');
+		const name = promptTarget?.name ?? (use ? t(use.name) : t('prompt.jump'));
 		if ($('prompt-name').textContent !== name)
 			$('prompt-name').textContent = name;
 		const pad = document.documentElement.classList.contains('gamepad-active');
@@ -1238,6 +1306,13 @@ export function startGame() {
 			!promptTarget ||
 			Math.hypot(target.x - person.x, target.z - person.z) >= 3.6;
 		$('prompt-grab').hidden = !jump;
+		$('prompt-use').hidden = !use;
+		if (use) {
+			$('prompt-use-key').textContent = pad ? 'B' : 'E';
+			const label = t(use.label);
+			if ($('prompt-use-label').textContent !== label)
+				$('prompt-use-label').textContent = label;
+		}
 		const grabLabel = t(carried ? 'prompt.drop' : 'prompt.grab');
 		if ($('prompt-grab-label').textContent !== grabLabel)
 			$('prompt-grab-label').textContent = grabLabel;
@@ -1268,12 +1343,13 @@ export function startGame() {
 		if (!paused) {
 			elapsed += dt;
 			environment.update(dt);
-			const turn = THREE.MathUtils.clamp(
-				input.turn + gamepad.turn + touch.turn,
-				-1,
-				1,
-			);
-			const move = THREE.MathUtils.clamp(gamepad.move + touch.move, -1, 1);
+			const turn = fade
+				? 0
+				: THREE.MathUtils.clamp(input.turn + gamepad.turn + touch.turn, -1, 1);
+			const move = fade
+				? 0
+				: THREE.MathUtils.clamp(gamepad.move + touch.move, -1, 1);
+			updateFade(dt);
 			const nudge =
 				!transferring() &&
 				(move !== 0 || (wasNudging && activeState().gait === 0))

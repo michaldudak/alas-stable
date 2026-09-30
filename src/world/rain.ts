@@ -1,6 +1,23 @@
 import * as THREE from 'three';
 import { random } from './noise.ts';
 import { STABLES, STABLE_HALF_WIDTH, halfDepth } from './stable-layout.ts';
+import { CLUBHOUSE } from './layout.ts';
+
+/** Roofs that keep the rain off: the stables and the clubhouse. */
+const SHELTERS: [number, number, number, number][] = [
+	...STABLES.map((spec): [number, number, number, number] => [
+		spec.x,
+		spec.z,
+		STABLE_HALF_WIDTH + 0.8,
+		halfDepth(spec) + 0.8,
+	]),
+	[
+		CLUBHOUSE.x,
+		CLUBHOUSE.z,
+		CLUBHOUSE.halfWidth + 0.4,
+		CLUBHOUSE.halfDepth + 0.5,
+	],
+];
 
 const DROPS = 9000;
 const SIZE = 46;
@@ -11,7 +28,7 @@ attribute vec3 seed;
 attribute float end;
 uniform float time, intensity, slant;
 uniform vec3 center;
-uniform vec4 shelters[${STABLES.length}];
+uniform vec4 shelters[${SHELTERS.length}];
 varying float vAlpha;
 void main() {
 	// Drops fill a box that wraps around the camera, so rain never runs out.
@@ -22,7 +39,7 @@ void main() {
 	p.xz += wind * fall * 0.35;
 	p += vec3(wind.x * 0.25, 0.75, wind.y * 0.25) * end;
 	float shown = step(fract(seed.x * 91.7 + seed.y * 13.3), intensity);
-	for (int i = 0; i < ${STABLES.length}; i++) {
+	for (int i = 0; i < ${SHELTERS.length}; i++) {
 		vec4 roof = shelters[i];
 		if (abs(p.x - roof.x) < roof.z && abs(p.z - roof.y) < roof.w) shown = 0.0;
 	}
@@ -62,15 +79,7 @@ export function createRain(scene: THREE.Scene) {
 			center: { value: new THREE.Vector3() },
 			color: { value: new THREE.Color('#c9d3dc') },
 			shelters: {
-				value: STABLES.map(
-					(spec) =>
-						new THREE.Vector4(
-							spec.x,
-							spec.z,
-							STABLE_HALF_WIDTH + 0.8,
-							halfDepth(spec) + 0.8,
-						),
-				),
+				value: SHELTERS.map((shelter) => new THREE.Vector4(...shelter)),
 			},
 		},
 		vertexShader: rainVertex,

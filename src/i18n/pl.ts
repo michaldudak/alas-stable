@@ -250,4 +250,9 @@ export const pl = {
 	'settings.body': 'Wybierz język gry. Twój wybór zostanie zapamiętany.',
 	'language.pl': 'Polski',
 	'language.en': 'English',
+	'location.clubhouse': 'Domek klubowy',
+	'prompt.bed': 'Łóżko',
+	'prompt.sleep': 'śpij',
+	'hint.wakeTitle': 'Dzień dobry!',
+	'hint.wakeBody': 'Ala przespała noc do siódmej. Konie czekają na śniadanie.',
 } satisfies Record<keyof typeof en, string>;

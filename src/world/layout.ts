@@ -119,7 +119,7 @@ export const PATHS: readonly { points: Point[]; halfWidth: number }[] = [
 	// From the clubhouse door to the bridleway by the stable yard.
 	{
 		points: [
-			{ x: -59.9, z: 36 },
+			{ x: -57.9, z: 36 },
 			{ x: -54, z: 34 },
 			{ x: -49, z: 31 },
 		],
@@ -134,7 +134,15 @@ export const PATHS: readonly { points: Point[]; halfWidth: number }[] = [
 export const CLUBHOUSE = {
 	x: -64,
 	z: 36,
-	halfWidth: 4,
-	halfDepth: 3.2,
-	door: { x: -59.9, z: 36 },
+	halfWidth: 6,
+	halfDepth: 4.5,
+	door: { x: -57.9, z: 36 },
 };
+
+/** Whether a point is within the clubhouse walls, grown by `margin`. */
+export function insideClubhouse(x: number, z: number, margin = 0) {
+	return (
+		Math.abs(x - CLUBHOUSE.x) < CLUBHOUSE.halfWidth + margin &&
+		Math.abs(z - CLUBHOUSE.z) < CLUBHOUSE.halfDepth + margin
+	);
+}

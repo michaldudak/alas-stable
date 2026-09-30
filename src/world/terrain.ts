@@ -10,6 +10,7 @@ import {
 	PATHS,
 	RACE_TRACK,
 	inPasture,
+	insideClubhouse,
 	raceTrackDistance,
 } from './layout.ts';
 
@@ -150,7 +151,10 @@ function surfaceMask(path: readonly Point[]) {
 			let grass =
 				(1 - sand) * (1 - THREE.MathUtils.smoothstep(dirt, 0.05, 0.6));
 			grass *= 1 - forest * 0.6 * worldNoise(x, z, 9, 11);
-			if (insideStable(x, z, 0.5)) grass = 0;
+			if (insideStable(x, z, 0.5) || insideClubhouse(x, z, 0.4)) grass = 0;
+			// A trodden patch in front of the clubhouse porch.
+			if (insideClubhouse(x - 2.5, z, 0.2) && !insideClubhouse(x, z, 0.3))
+				dirt = Math.max(dirt, 0.7);
 			for (const spec of STABLES) {
 				// Paved aprons and hay stores outside the doors.
 				const localX = x - spec.x,

@@ -1,6 +1,12 @@
 import type { MessageKey } from '../i18n/index.ts';
 import { stableAt, inTackRoom } from './stable-layout.ts';
-import { ARENA, RACE_TRACK, inPasture, raceTrackDistance } from './layout.ts';
+import {
+	ARENA,
+	RACE_TRACK,
+	inPasture,
+	insideClubhouse,
+	raceTrackDistance,
+} from './layout.ts';
 
 export function isSand(x: number, z: number) {
 	return (
@@ -12,6 +18,7 @@ export function isSand(x: number, z: number) {
 
 export function locationName(x: number, z: number): MessageKey {
 	if (inTackRoom(x, z)) return 'location.tack';
+	if (insideClubhouse(x, z)) return 'location.clubhouse';
 	const stable = stableAt(x, z);
 	if (stable)
 		return stable.id === 'main'

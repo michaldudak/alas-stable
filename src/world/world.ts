@@ -110,7 +110,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	const treeSolid = (x: number, z: number) =>
 		solids.push({ x, z, w: 0.65, d: 0.65 });
 	buildRaceTrack(scenery, solids);
-	const clubhouse = createClubhouse(scenery, solids);
+	const clubhouse = createClubhouse(scene, solids);
 	buildPasture(scenery, solids, trees, treeSolid);
 	sign(scenery, 'sign.arena', -9, 26);
 	sign(scenery, 'sign.forest', 39, 34, -0.3);
@@ -219,7 +219,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		scene,
 		scenery,
 		solids,
-		stables.flatMap((stable) => stable.lamps),
+		[...stables.flatMap((stable) => stable.lamps), ...clubhouse.lamps],
 		surface,
 	);
 	mergeStatic(scenery);
@@ -239,7 +239,12 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		rename(id: string, name: string) {
 			plates.get(id)?.(name);
 		},
-		cameraBlockers: stables.flatMap((stable) => stable.cameraBlockers),
+		cameraBlockers: [
+			...stables.flatMap((stable) => stable.cameraBlockers),
+			...clubhouse.cameraBlockers,
+		],
+		/** The clubhouse bed, where the rider can sleep until morning. */
+		bed: clubhouse.bed,
 		update(
 			time: number,
 			camera: THREE.Camera,
@@ -297,7 +302,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 				stable.lampMaterial.emissiveIntensity = 0.4 + night * 0.6;
 				stable.windowMaterial.emissiveIntensity = night * 0.9;
 			}
-			clubhouse.windowMaterial.emissiveIntensity = night * 1.1;
+			clubhouse.update(time, night);
 		},
 		dispose() {
 			sky.dispose();
