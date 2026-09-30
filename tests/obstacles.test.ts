@@ -56,14 +56,14 @@ await test('a carried jump cannot be pushed into trees or walls', () => {
 		wings.map((w) => Math.round(w.x * 10) / 10),
 		[-4.2, 4.2],
 	);
-	assert.equal(obstacleClear(obstacle, [], 190), true);
+	assert.equal(obstacleClear(obstacle, []), true);
 	assert.equal(
-		obstacleClear(obstacle, [{ x: 4.3, z: 0, w: 0.65, d: 0.65 }], 190),
+		obstacleClear(obstacle, [{ x: 4.3, z: 0, w: 0.65, d: 0.65 }]),
 		false,
 	);
 	assert.equal(
-		obstacleClear(obstacle, [{ x: 1, z: 0.1, w: 0.4, d: 0.4 }], 190),
+		obstacleClear(obstacle, [{ x: 1, z: 0.1, w: 0.4, d: 0.4 }]),
 		false,
 	);
-	assert.equal(obstacleClear({ ...obstacle, x: 186 }, [], 190), false);
+	assert.equal(obstacleClear({ ...obstacle, x: 186 }, []), false);
 });

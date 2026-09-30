@@ -116,6 +116,15 @@ export const PATHS: readonly { points: Point[]; halfWidth: number }[] = [
 		],
 		halfWidth: 3.6,
 	},
+	// The car park beside the clubhouse, where the car and trailer stand.
+	{
+		points: [
+			{ x: -82, z: 25 },
+			{ x: -62, z: 25 },
+			{ x: -51, z: 28 },
+		],
+		halfWidth: 3.4,
+	},
 	// From the clubhouse door to the bridleway by the stable yard.
 	{
 		points: [

@@ -9,7 +9,7 @@ export class Soundscape {
 	cricketTime = 2;
 	darkness = 0;
 	rain = 0;
-	loops: { rain: GainNode; wind: GainNode } | null = null;
+	loops: { rain: GainNode; wind: GainNode; surf: GainNode } | null = null;
 	dispose() {
 		this.loops = null;
 		const context = this.context;
@@ -61,6 +61,12 @@ export class Soundscape {
 				() => this.tone(260 - i * 18, 0.12, 0.035, 170, 'triangle'),
 				i * 95,
 			);
+	}
+	/** A car door, then the engine starting and pulling away. */
+	engine() {
+		this.tone(95, 0.12, 0.05, 60, 'square');
+		setTimeout(() => this.tone(42, 1.9, 0.045, 78, 'sawtooth'), 180);
+		setTimeout(() => this.tone(60, 1.2, 0.02, 110, 'triangle'), 500);
 	}
 	/** A soft pat of a flat hand on the neck. */
 	pat() {
@@ -119,8 +125,11 @@ export class Soundscape {
 		source.start();
 		return gain;
 	}
-	/** Fades the rain and wind loops towards the current weather. */
-	weather(rain: number, wind: number, darkness: number) {
+	/**
+	 * Fades the rain and wind loops towards the current weather; `surf` is how
+	 * close the sea is, and its waves swell and fall away.
+	 */
+	weather(rain: number, wind: number, darkness: number, surf = 0) {
 		this.rain = rain;
 		this.darkness = darkness;
 		const ctx = this.context;
@@ -128,8 +137,15 @@ export class Soundscape {
 		this.loops ||= {
 			rain: this.noiseLoop('bandpass', 2600, false),
 			wind: this.noiseLoop('lowpass', 420, true),
+			surf: this.noiseLoop('lowpass', 750, true),
 		};
 		const on = this.enabled ? 1 : 0;
+		const swell = 0.5 + 0.5 * Math.sin(ctx.currentTime * 0.55);
+		this.loops.surf.gain.setTargetAtTime(
+			surf * (0.05 + 0.12 * swell * swell) * on,
+			ctx.currentTime,
+			0.4,
+		);
 		this.loops.rain.gain.setTargetAtTime(
 			rain * 0.09 * on,
 			ctx.currentTime,

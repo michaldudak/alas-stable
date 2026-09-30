@@ -68,6 +68,7 @@ attribute vec4 offset;
 attribute float tip;
 uniform sampler2D surfaceMask;
 uniform float surfaceSize, time, fadeStart, fadeEnd, flatRadius, wind;
+uniform vec2 maskOrigin;
 varying float vTip;
 varying float vLush;
 varying vec2 vRoot;
@@ -81,15 +82,16 @@ vec3 local = vec3(offset.x, 0.0, offset.y);
 float variation = grassHash(tileOrigin.xz + local.xz);
 local.xz += (vec2(variation, grassHash(tileOrigin.zx + local.zx + 7.1)) - 0.5) * 0.7;
 vec3 root = tileOrigin + local;
-vec4 surface = textureLod(surfaceMask, root.xz / surfaceSize + 0.5, 0.0);
-float insideMask = step(abs(root.x), surfaceSize * 0.5 - 2.0) * step(abs(root.z), surfaceSize * 0.5 - 2.0);
+vec2 maskXZ = root.xz - maskOrigin;
+vec4 surface = textureLod(surfaceMask, maskXZ / surfaceSize + 0.5, 0.0);
+float insideMask = step(abs(maskXZ.x), surfaceSize * 0.5 - 2.0) * step(abs(maskXZ.y), surfaceSize * 0.5 - 2.0);
 surface = mix(vec4(0.0, 0.0, 0.5, 1.0), surface, insideMask);
 float cameraDistance = distance(root.xz, cameraPosition.xz);
 float height = offset.w * (0.6 + 0.8 * surface.b) * (0.75 + 0.5 * variation);
 // Tufts shorten gradually towards worn tracks and the arena.
 height *= smoothstep(0.08, 0.9, surface.a);
 height *= 1.0 - smoothstep(fadeStart, fadeEnd, cameraDistance);
-height *= 1.0 - smoothstep(flatRadius - 6.0, flatRadius, length(root.xz));
+height *= 1.0 - smoothstep(flatRadius - 6.0, flatRadius, length(maskXZ));
 float turn = offset.z + variation * 6.2831;
 vec3 blade = position;
 blade.xz = mat2(cos(turn), -sin(turn), sin(turn), cos(turn)) * blade.xz;
@@ -108,6 +110,7 @@ vLush = surface.b + (variation - 0.5) * 0.35;`;
 
 const grassFragment = /* glsl */ `
 uniform float wetness;
+uniform vec3 bladeTint;
 varying float vTip;
 varying float vLush;
 varying vec2 vRoot;
@@ -116,7 +119,7 @@ ${LAMP_POOL_GLSL}`;
 const grassColor = /* glsl */ `
 vec3 blade = mix(vec3(0.36, 0.35, 0.14), vec3(0.23, 0.33, 0.085), clamp(vLush, 0.0, 1.0));
 // Darker roots stand in for the occlusion inside a dense sward.
-diffuseColor.rgb *= blade * mix(0.55, 1.05, vTip) * (1.0 - wetness * 0.18);`;
+diffuseColor.rgb *= blade * bladeTint * mix(0.55, 1.05, vTip) * (1.0 - wetness * 0.18);`;
 
 /** Instanced meadow grass in a grid of tiles that follows the camera. */
 export function createGrass(
@@ -144,6 +147,8 @@ export function createGrass(
 		fadeStart: { value: FADE_START },
 		fadeEnd: { value: FADE_END },
 		flatRadius: { value: WORLD_RADIUS + 10 },
+		maskOrigin: { value: new THREE.Vector2() },
+		bladeTint: { value: new THREE.Vector3(1, 1, 1) },
 		...surfaceUniforms,
 	};
 	const material = new THREE.MeshStandardMaterial({
@@ -188,6 +193,23 @@ export function createGrass(
 	const half = Math.floor(GRID / 2);
 	return {
 		group,
+		/**
+		 * Grows the grass from another painted surface, around `origin`, out to
+		 * `flatRadius`; the tint shades every blade.
+		 */
+		setField(
+			field: THREE.Texture,
+			origin: { x: number; z: number },
+			size: number,
+			flatRadius: number,
+			tint: [number, number, number] = [1, 1, 1],
+		) {
+			uniforms.surfaceMask.value = field;
+			uniforms.maskOrigin.value.set(origin.x, origin.z);
+			uniforms.surfaceSize.value = size;
+			uniforms.flatRadius.value = flatRadius;
+			uniforms.bladeTint.value.set(...tint);
+		},
 		update(time: number, camera: THREE.Camera) {
 			uniforms.time.value = time;
 			const cx = Math.floor(camera.position.x / CHUNK),

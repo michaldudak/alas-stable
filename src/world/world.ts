@@ -31,6 +31,27 @@ import { ROSTER } from './roster.ts';
 import { createLamps, createSurfaceUniforms } from './lamps.ts';
 import { createRain } from './rain.ts';
 import type { Environment } from '../game/environment.ts';
+import { REGIONS, type RegionId } from '../game/regions.ts';
+import { createBeach } from './beach.ts';
+import { createVehicle } from './vehicle.ts';
+import { SURFACE_SIZE } from './terrain.ts';
+
+/** What changes with the place the player is in. */
+interface Place {
+	/** Everything drawn only there. */
+	objects: THREE.Object3D[];
+	grass?: {
+		mask: THREE.Texture;
+		size: number;
+		flatRadius: number;
+		tint?: [number, number, number];
+	};
+	/** Light bounced from the ground by day. */
+	ground: THREE.Color;
+	/** Scales the haze: clear mountain air, salty sea air. */
+	fog: number;
+	update?(time: number, wind: number, windPhase: number): void;
+}
 
 const smooth = THREE.MathUtils.smoothstep;
 const SUNLIGHT = new THREE.Color('#fff1dd'),
@@ -223,6 +244,61 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		surface,
 	);
 	mergeStatic(scenery);
+	// Everything built so far belongs to the stable yard, apart from the sky,
+	// the lights and the grass, which every place shares.
+	const home: Place = {
+		objects: scene.children.filter(
+			(object) =>
+				!(object instanceof THREE.Light) &&
+				!['sky', 'clouds', 'grass'].includes(object.name),
+		),
+		grass: {
+			mask: terrain.mask,
+			size: SURFACE_SIZE,
+			flatRadius: WORLD_RADIUS + 10,
+		},
+		ground: DAY_GROUND,
+		fog: 1,
+	};
+	const places = new Map<RegionId, Place>([['home', home]]);
+	let place = home,
+		region: RegionId = 'home';
+	/** Builds a place the first time the car drives there. */
+	function build(id: RegionId): Place {
+		if (id === 'beach') {
+			const beach = createBeach(scene, solids, surface);
+			return {
+				objects: [beach.root, ...beach.extra],
+				grass: beach.grass,
+				ground: beach.ground,
+				fog: beach.fog,
+				update: (time, wind, windPhase) => beach.update(time, wind, windPhase),
+			};
+		}
+		return home;
+	}
+	/** Shows one place and hides the others. */
+	function enter(id: RegionId) {
+		let next = places.get(id);
+		if (!next) {
+			next = build(id);
+			places.set(id, next);
+		}
+		for (const other of places.values())
+			for (const object of other.objects) object.visible = other === next;
+		grass.group.visible = !!next.grass;
+		if (next.grass)
+			grass.setField(
+				next.grass.mask,
+				REGIONS[id],
+				next.grass.size,
+				next.grass.flatRadius,
+				next.grass.tint,
+			);
+		place = next;
+		region = id;
+	}
+	const vehicle = createVehicle(scene);
 	const rain = createRain(scene);
 	const horses: HorseModel[] = [
 		...stables.flatMap((stable) => stable.horses),
@@ -232,6 +308,11 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	return {
 		obstacles,
 		solids,
+		vehicle,
+		enter,
+		get region() {
+			return region;
+		},
 		points,
 		stables,
 		horses,
@@ -274,7 +355,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 				.copy(DAY_SKY)
 				.lerp(GOLDEN_SKY, (1 - smooth(height, 0.02, 0.3)) * daylight * 0.7)
 				.lerp(NIGHT_SKY, darkness);
-			hemisphere.groundColor.copy(DAY_GROUND).lerp(NIGHT_GROUND, darkness);
+			hemisphere.groundColor.copy(place.ground).lerp(NIGHT_GROUND, darkness);
 			hemisphere.intensity =
 				(0.35 + 0.3 * conditions.overcast) * daylight + 0.75 * darkness;
 			scene.environmentIntensity =
@@ -284,12 +365,16 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 			camera.getWorldDirection(forward).setY(0).normalize();
 			focus.copy(camera.position).addScaledVector(forward, 35).setY(0);
 			sun.follow(focus, keyLight);
+			sky.follow(camera.position);
 			sky.update(time, {
 				sun: sunVector,
 				conditions,
 				darkness,
 				windPhase: environment.windPhase,
 			});
+			sky.fog.density *= place.fog;
+			place.update?.(time, conditions.wind, environment.windPhase);
+			vehicle.update(darkness);
 			surface.wind.value = conditions.wind;
 			surface.wetness.value = environment.wetness;
 			grass.update(environment.windPhase, camera);

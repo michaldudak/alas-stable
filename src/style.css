@@ -1314,3 +1314,125 @@ dialog > p {
 #horse-name-random {
 	min-height: 42px;
 }
+
+/* The map of places the car can drive to. */
+#travel-dialog {
+	width: 820px;
+	max-width: calc(100% - 32px);
+}
+
+.travel-map {
+	position: relative;
+	margin-top: 16px;
+	aspect-ratio: 720 / 440;
+	border-radius: 16px;
+	overflow: hidden;
+}
+
+.travel-map canvas {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.travel-place {
+	position: absolute;
+	transform: translate(-50%, -10%);
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: 8px;
+	align-items: center;
+	max-width: 190px;
+	padding: 8px 12px;
+	border: 2px solid #fffaf0;
+	border-radius: 14px;
+	background: #fffaf0e6;
+	box-shadow: 0 4px 16px #223c2530;
+	color: #29483b;
+	text-align: left;
+	cursor: pointer;
+}
+
+.travel-place svg {
+	grid-row: span 2;
+	width: 22px;
+	height: 22px;
+	color: #2f5b49;
+}
+
+.travel-place strong {
+	font-size: 14px;
+}
+
+.travel-place span {
+	font-size: 11px;
+	line-height: 1.3;
+	color: #65705b;
+}
+
+.travel-place em {
+	display: none;
+	grid-column: 1 / -1;
+	margin-top: 4px;
+	font-size: 11px;
+	font-style: normal;
+	font-weight: 700;
+	color: #b8453c;
+}
+
+.travel-place:hover,
+.travel-place:focus-visible {
+	border-color: #2f5b49;
+	outline: none;
+}
+
+.travel-place.here {
+	cursor: default;
+	opacity: 0.85;
+}
+
+.travel-place.here em {
+	display: block;
+}
+
+.travel-place[data-region='home'] {
+	left: 50%;
+	top: 60%;
+}
+
+.travel-place[data-region='beach'] {
+	left: 18%;
+	top: 50%;
+}
+
+.travel-place[data-region='mountains'] {
+	left: 52%;
+	top: 20%;
+}
+
+.travel-place[data-region='hippodrome'] {
+	left: 82%;
+	top: 58%;
+}
+
+@media (width <= 640px) {
+	.travel-map {
+		display: grid;
+		gap: 8px;
+		aspect-ratio: auto;
+		padding: 10px;
+	}
+
+	.travel-place {
+		position: relative;
+		inset: auto;
+		transform: none;
+		max-width: none;
+	}
+
+	.travel-place[data-region] {
+		left: auto;
+		top: auto;
+	}
+}

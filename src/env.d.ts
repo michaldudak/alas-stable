@@ -6,6 +6,12 @@ declare global {
 			snapshot: () => GameState & {
 				activeHorse: string;
 				leading: boolean;
+				region: string;
+				rig: { x: number; z: number; heading: number };
+				/** The horse standing in the trailer, if any. */
+				aboard: string;
+				/** The horse walking into or out of the trailer, if any. */
+				boarding: string;
 				horses: {
 					id: string;
 					name: string;
@@ -51,6 +57,7 @@ declare global {
 				setWeather?(weather: string): void;
 				navCheck?(margin?: number): string[];
 				fastForward?(seconds: number): void;
+				travel?(region: string): void;
 			};
 		};
 	}

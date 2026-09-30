@@ -6,8 +6,11 @@ import {
 	AISLE_HALF_WIDTH,
 	halfDepth,
 } from '../world/stable-layout.ts';
-import { ARENA, PASTURE, RACE_TRACK } from '../world/layout.ts';
+import { ARENA, CLUBHOUSE, PASTURE, RACE_TRACK } from '../world/layout.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
+import { REGIONS, type RegionId } from '../game/regions.ts';
+import type { RigPose } from '../game/trailer.ts';
+import { BEACH } from '../world/region-layout.ts';
 
 const SIZE = 180;
 /** Pixels per metre; the map scrolls with the player. */
@@ -25,11 +28,14 @@ export function createMinimap(
 		state: Readonly<GameState>,
 		horses: readonly Readonly<GameState>[] = [],
 		riders: readonly Readonly<GameState>[] = [],
+		region: RegionId = 'home',
+		rig?: RigPose,
 	) {
 		// Keep the view inside the map so its edge never shows empty space.
-		const reach = WORLD_RADIUS + 20 - SIZE / 2 / SCALE;
-		const cx = Math.max(-reach, Math.min(reach, state.x)),
-			cz = Math.max(-reach, Math.min(reach, state.z));
+		const area = REGIONS[region];
+		const reach = area.radius + 20 - SIZE / 2 / SCALE;
+		const cx = Math.max(area.x - reach, Math.min(area.x + reach, state.x)),
+			cz = Math.max(area.z - reach, Math.min(area.z + reach, state.z));
 		const point = (x: number, z: number): [number, number] => [
 			SIZE / 2 + (x - cx) * SCALE,
 			SIZE / 2 + (z - cz) * SCALE,
@@ -37,6 +43,95 @@ export function createMinimap(
 		const rect = (x: number, z: number, w: number, d: number) =>
 			map.fillRect(...point(x - w, z - d), w * 2 * SCALE, d * 2 * SCALE);
 		map.clearRect(0, 0, SIZE, SIZE);
+		if (region === 'beach') drawBeach(point);
+		else drawHome(point, rect);
+		for (const [list, fill] of [
+			[horses, '#825632'],
+			[riders, '#46607a'],
+		] as const)
+			for (const horse of list) {
+				map.fillStyle = fill;
+				map.strokeStyle = '#fff9e9';
+				map.lineWidth = 2;
+				map.beginPath();
+				map.arc(...point(horse.x, horse.z), 4.5, 0, Math.PI * 2);
+				map.fill();
+				map.stroke();
+			}
+		// The car and its trailer, drawn larger than life so they stand out.
+		if (rig) {
+			map.save();
+			map.translate(...point(rig.x, rig.z));
+			map.rotate(-rig.heading);
+			map.fillStyle = '#3f5f4a';
+			map.strokeStyle = '#fff9e9';
+			map.lineWidth = 1.5;
+			map.beginPath();
+			map.roundRect(-4, 1, 8, 10, 2);
+			map.fill();
+			map.stroke();
+			map.fillStyle = '#dfe3e4';
+			map.beginPath();
+			map.roundRect(-4.5, -11, 9, 10, 2);
+			map.fill();
+			map.stroke();
+			map.restore();
+		}
+		map.save();
+		map.translate(...point(state.x, state.z));
+		map.rotate(-state.heading);
+		map.fillStyle = '#fff9e9';
+		map.strokeStyle = '#345b4a';
+		map.lineWidth = 2.5;
+		map.beginPath();
+		map.moveTo(0, 8);
+		map.lineTo(-5, -5);
+		map.lineTo(0, -2);
+		map.lineTo(5, -5);
+		map.closePath();
+		map.fill();
+		map.stroke();
+		map.restore();
+	}
+	type Project = (x: number, z: number) => [number, number];
+	/** Sand, the sea to the west, the dunes and the car park to the east. */
+	function drawBeach(point: Project) {
+		const [shore] = point(BEACH.x + BEACH.shore, 0);
+		const [dunes] = point(BEACH.x + BEACH.dunes, 0);
+		const [park, top] = point(
+			BEACH.x + BEACH.parkEnd,
+			BEACH.z - BEACH.gapHalfWidth,
+		);
+		const [, bottom] = point(0, BEACH.z + BEACH.gapHalfWidth);
+		map.fillStyle = '#ead9ab';
+		map.fillRect(0, 0, SIZE, SIZE);
+		map.fillStyle = '#7fb6c4';
+		map.fillRect(0, 0, Math.max(0, shore), SIZE);
+		map.fillStyle = '#a3cfd3';
+		map.fillRect(shore - 4, 0, 4, SIZE);
+		map.fillStyle = '#c6c28b';
+		map.fillRect(dunes, 0, SIZE, SIZE);
+		map.fillStyle = '#6f8d58';
+		map.fillRect(park + 12, 0, SIZE, SIZE);
+		map.fillStyle = '#d8c9a0';
+		map.fillRect(dunes, top, park - dunes, bottom - top);
+		const [pierEnd, pierY] = point(
+			BEACH.x + BEACH.pier.end,
+			BEACH.z + BEACH.pier.z,
+		);
+		const [pierStart] = point(BEACH.x - 14, 0);
+		map.strokeStyle = '#8a6c4c';
+		map.lineWidth = BEACH.pier.halfWidth * 2 * SCALE;
+		map.beginPath();
+		map.moveTo(pierStart, pierY);
+		map.lineTo(pierEnd, pierY);
+		map.stroke();
+	}
+	/** The stable yard with its stables, arena, racecourse and pasture. */
+	function drawHome(
+		point: Project,
+		rect: (x: number, z: number, w: number, d: number) => void,
+	) {
 		map.fillStyle = '#7d9460';
 		map.fillRect(0, 0, SIZE, SIZE);
 		map.fillStyle = '#aabc89';
@@ -88,6 +183,8 @@ export function createMinimap(
 			map.fillStyle = '#eadcbb';
 			rect(spec.x, spec.z, AISLE_HALF_WIDTH, halfDepth(spec));
 		}
+		map.fillStyle = '#c9aa8a';
+		rect(CLUBHOUSE.x, CLUBHOUSE.z, CLUBHOUSE.halfWidth, CLUBHOUSE.halfDepth);
 		map.strokeStyle = '#7b8f7d';
 		map.lineWidth = 2;
 		for (const o of world.obstacles) {
@@ -99,34 +196,6 @@ export function createMinimap(
 			map.lineTo(...point(o.x + dx, o.z + dz));
 			map.stroke();
 		}
-		for (const [list, fill] of [
-			[horses, '#825632'],
-			[riders, '#46607a'],
-		] as const)
-			for (const horse of list) {
-				map.fillStyle = fill;
-				map.strokeStyle = '#fff9e9';
-				map.lineWidth = 2;
-				map.beginPath();
-				map.arc(...point(horse.x, horse.z), 4.5, 0, Math.PI * 2);
-				map.fill();
-				map.stroke();
-			}
-		map.save();
-		map.translate(...point(state.x, state.z));
-		map.rotate(-state.heading);
-		map.fillStyle = '#fff9e9';
-		map.strokeStyle = '#345b4a';
-		map.lineWidth = 2.5;
-		map.beginPath();
-		map.moveTo(0, 8);
-		map.lineTo(-5, -5);
-		map.lineTo(0, -2);
-		map.lineTo(5, -5);
-		map.closePath();
-		map.fill();
-		map.stroke();
-		map.restore();
 	}
 	return { draw };
 }

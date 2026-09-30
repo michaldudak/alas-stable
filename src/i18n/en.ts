@@ -250,6 +250,50 @@ export const en = {
 	'language.pl': 'Polski',
 	'language.en': 'English',
 	'location.clubhouse': 'Clubhouse',
+	'region.home': 'Stable yard',
+	'region.beach': 'Beach',
+	'region.mountains': 'Mountains',
+	'region.hippodrome': 'Hippodrome',
+	'travel.title': 'Where shall we drive?',
+	'travel.cargo': 'In the trailer: {name}',
+	'travel.empty':
+		'The trailer is empty. To take a horse along, lead it on the lead rope up to the ramp.',
+	'travel.here': 'You are here',
+	'travel.homeBody':
+		'Stables, the jumping arena, the pasture and the clubhouse.',
+	'travel.beachBody': 'Gallop along the sand and wade into the sea.',
+	'travel.mountainsBody':
+		'A snowy valley with a mountain hut and a frozen tarn.',
+	'travel.hippodromeBody':
+		'A grand racecourse with stands and races against other horses.',
+	'prompt.car': 'Car',
+	'prompt.drive': 'drive',
+	'prompt.unload': 'lead out',
+	'hint.carLeadTitle': 'Trailer first',
+	'hint.carLeadBody':
+		'Lead the horse up to the ramp at the back of the trailer, or release the lead rope.',
+	'hint.boardingTitle': '{name} is walking into the trailer',
+	'hint.boardingBody': 'Up the ramp, one step at a time.',
+	'hint.aboardTitle': '{name} is in the trailer',
+	'hint.aboardBody':
+		'Go to the driver’s door and press E to choose where to drive.',
+	'hint.unloadTitle': '{name} is backing out',
+	'hint.unloadBody': 'Down the ramp, nice and slowly.',
+	'hint.arrivedTitle': 'We’re here: {place}',
+	'hint.arrivedWithHorse':
+		'{name} is waiting in the trailer. Stand behind the ramp and press L to lead the horse out.',
+	'hint.arrivedAlone':
+		'The car waits in the car park whenever you want to drive on.',
+	'location.beach': 'Beach',
+	'location.sea': 'In the sea',
+	'location.carPark': 'Car park',
+	'location.dunes': 'Dunes',
+	'location.pier': 'Pier',
+	'sign.beach': 'BEACH',
+	'sign.kiosk': 'ICE CREAM · WAFFLES',
+	'help.carTitle': 'Car and trailer',
+	'help.carBody':
+		'Lead a horse up to the trailer ramp and it walks in by itself. At the driver’s door, E opens the map of places to drive to. Behind the ramp, L leads the horse out.',
 	'prompt.bed': 'Bed',
 	'prompt.sleep': 'sleep',
 	'hint.wakeTitle': 'Good morning!',

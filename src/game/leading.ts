@@ -1,5 +1,6 @@
 import type { GameState, Solid } from './types.ts';
-import { WORLD_RADIUS, HORSE_COLLISION_RADIUS } from './tuning.ts';
+import { HORSE_COLLISION_RADIUS } from './tuning.ts';
+import { outsideWorld } from './regions.ts';
 export const LEAD_LENGTH = 6;
 export function leadPathClear(
 	horse: GameState,
@@ -43,7 +44,7 @@ export function stepLedHorse(
 	const x = horse.x + Math.sin(horse.heading) * horse.speed * dt,
 		z = horse.z + Math.cos(horse.heading) * horse.speed * dt;
 	const blocked =
-		Math.hypot(x, z) > WORLD_RADIUS ||
+		outsideWorld(x, z) ||
 		Math.hypot(person.x - x, person.z - z) < 2.3 ||
 		solids.some(
 			(s) =>

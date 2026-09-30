@@ -1,4 +1,5 @@
 import type { GameState, Obstacle, Solid } from './types.ts';
+import { outsideWorld } from './regions.ts';
 
 /** Show-jumping wings stand just outside the ends of the rails. */
 export const WING_OFFSET = 0.2;
@@ -131,10 +132,9 @@ export function carriedPose(
 export function obstacleClear(
 	obstacle: Obstacle & { spread?: number },
 	solids: readonly Solid[],
-	worldRadius: number,
 ) {
 	for (const wing of [...wingSolids(obstacle), ...railSolids(obstacle)]) {
-		if (Math.hypot(wing.x, wing.z) > worldRadius - 1) return false;
+		if (outsideWorld(wing.x, wing.z, 1)) return false;
 		for (const solid of solids)
 			if (
 				Math.abs(wing.x - solid.x) < (wing.w + solid.w) / 2 &&

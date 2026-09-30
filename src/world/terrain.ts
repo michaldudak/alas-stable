@@ -178,6 +178,10 @@ function surfaceMask(path: readonly Point[]) {
 			data[offset + 2] = lush * 255;
 			data[offset + 3] = grass * 255;
 		}
+	return maskTexture(data, size);
+}
+
+function maskTexture(data: Uint8Array, size: number) {
 	const texture = new THREE.DataTexture(data, size, size);
 	texture.magFilter = THREE.LinearFilter;
 	texture.minFilter = THREE.LinearMipmapLinearFilter;
@@ -243,15 +247,35 @@ function groundTextures() {
 	});
 	return { grass, dirt, sand };
 }
+function snowTexture() {
+	const light = rgb('#f7f9fc'),
+		shade = rgb('#d3deeb');
+	return proceduralTexture(512, (u, v) => {
+		const drift = fbm(u, v, 5, 4, 41);
+		const crust = fbm(u, v, 90, 2, 42);
+		const color = mix(
+			shade,
+			light,
+			THREE.MathUtils.smoothstep(drift, 0.25, 0.7),
+		);
+		const shadeBy = 0.94 + crust * 0.08;
+		return [color[0] * shadeBy, color[1] * shadeBy, color[2] * shadeBy];
+	});
+}
 
 const groundVertex = /* glsl */ `
-varying vec3 vGroundPosition;`;
+varying vec3 vGroundPosition;
+varying vec3 vGroundNormal;`;
 
 const groundFragment = /* glsl */ `
-uniform sampler2D surfaceMask, grassMap, dirtMap, sandMap;
-uniform float surfaceSize, wetness;
+uniform sampler2D surfaceMask, grassMap, dirtMap, sandMap, snowMap;
+uniform float surfaceSize, wetness, homeGround, woodedHills, snowCover, rockSlopes;
+uniform vec2 maskOrigin;
+uniform vec3 sandTint;
+uniform vec4 outside, shore;
 ${LAMP_POOL_GLSL}
 varying vec3 vGroundPosition;
+varying vec3 vGroundNormal;
 vec3 twoScale(sampler2D map, vec2 p, float scale) {
 	// Blending two rotated scales hides the repetition of each detail texture.
 	vec3 near = texture2D(map, p / scale).rgb;
@@ -261,38 +285,55 @@ vec3 twoScale(sampler2D map, vec2 p, float scale) {
 
 const groundColor = /* glsl */ `
 vec2 groundXZ = vGroundPosition.xz;
-vec2 maskUv = groundXZ / surfaceSize + 0.5;
-float insideMask = step(abs(groundXZ.x), surfaceSize * 0.5 - 2.0) *
-	step(abs(groundXZ.y), surfaceSize * 0.5 - 2.0);
-vec4 surface = mix(vec4(0.0, 0.0, 0.5, 1.0), texture2D(surfaceMask, maskUv), insideMask);
+vec2 maskXZ = groundXZ - maskOrigin;
+vec2 maskUv = maskXZ / surfaceSize + 0.5;
+float insideMask = step(abs(maskXZ.x), surfaceSize * 0.5 - 2.0) *
+	step(abs(maskXZ.y), surfaceSize * 0.5 - 2.0);
+vec4 surface = mix(outside, texture2D(surfaceMask, maskUv), insideMask);
 vec3 grassColor = twoScale(grassMap, groundXZ, 5.0);
 grassColor *= mix(vec3(1.08, 1.0, 0.8), vec3(0.9, 1.04, 0.9), surface.b);
 vec3 groundColor = mix(grassColor, twoScale(dirtMap, groundXZ, 4.0), surface.g);
-groundColor = mix(groundColor, twoScale(sandMap, groundXZ, 3.5), surface.r);
+groundColor = mix(groundColor, twoScale(sandMap, groundXZ, 3.5) * sandTint, surface.r);
 // Forest floor under the conifers, then a dark wooded skirt on the distant hills.
-float forestFloor = (1.0 - smoothstep(-52.0, -36.0, groundXZ.y)) * (1.0 - surface.g) * insideMask;
+float forestFloor = (1.0 - smoothstep(-52.0, -36.0, groundXZ.y)) * (1.0 - surface.g) * insideMask * homeGround;
 groundColor = mix(groundColor, groundColor * vec3(0.72, 0.66, 0.6), forestFloor * 0.6);
-float radius = length(groundXZ);
+float radius = length(maskXZ);
 float woods = smoothstep(${WOODS_START}, ${WOODS_END}, radius) * smoothstep(0.45, 0.55, texture2D(grassMap, groundXZ / 173.0).g * 2.2);
-groundColor = mix(groundColor, vec3(0.13, 0.19, 0.1), woods * 0.75);
+groundColor = mix(groundColor, vec3(0.13, 0.19, 0.1), woods * 0.75 * woodedHills);
+// Snow lies everywhere but on trodden tracks; steep mountain faces show rock.
+vec3 snow = twoScale(snowMap, groundXZ, 6.0);
+groundColor = mix(groundColor, snow, snowCover * (1.0 - surface.g * 0.55));
+float steep = smoothstep(0.8, 0.6, vGroundNormal.y) * rockSlopes;
+vec3 rock = mix(vec3(0.3, 0.3, 0.32), vec3(0.46, 0.45, 0.44), texture2D(dirtMap, groundXZ / 23.0).r);
+groundColor = mix(groundColor, rock, steep);
+// Sand darkens where the waves have just run up the beach.
+float wetSand = shore.z * (1.0 - smoothstep(shore.x, shore.x + shore.y, maskXZ.x));
 // Rain darkens the ground, sand and bare earth most of all.
-groundColor *= 1.0 - wetness * (0.22 + 0.16 * max(surface.r, surface.g));
+groundColor *= 1.0 - max(wetness, wetSand) * (0.22 + 0.16 * max(surface.r, surface.g));
 diffuseColor.rgb *= groundColor;`;
 
-function groundGeometry() {
+type HeightField = (x: number, z: number) => number;
+
+/** Rings of vertices around `origin`, dense on the flat and sparser on the hills. */
+function groundGeometry(
+	height: HeightField,
+	origin: Point,
+	flatRadius: number,
+	segments = 192,
+	outer = 900,
+) {
 	const radii: number[] = [];
-	for (let r = 0; r < FLAT_RADIUS; r += 6) radii.push(r);
-	for (let r = FLAT_RADIUS; r < 900; r += 6 + (r - FLAT_RADIUS) * 0.08)
+	for (let r = 0; r < flatRadius; r += 6) radii.push(r);
+	for (let r = flatRadius; r < outer; r += 6 + (r - flatRadius) * 0.08)
 		radii.push(r);
-	const segments = 192,
-		positions: number[] = [],
+	const positions: number[] = [],
 		indices: number[] = [];
 	for (const [ring, r] of radii.entries()) {
 		for (let s = 0; s <= segments; s++) {
 			const angle = (s / segments) * Math.PI * 2;
-			const x = Math.cos(angle) * r,
-				z = Math.sin(angle) * r;
-			positions.push(x, terrainHeight(x, z), z);
+			const x = origin.x + Math.cos(angle) * r,
+				z = origin.z + Math.sin(angle) * r;
+			positions.push(x, height(x, z), z);
 			if (ring && s < segments) {
 				const a = ring * (segments + 1) + s,
 					b = a - segments - 1;
@@ -310,24 +351,52 @@ function groundGeometry() {
 	return geometry;
 }
 
-/** One continuous ground: flat meadow, arena sand, worn tracks and hills to the horizon. */
-export function createTerrain(
-	path: readonly Point[],
+/** How a ground looks away from its mask and which regional effects it uses. */
+export interface GroundLook {
+	origin: Point;
+	/** Edge length, in metres, of the square the mask covers. */
+	size: number;
+	/** Mask channels beyond the painted square: sand, dirt, lushness, grass. */
+	outside?: [number, number, number, number];
+	/** Home-only touches: the forest floor to the north. */
+	home?: boolean;
+	woodedHills?: number;
+	snow?: number;
+	rock?: number;
+	sandTint?: [number, number, number];
+}
+
+function groundMaterial(
+	mask: THREE.Texture,
+	look: GroundLook,
 	surfaceUniforms: SurfaceUniforms,
 ) {
-	const mask = surfaceMask(path);
 	const { grass, dirt, sand } = groundTextures();
+	const snow = snowTexture();
 	const material = new THREE.MeshStandardMaterial({ roughness: 1 });
 	material.name = 'Terrain';
 	// Custom samplers are not material properties, so list them for disposal.
-	material.userData.textures = [mask, grass, dirt, sand];
+	material.userData.textures = [mask, grass, dirt, sand, snow];
+	/** Beach wetness: x shoreline and y width in metres from the origin, z strength. */
+	const shore = new THREE.Vector4(0, 1, 0, 0);
 	material.onBeforeCompile = (shader) => {
 		Object.assign(shader.uniforms, {
 			surfaceMask: { value: mask },
 			grassMap: { value: grass },
 			dirtMap: { value: dirt },
 			sandMap: { value: sand },
-			surfaceSize: { value: SURFACE_SIZE },
+			snowMap: { value: snow },
+			surfaceSize: { value: look.size },
+			maskOrigin: { value: new THREE.Vector2(look.origin.x, look.origin.z) },
+			outside: {
+				value: new THREE.Vector4(...(look.outside ?? [0, 0, 0.5, 1])),
+			},
+			homeGround: { value: look.home ? 1 : 0 },
+			woodedHills: { value: look.woodedHills ?? 1 },
+			snowCover: { value: look.snow ?? 0 },
+			rockSlopes: { value: look.rock ?? 0 },
+			sandTint: { value: new THREE.Vector3(...(look.sandTint ?? [1, 1, 1])) },
+			shore: { value: shore },
 			wetness: surfaceUniforms.wetness,
 			lampPools: surfaceUniforms.lampPools,
 			lampStrength: surfaceUniforms.lampStrength,
@@ -336,22 +405,82 @@ export function createTerrain(
 			.replace('#include <common>', `#include <common>\n${groundVertex}`)
 			.replace(
 				'#include <begin_vertex>',
-				'#include <begin_vertex>\nvGroundPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;',
+				'#include <begin_vertex>\nvGroundPosition = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvGroundNormal = normalize(mat3(modelMatrix) * objectNormal);',
 			);
 		shader.fragmentShader = shader.fragmentShader
 			.replace('#include <common>', `#include <common>\n${groundFragment}`)
 			.replace('#include <map_fragment>', groundColor)
 			.replace(
 				'#include <roughnessmap_fragment>',
-				'#include <roughnessmap_fragment>\nroughnessFactor *= 1.0 - wetness * 0.4 * max(surface.r, surface.g);',
+				'#include <roughnessmap_fragment>\nroughnessFactor *= 1.0 - max(wetness, wetSand) * 0.4 * max(surface.r, surface.g);',
 			)
 			.replace(
 				'#include <emissivemap_fragment>',
 				'#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * lampLight(groundXZ);',
 			);
 	};
-	const ground = new THREE.Mesh(groundGeometry(), material);
+	return { material, shore };
+}
+
+/** One continuous ground: flat meadow, arena sand, worn tracks and hills to the horizon. */
+export function createTerrain(
+	path: readonly Point[],
+	surfaceUniforms: SurfaceUniforms,
+) {
+	const mask = surfaceMask(path);
+	const { material } = groundMaterial(
+		mask,
+		{ origin: { x: 0, z: 0 }, size: SURFACE_SIZE, home: true },
+		surfaceUniforms,
+	);
+	const ground = new THREE.Mesh(
+		groundGeometry(terrainHeight, { x: 0, z: 0 }, FLAT_RADIUS),
+		material,
+	);
 	ground.name = 'terrain';
 	ground.receiveShadow = true;
 	return { ground, mask };
+}
+
+/** Mask channels at a point: sand, dirt, lushness and grass density, 0–1. */
+export type SurfacePaint = (
+	x: number,
+	z: number,
+) => [number, number, number, number];
+
+/**
+ * The ground of a place away from home: its own painted surface around
+ * `look.origin`, flat out to `flatRadius`, then shaped by `height`.
+ */
+export function createRegionGround(
+	look: GroundLook & {
+		resolution: number;
+		paint: SurfacePaint;
+		height: HeightField;
+		flatRadius: number;
+		segments?: number;
+	},
+	surfaceUniforms: SurfaceUniforms,
+) {
+	const size = look.resolution,
+		texel = look.size / size;
+	const data = new Uint8Array(size * size * 4);
+	for (let zi = 0; zi < size; zi++)
+		for (let xi = 0; xi < size; xi++) {
+			const x = look.origin.x + (xi + 0.5) * texel - look.size / 2,
+				z = look.origin.z + (zi + 0.5) * texel - look.size / 2;
+			const channels = look.paint(x, z);
+			const offset = (zi * size + xi) * 4;
+			for (let c = 0; c < 4; c++)
+				data[offset + c] = THREE.MathUtils.clamp(channels[c], 0, 1) * 255;
+		}
+	const mask = maskTexture(data, size);
+	const { material, shore } = groundMaterial(mask, look, surfaceUniforms);
+	const ground = new THREE.Mesh(
+		groundGeometry(look.height, look.origin, look.flatRadius, look.segments),
+		material,
+	);
+	ground.name = 'region-ground';
+	ground.receiveShadow = true;
+	return { ground, mask, shore };
 }

@@ -211,6 +211,11 @@ export function createSky(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		moonDirection = new THREE.Vector3();
 	return {
 		fog,
+		/** Keeps the sky dome and the cloud deck centred on the camera. */
+		follow(position: THREE.Vector3) {
+			sky.position.copy(position);
+			deck.position.copy(position);
+		},
 		update(time: number, state?: SkyState) {
 			const uniforms = sky.material.uniforms,
 				cloud = deck.material.uniforms;

@@ -1,11 +1,12 @@
 import type { GameState, Solid } from './types.ts';
-import { WORLD_RADIUS, STICK_PACE_ADJUSTMENT } from './tuning.ts';
+import { STICK_PACE_ADJUSTMENT } from './tuning.ts';
+import { outsideWorld } from './regions.ts';
 export const FOOT_SPEEDS = [0, 1.8, 3.8] as const;
 export const FOOT_REVERSE_SPEED = -0.9;
 export const MOUNT_DURATION = 1.6;
 export function clearForPerson(x: number, z: number, solids: readonly Solid[]) {
 	return (
-		Math.hypot(x, z) < WORLD_RADIUS - 0.3 &&
+		!outsideWorld(x, z, 0.3) &&
 		!solids.some(
 			(s) =>
 				Math.abs(x - s.x) < s.w / 2 + 0.28 &&

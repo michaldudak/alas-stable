@@ -1,5 +1,6 @@
 import type { GameState, Solid } from './types.ts';
-import { HORSE_COLLISION_RADIUS, WORLD_RADIUS } from './tuning.ts';
+import { HORSE_COLLISION_RADIUS } from './tuning.ts';
+import { outsideWorld } from './regions.ts';
 
 /** A rectangle a waiting horse never leaves by itself, such as its stall. */
 export interface Enclosure {
@@ -118,7 +119,7 @@ function inside(enclosure: Enclosure | undefined, x: number, z: number) {
 }
 
 function blocked(x: number, z: number, solids: readonly Solid[]) {
-	if (Math.hypot(x, z) > WORLD_RADIUS - 1) return true;
+	if (outsideWorld(x, z, 1)) return true;
 	for (const s of solids)
 		if (
 			Math.abs(x - s.x) < s.w / 2 + HORSE_COLLISION_RADIUS &&

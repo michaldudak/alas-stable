@@ -371,6 +371,11 @@
 			<h3>{{help.cameraTitle}}</h3>
 			<p>{{help.cameraBody}}</p>
 		</div>
+		<div>
+			<kbd>E</kbd>
+			<h3>{{help.carTitle}}</h3>
+			<p>{{help.carBody}}</p>
+		</div>
 	</div>
 	<button type="button" id="help-play" class="primary">
 		<i data-lucide="play" aria-hidden="true"></i>{{action.play}}
@@ -522,4 +527,46 @@
 		<option value="off">{{touch.off}}</option>
 	</select>
 	<p>{{touch.help}}</p>
+</dialog>
+<dialog id="travel-dialog" aria-labelledby="travel-title">
+	<div class="dialog-top">
+		<h2 id="travel-title">{{travel.title}}</h2>
+		<button
+			type="button"
+			id="close-travel"
+			aria-label="{{action.close}}"
+			title="{{action.close}}"
+		>
+			<i data-lucide="x" aria-hidden="true"></i>
+		</button>
+	</div>
+	<p id="travel-cargo">{{travel.empty}}</p>
+	<div class="travel-map">
+		<canvas
+			id="travel-canvas"
+			width="720"
+			height="440"
+			aria-hidden="true"
+		></canvas>
+		<button type="button" class="travel-place" data-region="home">
+			<i data-lucide="house" aria-hidden="true"></i
+			><strong>{{region.home}}</strong><span>{{travel.homeBody}}</span
+			><em>{{travel.here}}</em>
+		</button>
+		<button type="button" class="travel-place" data-region="beach">
+			<i data-lucide="waves" aria-hidden="true"></i
+			><strong>{{region.beach}}</strong><span>{{travel.beachBody}}</span
+			><em>{{travel.here}}</em>
+		</button>
+		<button type="button" class="travel-place" data-region="mountains">
+			<i data-lucide="mountain-snow" aria-hidden="true"></i
+			><strong>{{region.mountains}}</strong><span>{{travel.mountainsBody}}</span
+			><em>{{travel.here}}</em>
+		</button>
+		<button type="button" class="travel-place" data-region="hippodrome">
+			<i data-lucide="trophy" aria-hidden="true"></i
+			><strong>{{region.hippodrome}}</strong
+			><span>{{travel.hippodromeBody}}</span><em>{{travel.here}}</em>
+		</button>
+	</div>
 </dialog>

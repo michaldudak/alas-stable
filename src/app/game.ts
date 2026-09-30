@@ -61,10 +61,24 @@ import {
 	wingSolids,
 } from '../game/obstacles.ts';
 import { placeJump, type Jump } from '../world/jumps.ts';
-import { WORLD_RADIUS } from '../game/tuning.ts';
 import { createSolidGrid } from '../game/spatial.ts';
 import { insideStable, stallAt, stallDoorway } from '../world/stable-layout.ts';
 import { PASTURE, inPasture } from '../world/layout.ts';
+import { BEACH, PARKING } from '../world/region-layout.ts';
+import { REGION_IDS, regionAt, type RegionId } from '../game/regions.ts';
+import {
+	RIG,
+	boardingPath,
+	readyToBoard,
+	rampApproach,
+	rigPoint,
+	rigSolids,
+	stallPose,
+	stepAlong,
+	unloadingPath,
+	type RigPose,
+} from '../game/trailer.ts';
+import { drawTravelMap } from '../ui/travel-map.ts';
 import type { HeadTarget } from '../horse/animation.ts';
 import type { Solid } from '../game/types.ts';
 
@@ -162,6 +176,11 @@ export function startGame() {
 			wander: createWander(state, waitingPlace(state.x, state.z)),
 			head: { graze: 0, yaw: 0, nod: 0, chew: false } as HeadTarget,
 			turn: 0,
+			/** Standing in the horse trailer. */
+			aboard: false,
+			/** Walking into the trailer or backing out of it. */
+			boarding: undefined as
+				{ path: { x: number; z: number }[]; backwards: boolean } | undefined,
 		};
 	});
 	for (const entry of herd) world.rename(entry.id, entry.name);
@@ -185,7 +204,14 @@ export function startGame() {
 			entry.state,
 			waitingPlace(entry.state.x, entry.state.z),
 		);
-	const staticSolids = createSolidGrid(world.solids);
+	let staticSolids = createSolidGrid(world.solids);
+	/** The car and trailer: where they are parked and in which place. */
+	let rig: RigPose = { ...PARKING.home };
+	world.vehicle.place(rig);
+	world.enter('home');
+	/** Horses free to be led, mounted or fed: not in the trailer. */
+	const free = () => herd.filter((h) => !h.aboard && !h.boarding);
+	const passenger = () => herd.find((h) => h.aboard);
 	/** Solids that move with the jumps: wings always, rails for walkers. */
 	const jumpSolids = (rails: boolean, except?: Jump) =>
 		world.obstacles.flatMap((o) =>
@@ -194,6 +220,7 @@ export function startGame() {
 	const fixedSolids = () => [
 		...world.solids,
 		...jumpSolids(true, carried?.jump),
+		...rigSolids(rig),
 	];
 	/** The jump the rider is holding, and its angle relative to her heading. */
 	let carried: { jump: Jump; turn: number } | undefined;
@@ -338,6 +365,163 @@ export function startGame() {
 			() => hint('hint.wakeTitle', 'hint.wakeBody', 5),
 		);
 	}
+	/** On foot beside the car's driver door. */
+	function nearDriverDoor() {
+		if (riding !== 'on-foot' || carried) return false;
+		const door = rigPoint(rig, RIG.driverDoor.x, RIG.driverDoor.z);
+		return Math.hypot(person.x - door.x, person.z - door.z) < 2.1;
+	}
+	/** On foot just behind the trailer's lowered ramp. */
+	function nearRamp() {
+		if (riding !== 'on-foot' || carried) return false;
+		const spot = rampApproach(rig);
+		return Math.hypot(person.x - spot.x, person.z - spot.z) < 3.4;
+	}
+	/**
+	 * A horse just led out of the trailer must be walked away from the ramp
+	 * before it will walk in again.
+	 */
+	let trailerArmed = true;
+	/** A short walk the rider takes by herself, out of a horse's way. */
+	let aside: { x: number; z: number; heading: number } | undefined;
+	/** Steps to the side of the ramp, facing it, unless already clear of it. */
+	function standAsideOfRamp() {
+		const spots = [-1, 1].map((side) => ({
+			...rigPoint(rig, side * 1.9, RIG.ramp.end - 0.6),
+			heading: rig.heading + (side > 0 ? -Math.PI / 2 : Math.PI / 2),
+		}));
+		const [spot] = spots.sort(
+			(a, b) =>
+				Math.hypot(a.x - person.x, a.z - person.z) -
+				Math.hypot(b.x - person.x, b.z - person.z),
+		);
+		aside = spot;
+	}
+	/** Moves the rider along her short walk aside; true while she is walking. */
+	function updateAside(dt: number) {
+		if (!aside) return false;
+		const dx = aside.x - person.x,
+			dz = aside.z - person.z,
+			distance = Math.hypot(dx, dz),
+			stride = 1.6 * dt;
+		if (distance > stride) {
+			person.heading = Math.atan2(dx, dz);
+			person.x += (dx / distance) * stride;
+			person.z += (dz / distance) * stride;
+			walker.pose(dt, { speed: 1.6 });
+			return true;
+		}
+		person.x = aside.x;
+		person.z = aside.z;
+		person.heading = aside.heading;
+		aside = undefined;
+		return false;
+	}
+	/** The led horse walks up the ramp into the trailer by itself. */
+	function board(entry: (typeof herd)[number]) {
+		leading = false;
+		leadBlocked = false;
+		person.gait = 0;
+		person.speed = 0;
+		entry.boarding = { path: boardingPath(rig), backwards: false };
+		standAsideOfRamp();
+		updateGait();
+		audio.nicker();
+		hint('hint.boardingTitle', 'hint.boardingBody', 4, { name: entry.name });
+	}
+	/** Fetches a horse out of the trailer: it backs down the ramp on the lead. */
+	function unload(entry: (typeof herd)[number]) {
+		selectHorse(entry);
+		entry.aboard = false;
+		entry.boarding = { path: unloadingPath(rig), backwards: true };
+		person.gait = 0;
+		person.speed = 0;
+		standAsideOfRamp();
+		updateGait();
+		hint('hint.unloadTitle', 'hint.unloadBody', 4, { name: entry.name });
+	}
+	/** Ends a walk into or out of the trailer. */
+	function boarded(entry: (typeof herd)[number]) {
+		const backwards = entry.boarding?.backwards;
+		entry.boarding = undefined;
+		Object.assign(entry.state, { speed: 0, gait: 0 });
+		if (backwards) {
+			entry.state.height = 0;
+			if (entry === selected && riding === 'on-foot') {
+				leading = true;
+				trailerArmed = false;
+				updateGait();
+				hint('hint.leading', 'hint.follow', 4, { name: entry.name });
+			} else leaveHorse(entry);
+			return;
+		}
+		entry.aboard = true;
+		Object.assign(entry.state, stallPose(rig));
+		hint('hint.aboardTitle', 'hint.aboardBody', 6, { name: entry.name });
+	}
+	const travelButtons = Array.from(
+		document.querySelectorAll<HTMLButtonElement>('[data-region]'),
+	);
+	/** Opens the map of places to drive to. */
+	function openTravel() {
+		const inside = passenger();
+		$('travel-cargo').textContent = inside
+			? t('travel.cargo', { name: inside.name })
+			: t('travel.empty');
+		for (const button of travelButtons) {
+			const here = button.dataset.region === world.region;
+			button.disabled = here;
+			button.classList.toggle('here', here);
+		}
+		drawTravelMap(
+			requireElement('#travel-canvas', HTMLCanvasElement),
+			world.region,
+		);
+		showDialog(dialog('travel-dialog'));
+		travelButtons.find((button) => !button.disabled)?.focus();
+	}
+	/** Parks the car in a place, with the horse in the trailer riding along. */
+	function park(id: RegionId) {
+		const inside = passenger();
+		world.enter(id);
+		staticSolids = createSolidGrid(world.solids);
+		rig = { ...PARKING[id] };
+		world.vehicle.place(rig);
+		if (inside)
+			Object.assign(inside.state, stallPose(rig), { speed: 0, gait: 0 });
+	}
+	/** Drives to another place: fades out, parks there and fades back in. */
+	function travel(id: RegionId) {
+		closeDialog(dialog('travel-dialog'));
+		releaseLead();
+		carried = undefined;
+		audio.engine();
+		fadeThrough(
+			() => {
+				park(id);
+				// The rider climbs out of the driver's door and looks back at the trailer.
+				const door = rigPoint(rig, RIG.driverDoor.x + 0.5, RIG.driverDoor.z);
+				Object.assign(person, {
+					...door,
+					heading: rig.heading + Math.PI,
+					gait: 0,
+					speed: 0,
+					height: 0,
+				});
+				input.resetLook();
+			},
+			() =>
+				hint(
+					'hint.arrivedTitle',
+					passenger() ? 'hint.arrivedWithHorse' : 'hint.arrivedAlone',
+					6,
+					{
+						place: t(`region.${id}`),
+						name: passenger()?.name ?? '',
+					},
+				),
+		);
+	}
 	let firstPerson = false,
 		paused = false,
 		elapsed = 0,
@@ -350,6 +534,7 @@ export function startGame() {
 		dialog('help-dialog'),
 		dialog('dress-dialog'),
 		dialog('settings-dialog'),
+		dialog('travel-dialog'),
 	];
 	function focusGame() {
 		canvas.focus({ preventScroll: true });
@@ -544,7 +729,7 @@ export function startGame() {
 			...jumpSolids(true, jump),
 			...herd.map((h) => horseBarrier(h.state)),
 		);
-		if (!obstacleClear(candidate, nearby, WORLD_RADIUS)) {
+		if (!obstacleClear(candidate, nearby)) {
 			Object.assign(person, {
 				x: previous.x,
 				z: previous.z,
@@ -582,7 +767,7 @@ export function startGame() {
 			return;
 		}
 		if (riding !== 'on-foot' || feeding) return;
-		const target = herd
+		const target = free()
 			.filter((h) => !(leading && h === selected))
 			.map((h) => ({
 				h,
@@ -686,7 +871,13 @@ export function startGame() {
 			hint('hint.released', 'hint.waiting', 4, { name: selected.name });
 			return;
 		}
-		const target = nearbyLead(herd, person, fixedSolids());
+		// Beside the lowered ramp, the lead fetches the horse out of the trailer.
+		const inside = passenger();
+		if (inside && nearRamp()) {
+			unload(inside);
+			return;
+		}
+		const target = nearbyLead(free(), person, fixedSolids());
 		if (!target) {
 			hint('hint.approach', 'hint.attach');
 			return;
@@ -704,6 +895,14 @@ export function startGame() {
 			sleep();
 			return;
 		}
+		if (nearDriverDoor()) {
+			if (leading) {
+				hint('hint.carLeadTitle', 'hint.carLeadBody', 5);
+				return;
+			}
+			openTravel();
+			return;
+		}
 		if (
 			riding === 'mounted' &&
 			(state.gait !== 0 || Math.abs(state.speed) > 0.12 || state.jump >= 0)
@@ -713,7 +912,7 @@ export function startGame() {
 		}
 		let side: typeof transferSide | undefined;
 		if (riding === 'on-foot') {
-			const target = nearbyMount(herd, person, fixedSolids(), doorways);
+			const target = nearbyMount(free(), person, fixedSolids(), doorways);
 			if (!target) {
 				hint('hint.approach', 'hint.chooseHorse');
 				return;
@@ -843,6 +1042,12 @@ export function startGame() {
 	function home() {
 		releaseLead();
 		carried = undefined;
+		aside = undefined;
+		// The car comes home too, with any horse still in the trailer.
+		if (world.region !== 'home' || regionAt(rig.x, rig.z) !== 'home')
+			park('home');
+		selected.aboard = false;
+		selected.boarding = undefined;
 		riding = 'mounted';
 		walker.root.visible = false;
 		horse.rider.visible = !firstPerson;
@@ -900,6 +1105,12 @@ export function startGame() {
 		focusGame();
 	};
 	$('home').onclick = home;
+	for (const button of travelButtons)
+		button.onclick = () => {
+			const id = REGION_IDS.find((region) => region === button.dataset.region);
+			if (id) travel(id);
+		};
+	$('close-travel').onclick = () => closeDialog(dialog('travel-dialog'));
 	$('pause').onclick = pause;
 	$('resume').onclick = () => closeDialog(dialog('pause-dialog'));
 	$('settings').onclick = () => showDialog(dialog('settings-dialog'));
@@ -1189,8 +1400,38 @@ export function startGame() {
 		for (const entry of herd) {
 			const waits = entry !== selected || selectedWaits;
 			const horseState = entry.state;
-			if (waits) {
+			if (entry.boarding) {
+				const { path, backwards } = entry.boarding;
+				if (stepAlong(horseState, path, dt, rig, backwards)) boarded(entry);
+				entry.turn = 0;
+				entry.head.graze = 0;
+				entry.head.chew = false;
+				entry.head.rest = 0;
+				entry.model.root.position.set(
+					horseState.x,
+					horseState.height,
+					horseState.z,
+				);
+				entry.model.root.rotation.y = horseState.heading;
+			} else if (entry.aboard) {
+				// Head low in the trailer, pulling at the hay net.
+				entry.head.graze = 0.5;
+				entry.head.chew = true;
+				entry.head.yaw = 0;
+				entry.turn = 0;
+				entry.model.root.position.set(
+					horseState.x,
+					horseState.height,
+					horseState.z,
+				);
+				entry.model.root.rotation.y = horseState.heading;
+			} else if (waits) {
 				staticSolids.near(horseState.x, horseState.z, 4, nearby);
+				if (
+					Math.abs(horseState.x - rig.x) < 12 &&
+					Math.abs(horseState.z - rig.z) < 12
+				)
+					nearby.push(...rigSolids(rig));
 				for (const other of herd)
 					if (
 						other !== entry &&
@@ -1220,10 +1461,11 @@ export function startGame() {
 			bounds.center.set(root.position.x, 1.6, root.position.z);
 			bounds.radius = 3.4;
 			const distance = bounds.center.distanceTo(camera.position);
+			const scripted = entry.aboard || !!entry.boarding;
 			root.visible =
-				(entry === selected && !waits) ||
+				(entry === selected && !waits && !scripted) ||
 				(distance < 220 && frustum.intersectsSphere(bounds));
-			if (waits && root.visible && distance < 110)
+			if ((waits || scripted) && root.visible && distance < 110)
 				entry.animation.update(
 					dt,
 					horseState,
@@ -1241,9 +1483,16 @@ export function startGame() {
 		promptMount = false,
 		promptJump: Jump | undefined,
 		promptUse:
-			| { x: number; y: number; z: number; name: MessageKey; label: MessageKey }
+			| {
+					x: number;
+					y: number;
+					z: number;
+					name: string;
+					label: MessageKey;
+					key: 'mount' | 'lead';
+			  }
 			| undefined;
-	/** Something to use nearby with the mount key: the bed. */
+	/** Something to use nearby: the bed, the car or a horse in the trailer. */
 	function useTarget() {
 		if (fade) return undefined;
 		if (nearBed())
@@ -1251,9 +1500,31 @@ export function startGame() {
 				x: world.bed.x,
 				y: 1.6,
 				z: world.bed.z,
-				name: 'prompt.bed' as const,
+				name: t('prompt.bed'),
 				label: 'prompt.sleep' as const,
+				key: 'mount' as const,
 			};
+		if (nearDriverDoor()) {
+			const door = rigPoint(rig, 0, RIG.driverDoor.z);
+			return {
+				...door,
+				y: 2.9,
+				name: t('prompt.car'),
+				label: 'prompt.drive' as const,
+				key: 'mount' as const,
+			};
+		}
+		const inside = passenger();
+		if (inside && nearRamp()) {
+			const back = rigPoint(rig, 0, RIG.trailer.back);
+			return {
+				...back,
+				y: 3.4,
+				name: inside.name,
+				label: 'prompt.unload' as const,
+				key: 'lead' as const,
+			};
+		}
 		return undefined;
 	}
 	function updatePrompt(dt: number) {
@@ -1261,17 +1532,17 @@ export function startGame() {
 		if (riding !== 'on-foot' || leading) {
 			promptTarget = undefined;
 			promptJump = undefined;
-			promptUse = undefined;
+			promptUse = leading && riding === 'on-foot' ? useTarget() : undefined;
 		} else if (promptTimer <= 0) {
 			promptUse = useTarget();
 			promptTimer = 0.2;
 			const mountable = carried
 				? undefined
-				: nearbyMount(herd, person, fixedSolids(), doorways)?.horse;
+				: nearbyMount(free(), person, fixedSolids(), doorways)?.horse;
 			promptMount = !!mountable;
 			promptTarget = carried
 				? undefined
-				: (mountable ?? nearbyLead(herd, person, fixedSolids()));
+				: (mountable ?? nearbyLead(free(), person, fixedSolids()));
 			promptJump = carried?.jump ?? grabbable(world.obstacles, person);
 		}
 		const element = $('prompt');
@@ -1291,7 +1562,7 @@ export function startGame() {
 			return;
 		}
 		element.hidden = false;
-		const name = promptTarget?.name ?? (use ? t(use.name) : t('prompt.jump'));
+		const name = promptTarget?.name ?? use?.name ?? t('prompt.jump');
 		if ($('prompt-name').textContent !== name)
 			$('prompt-name').textContent = name;
 		const pad = document.documentElement.classList.contains('gamepad-active');
@@ -1308,7 +1579,8 @@ export function startGame() {
 		$('prompt-grab').hidden = !jump;
 		$('prompt-use').hidden = !use;
 		if (use) {
-			$('prompt-use-key').textContent = pad ? 'B' : 'E';
+			$('prompt-use-key').textContent =
+				use.key === 'lead' ? (pad ? 'X' : 'L') : pad ? 'B' : 'E';
 			const label = t(use.label);
 			if ($('prompt-use-label').textContent !== label)
 				$('prompt-use-label').textContent = label;
@@ -1369,7 +1641,12 @@ export function startGame() {
 					dt,
 					riding === 'mounted' ? turn : 0,
 					world.obstacles,
-					[...world.solids, ...jumpSolids(false), ...otherHorseSolids()],
+					[
+						...world.solids,
+						...jumpSolids(false),
+						...otherHorseSolids(),
+						...rigSolids(rig),
+					],
 					riding === 'mounted' ? nudge : undefined,
 				)
 			) {
@@ -1381,7 +1658,8 @@ export function startGame() {
 			if (riding === 'mounted' && wasJumping && state.jump < 0)
 				gamepad.pulse(0.4, 120);
 			const barriers = [...fixedSolids(), ...otherHorseSolids()];
-			if (riding === 'on-foot') {
+			const walkingAside = riding === 'on-foot' && updateAside(dt);
+			if (riding === 'on-foot' && !walkingAside) {
 				stepPerson(person, dt, turn, barriers, state, nudge);
 				if (carried) carry(previousPerson);
 			}
@@ -1401,10 +1679,14 @@ export function startGame() {
 				}
 				leadBlocked = taut;
 				leadTurn = stepLedHorse(state, person, dt, barriers);
+				// Led up behind the ramp, the horse walks into the trailer by itself.
+				if (!readyToBoard(rig, state, 7)) trailerArmed = true;
+				else if (trailerArmed && !passenger() && readyToBoard(rig, state))
+					board(selected);
 			}
 			if (riding === 'approaching') updateApproach(dt);
 			else if (transferring()) updateTransfer(dt);
-			else if (riding === 'on-foot') {
+			else if (riding === 'on-foot' && !walkingAside) {
 				const hands = carried ? undefined : updateFeeding(dt);
 				walker.pose(dt, {
 					speed: person.speed,
@@ -1491,17 +1773,22 @@ export function startGame() {
 			environment.conditions.rain,
 			environment.conditions.wind,
 			environment.darkness,
+			world.region === 'beach'
+				? 1 - smooth(activeState().x - BEACH.x - BEACH.shore, 8, 80)
+				: 0,
 		);
 		const others = riders.markers();
 		minimap.draw(
 			activeState(),
 			[
 				...herd
-					.filter((h) => riding !== 'mounted' || h !== selected)
+					.filter((h) => (riding !== 'mounted' || h !== selected) && !h.aboard)
 					.map((h) => h.state),
 				...others.standing,
 			],
 			others.ridden,
+			world.region,
+			regionAt(rig.x, rig.z) === world.region ? rig : undefined,
 		);
 		renderer.render(scene, camera);
 		if (dialog('dress-dialog').open) preview.render();
@@ -1513,6 +1800,10 @@ export function startGame() {
 				...activeState(),
 				riding,
 				activeHorse: selected.id,
+				region: world.region,
+				rig: { ...rig },
+				aboard: passenger()?.id ?? '',
+				boarding: herd.find((h) => h.boarding)?.id ?? '',
 				leading,
 				horses: herd.map((h) => ({
 					id: h.id,
@@ -1627,6 +1918,11 @@ export function startGame() {
 							);
 					}
 					return blocked;
+				},
+				/** Drives straight to a place, as if chosen on the map. */
+				travel(id: string) {
+					const region = REGION_IDS.find((r) => r === id);
+					if (region) travel(region);
 				},
 				teleport(x: number, z: number, heading: number) {
 					Object.assign(activeState(), { x, z, heading, speed: 0, gait: 0 });

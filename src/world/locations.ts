@@ -1,4 +1,6 @@
 import type { MessageKey } from '../i18n/index.ts';
+import { regionAt } from '../game/regions.ts';
+import { BEACH } from './region-layout.ts';
 import { stableAt, inTackRoom } from './stable-layout.ts';
 import {
 	ARENA,
@@ -8,7 +10,11 @@ import {
 	raceTrackDistance,
 } from './layout.ts';
 
+/** Soft going underfoot: sand, the beach, or snow. */
 export function isSand(x: number, z: number) {
+	const region = regionAt(x, z);
+	if (region === 'beach' || region === 'mountains') return true;
+	if (region !== 'home') return false;
 	return (
 		(Math.abs(x - ARENA.x) < ARENA.halfWidth - 1 &&
 			Math.abs(z - ARENA.z) < ARENA.halfDepth - 1) ||
@@ -17,6 +23,14 @@ export function isSand(x: number, z: number) {
 }
 
 export function locationName(x: number, z: number): MessageKey {
+	const region = regionAt(x, z);
+	if (region === 'beach') {
+		const lx = x - BEACH.x;
+		if (lx < BEACH.shore) return 'location.sea';
+		if (lx > BEACH.dunes) return 'location.carPark';
+		return 'location.beach';
+	}
+	if (region !== 'home') return `region.${region}`;
 	if (inTackRoom(x, z)) return 'location.tack';
 	if (insideClubhouse(x, z)) return 'location.clubhouse';
 	const stable = stableAt(x, z);

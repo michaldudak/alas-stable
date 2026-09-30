@@ -1,5 +1,6 @@
 import type { GameState, Obstacle, Solid } from './types.ts';
 import { toObstacle } from './obstacles.ts';
+import { keepInsideWorld } from './regions.ts';
 import {
 	SPEEDS,
 	STICK_PACE_ADJUSTMENT,
@@ -7,7 +8,6 @@ import {
 	JUMP_DURATION,
 	JUMP_HEIGHT,
 	JUMP_BUFFER,
-	WORLD_RADIUS,
 	HORSE_COLLISION_RADIUS,
 } from './tuning.ts';
 export const GAITS = [
@@ -102,10 +102,7 @@ export function step(
 			state.speed = 0;
 		}
 	}
-	const radius = Math.hypot(state.x, state.z);
-	if (radius > WORLD_RADIUS) {
-		state.x *= WORLD_RADIUS / radius;
-		state.z *= WORLD_RADIUS / radius;
+	if (keepInsideWorld(state)) {
 		state.gait = 0;
 		state.speed = 0;
 	}
