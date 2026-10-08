@@ -290,6 +290,8 @@ export const pl = {
 	'sign.kiosk': 'LODY · GOFRY',
 	'sign.hut': 'SCHRONISKO',
 	'sign.hippodrome': 'HIPODROM',
+	'sign.racing': 'STAJNIA WYŚCIGOWA',
+	'location.racingStable': 'Stajnia wyścigowa',
 	'race.place': 'miejsce {place} z 4',
 	'hint.raceNearTitle': 'Wyścig na czas',
 	'hint.raceNearBody':

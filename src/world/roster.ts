@@ -168,6 +168,55 @@ export const ROSTER: readonly HorseProfile[] = [
 		appearance: { coat: '#e6e0d2', hair: '#47332d', tailStyle: 'short' },
 		pasture: { x: 2, z: 16, heading: 0.4 },
 	},
+	// Racehorses in the racing stables at the hippodrome.
+	{
+		id: 'PEGAZ',
+		name: 'Pegaz',
+		home: { stable: 'racing', bay: 0, side: -1 },
+		starts: 'stall',
+		appearance: {
+			coat: '#e6e0d2',
+			hair: '#e9e3d1',
+			maneStyle: 'short',
+			cloth: '#7275a3',
+		},
+	},
+	{
+		id: 'SOKOL',
+		name: 'Sokół',
+		home: { stable: 'racing', bay: 1, side: -1 },
+		starts: 'stall',
+		appearance: {
+			coat: '#343330',
+			hair: '#47332d',
+			maneStyle: 'short',
+			cloth: '#b75f59',
+		},
+	},
+	{
+		id: 'BLYSK',
+		name: 'Błysk',
+		home: { stable: 'racing', bay: 0, side: 1 },
+		starts: 'stall',
+		appearance: {
+			coat: '#aa6941',
+			hair: '#8d5236',
+			maneStyle: 'braided',
+			cloth: '#b3a45a',
+		},
+	},
+	{
+		id: 'GRACJA',
+		name: 'Gracja',
+		home: { stable: 'racing', bay: 2, side: -1 },
+		starts: 'stall',
+		appearance: {
+			coat: '#665046',
+			hair: '#47332d',
+			tailStyle: 'braided',
+			cloth: '#437f79',
+		},
+	},
 ];
 
 export const profile = (id: string) => ROSTER.find((horse) => horse.id === id);

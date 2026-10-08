@@ -56,6 +56,8 @@ export function locationName(x: number, z: number): MessageKey {
 		return 'location.valley';
 	}
 	if (region === 'hippodrome') {
+		if (inTackRoom(x, z)) return 'location.tack';
+		if (stableAt(x, z)) return 'location.racingStable';
 		const d = hippodromeDistance(x, z);
 		const { stand } = HIPPODROME;
 		if (Math.abs(d) < HIPPODROME.halfWidth + 0.5) return 'location.racecourse';

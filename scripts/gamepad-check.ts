@@ -170,9 +170,11 @@ try {
 	await page.evaluate(() => {
 		window.__gamepadTest.axes[1] = 0;
 	});
-	await frames();
+	// The horse eases back from the boost to the selected walk.
+	await page.waitForTimeout(1500);
+	const settled = (await snapshot()).speed;
 	assert.ok(
-		(await snapshot()).speed < boostedSpeed,
+		settled <= boostedSpeed && Math.abs(settled - 2.5) < 0.05,
 		'Release resumes the selected gait',
 	);
 	await page.evaluate(() => {

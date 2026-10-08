@@ -113,6 +113,18 @@ const PALETTES: Record<StableSpec['id'], Palette> = {
 		trim: '#e3d7bd',
 		sign: 'sign.meadow',
 	},
+	// Whitewashed racing stables with green doors and roof.
+	racing: {
+		siding: '#efe9dc',
+		inner: '#8a6446',
+		gable: '#e6dfcf',
+		roof: '#2f5a3d',
+		rib: '#3f6b4f',
+		door: '#2f5a3d',
+		batten: '#3f6b4f',
+		trim: '#f7f4ec',
+		sign: 'sign.racing',
+	},
 };
 
 export function createStable(

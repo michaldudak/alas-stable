@@ -1,8 +1,9 @@
 import type { Solid } from '../game/types.ts';
+import { REGIONS } from '../game/regions.ts';
 
 /** Every stable shares one cross-section; only the number of stall bays differs. */
 export interface StableSpec {
-	id: 'main' | 'linden' | 'meadow';
+	id: 'main' | 'linden' | 'meadow' | 'racing';
 	x: number;
 	z: number;
 	/** Eight-metre stall bays on each side of the aisle. */
@@ -19,6 +20,14 @@ export const STABLES: readonly StableSpec[] = [
 	{ id: 'main', x: -38, z: -9, bays: 5, tackRoom: true },
 	{ id: 'linden', x: -38, z: 50, bays: 3, tackRoom: false },
 	{ id: 'meadow', x: -8, z: 52, bays: 3, tackRoom: false },
+	// The racing stables at the hippodrome, north-west of the course.
+	{
+		id: 'racing',
+		x: REGIONS.hippodrome.x - 95,
+		z: REGIONS.hippodrome.z - 95,
+		bays: 4,
+		tackRoom: true,
+	},
 ];
 
 export const halfDepth = (spec: StableSpec) => spec.bays * 4 + 1;

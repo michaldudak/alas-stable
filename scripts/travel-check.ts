@@ -101,6 +101,19 @@ try {
 		state = await snapshot();
 		assert.ok(state.calls > 0);
 		assert.equal(state.riding, 'on-foot');
+		if (region === 'hippodrome') {
+			// The racing stables can be walked into through their south door.
+			await teleport(-3092, -68, Math.PI);
+			await page.keyboard.press('ArrowUp');
+			assert.ok(
+				await until(
+					async () =>
+						(await page.textContent('#location')) === 'Stajnia wyścigowa',
+					10,
+				),
+			);
+			await page.keyboard.press('ArrowDown');
+		}
 	}
 	assert.deepEqual(
 		await page.evaluate(() => window.__alasStable!.debug!.navCheck!(0.8)),

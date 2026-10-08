@@ -164,8 +164,12 @@ export function createMinimap(
 		map.fill();
 		map.fillStyle = '#2f5a3d';
 		rect(x + stand.x, z + stand.z, stand.halfWidth, stand.depth / 2);
-		map.fillStyle = '#a2524a';
-		rect(x - 70, z - 118, 20, 5);
+		for (const spec of STABLES.filter((s) => s.id === 'racing')) {
+			map.fillStyle = '#e6dfcf';
+			rect(spec.x, spec.z, STABLE_HALF_WIDTH, halfDepth(spec));
+			map.fillStyle = '#b79a72';
+			rect(spec.x, spec.z, AISLE_HALF_WIDTH, halfDepth(spec));
+		}
 	}
 	/** The snowy valley, its trail, the hut and the frozen tarn. */
 	function drawMountains(
@@ -254,7 +258,7 @@ export function createMinimap(
 		map.stroke();
 		map.fillStyle = '#e4cda5';
 		rect(ARENA.x, ARENA.z, ARENA.halfWidth, ARENA.halfDepth);
-		for (const spec of STABLES) {
+		for (const spec of STABLES.filter((s) => s.id !== 'racing')) {
 			map.fillStyle = spec.id === 'linden' ? '#a2524a' : '#a96a4f';
 			rect(spec.x, spec.z, STABLE_HALF_WIDTH, halfDepth(spec));
 			map.fillStyle = '#eadcbb';

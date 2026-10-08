@@ -293,6 +293,8 @@ export const en = {
 	'sign.kiosk': 'ICE CREAM · WAFFLES',
 	'sign.hut': 'MOUNTAIN HUT',
 	'sign.hippodrome': 'HIPPODROME',
+	'sign.racing': 'RACING STABLES',
+	'location.racingStable': 'Racing stables',
 	'race.place': 'place {place} of 4',
 	'hint.raceNearTitle': 'Race against the clock',
 	'hint.raceNearBody':

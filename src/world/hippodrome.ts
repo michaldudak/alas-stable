@@ -11,6 +11,7 @@ import { mergeStatic } from '../rendering/merge.ts';
 import { HIPPODROME, PARKING, hippodromeDistance } from './region-layout.ts';
 import type { SurfaceUniforms } from './lamps.ts';
 import type { Point } from './layout.ts';
+import { STABLES, halfDepth, insideStable } from './stable-layout.ts';
 import { onLanguageChange, t } from '../i18n/index.ts';
 
 const smooth = THREE.MathUtils.smoothstep;
@@ -63,22 +64,36 @@ export function createHippodrome(
 		((lx - pond.x) / (pond.rx + margin)) ** 2 +
 			((lz - pond.z) / (pond.rz + margin)) ** 2 <
 		1;
-	// A gravel lane from the car park to the opening in the outer rail.
-	const lane: [Point, Point] = [
-		{ x: parking.x + 8, z: parking.z },
-		{ x: X + HIPPODROME.gateX, z: Z - R - hw - 1 },
+	// Gravel lanes from the car park and from the racing stables' south door
+	// to the opening in the outer rail.
+	const racing = STABLES.find((spec) => spec.id === 'racing')!;
+	const opening = { x: X + HIPPODROME.gateX, z: Z - R - hw - 1 };
+	const stableDoor = { x: racing.x, z: racing.z + halfDepth(racing) + 3 };
+	const lanes: [Point, Point][] = [
+		[{ x: parking.x + 8, z: parking.z }, opening],
+		[stableDoor, { x: racing.x + 30, z: opening.z - 6 }],
+		[{ x: racing.x + 30, z: opening.z - 6 }, opening],
 	];
-	const laneDistance = (x: number, z: number) => {
-		const [a, b] = lane;
-		const abx = b.x - a.x,
-			abz = b.z - a.z;
-		const k = THREE.MathUtils.clamp(
-			((x - a.x) * abx + (z - a.z) * abz) / (abx * abx + abz * abz),
-			0,
-			1,
+	const laneDistance = (x: number, z: number) =>
+		Math.min(
+			...lanes.map(([a, b]) => {
+				const abx = b.x - a.x,
+					abz = b.z - a.z;
+				const k = THREE.MathUtils.clamp(
+					((x - a.x) * abx + (z - a.z) * abz) / (abx * abx + abz * abz),
+					0,
+					1,
+				);
+				return Math.hypot(x - a.x - abx * k, z - a.z - abz * k);
+			}),
 		);
-		return Math.hypot(x - a.x - abx * k, z - a.z - abz * k);
-	};
+	/** Inside the racing stables, or on the trodden aprons at their doors. */
+	const stableGround = (x: number, z: number) =>
+		Math.abs(x - racing.x) < 5 && Math.abs(z - racing.z) < halfDepth(racing) + 8
+			? 1
+			: insideStable(x, z, 0.5)
+				? 1
+				: 0;
 	const ground = createRegionGround(
 		{
 			origin: HIPPODROME,
@@ -104,8 +119,9 @@ export function createHippodrome(
 						: 0,
 				);
 				const infield = hippodromeDistance(x, z) < -hw ? 1 : 0;
-				const dirt = Math.max(track, gravel);
-				const grass = (1 - dirt) * (inPond(lx, lz, 1) ? 0 : 1);
+				const dirt = Math.max(track, gravel, stableGround(x, z) * 0.85);
+				const grass =
+					(1 - dirt) * (inPond(lx, lz, 1) || stableGround(x, z) ? 0 : 1);
 				return [0, dirt, 0.55 + infield * 0.35, grass * (infield ? 0.55 : 1)];
 			},
 		},
@@ -478,32 +494,6 @@ export function createHippodrome(
 		);
 	}
 
-	// The racing stables beyond the car park.
-	const barn = placed(props, -70, -118);
-	box(barn, '#a2524a', [40, 4, 10], [0, 2, 0], 0, 'siding');
-	const barnRoof = box(
-		barn,
-		'#3e4547',
-		[41, 0.3, 6.2],
-		[0, 4.9, 2.6],
-		0,
-		'roofing',
-	);
-	barnRoof.rotation.x = 0.35;
-	const barnRoof2 = box(
-		barn,
-		'#3e4547',
-		[41, 0.3, 6.2],
-		[0, 4.9, -2.6],
-		0,
-		'roofing',
-	);
-	barnRoof2.rotation.x = -0.35;
-	for (let d = -4; d <= 4; d++) {
-		box(barn, '#f4f1e8', [2.4, 2.6, 0.1], [d * 4.3, 1.4, 5.05], 0, 'door');
-		box(barn, '#6b3f24', [2.2, 1.2, 0.12], [d * 4.3, 0.75, 5.08], 0, 'door');
-	}
-	at(-70, -118, 41, 11);
 	sign(props, 'sign.hippodrome', HIPPODROME.gateX + 9, -outer - 6, 0);
 
 	// Woods on the hills round the course.
@@ -515,7 +505,7 @@ export function createHippodrome(
 			z = Z + Math.cos(a) * r;
 		const lx = x - X,
 			lz = z - Z;
-		if (lz < -80 && lz > -140 && lx > -100 && lx < 60) continue;
+		if (lz < -60 && lz > -140 && lx > -125 && lx < 60) continue;
 		trees.push({
 			x,
 			z,
