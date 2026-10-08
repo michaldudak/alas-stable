@@ -6,6 +6,7 @@ import {
 	MOUNTAINS,
 	PARKING,
 	hippodromeDistance,
+	pierHeight,
 } from './region-layout.ts';
 import { stableAt, inTackRoom } from './stable-layout.ts';
 import {
@@ -19,7 +20,9 @@ import {
 /** Soft going underfoot: sand, the beach, or snow. */
 export function isSand(x: number, z: number) {
 	const region = regionAt(x, z);
-	if (region === 'beach' || region === 'mountains') return true;
+	// Hooves ring on the boards of the pier.
+	if (region === 'beach') return pierHeight(x, z) === 0;
+	if (region === 'mountains') return true;
 	if (region !== 'home') return false;
 	return (
 		(Math.abs(x - ARENA.x) < ARENA.halfWidth - 1 &&
@@ -32,6 +35,7 @@ export function locationName(x: number, z: number): MessageKey {
 	const region = regionAt(x, z);
 	if (region === 'beach') {
 		const lx = x - BEACH.x;
+		if (pierHeight(x, z) > 0) return 'location.pier';
 		if (lx < BEACH.shore) return 'location.sea';
 		if (lx > BEACH.dunes) return 'location.carPark';
 		return 'location.beach';

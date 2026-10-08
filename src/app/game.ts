@@ -66,7 +66,7 @@ import { placeJump, type Jump } from '../world/jumps.ts';
 import { createSolidGrid } from '../game/spatial.ts';
 import { insideStable, stallAt, stallDoorway } from '../world/stable-layout.ts';
 import { PASTURE, inPasture } from '../world/layout.ts';
-import { BEACH, PARKING } from '../world/region-layout.ts';
+import { BEACH, PARKING, groundHeight } from '../world/region-layout.ts';
 import { REGION_IDS, regionAt, type RegionId } from '../game/regions.ts';
 import {
 	RIG,
@@ -222,6 +222,7 @@ export function startGame() {
 	/** Horses free to be led, mounted or fed: not in the trailer. */
 	const free = () => herd.filter((h) => !h.aboard && !h.boarding);
 	const passenger = () => herd.find((h) => h.aboard);
+	const aboardOrBoarding = () => selected.aboard || !!selected.boarding;
 	/** Solids that move with the jumps: wings always, rails for walkers. */
 	const jumpSolids = (rails: boolean, except?: Jump) =>
 		world.obstacles.flatMap((o) =>
@@ -1428,9 +1429,14 @@ export function startGame() {
 		{ signal: events.signal },
 	);
 	const cameraController = createCameraController(camera, world.cameraBlockers);
+	/** The active state lifted onto whatever it stands on, for the camera. */
+	const viewed = createState();
 	function updateCamera(dt: number, snap = false) {
+		const active = activeState();
+		Object.assign(viewed, active);
+		viewed.height = active.height + groundHeight(active.x, active.z);
 		cameraController.update(
-			activeState(),
+			viewed,
 			dt,
 			firstPerson,
 			input.look,
@@ -1536,7 +1542,11 @@ export function startGame() {
 				entry.head.yaw = motion.look;
 				entry.head.chew = motion.chew;
 				entry.head.rest = motion.rest;
-				entry.model.root.position.set(horseState.x, 0, horseState.z);
+				entry.model.root.position.set(
+					horseState.x,
+					groundHeight(horseState.x, horseState.z),
+					horseState.z,
+				);
 				entry.model.root.rotation.y = horseState.heading;
 			}
 			const root = entry.model.root;
@@ -1781,9 +1791,18 @@ export function startGame() {
 				});
 			}
 			if (activeState().gait !== oldGait) updateGait();
-			walker.root.position.set(person.x, person.height, person.z);
+			walker.root.position.set(
+				person.x,
+				person.height + groundHeight(person.x, person.z),
+				person.z,
+			);
 			walker.root.rotation.y = person.heading;
-			horse.root.position.set(state.x, state.height, state.z);
+			horse.root.position.set(
+				state.x,
+				state.height +
+					(aboardOrBoarding() ? 0 : groundHeight(state.x, state.z)),
+				state.z,
+			);
 			horse.root.rotation.y = state.heading;
 			const footfalls = selectedWaits
 				? 0

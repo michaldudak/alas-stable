@@ -244,9 +244,13 @@ export function createBeach(
 
 	// Riders may wade into the shallows, but no further; dunes and the car
 	// park are fenced.
-	at(BEACH.wade - 0.5, 0, 1, 700);
+	// The edge of the shallows has a gap where the pier runs out to sea.
+	const pierEdge = BEACH.pier.z - BEACH.pier.halfWidth,
+		pierFar = BEACH.pier.z + BEACH.pier.halfWidth;
+	at(BEACH.wade - 0.5, (pierEdge - 350) / 2, 1, 350 + pierEdge);
+	at(BEACH.wade - 0.5, (pierFar + 350) / 2, 1, 350 - pierFar);
 	const fenceX = BEACH.dunes - 1.2,
-		reach = 170,
+		reach = 215,
 		gap = BEACH.gapHalfWidth;
 	for (const side of [-1, 1]) {
 		at(fenceX, (side * (gap + reach)) / 2, 0.3, reach - gap);
@@ -484,76 +488,170 @@ export function createBeach(
 			0,
 		);
 
-	// A long wooden pier on piles, with lamps along its rails.
+	// A long wooden pier on piles: a ramp up from the sand, a railed deck and
+	// a wide platform with a pavilion and benches at the far end.
 	const pier = BEACH.pier;
-	const deck = 1.7;
+	const { deck, platform } = pier;
 	const pierGroup = placed(props, 0, pier.z);
-	for (let lx = -16; lx > pier.end; lx -= 0.6)
+	const plank = (lx: number, width: number) =>
 		box(
 			pierGroup,
 			Math.round(lx / 0.6) % 2 ? '#9b7b58' : '#8a6c4c',
-			[0.55, 0.08, pier.halfWidth * 2],
-			[lx, deck, 0],
+			[0.55, 0.1, width],
+			[lx, deck - 0.05, 0],
 			0,
 			'boards',
 		);
-	for (let lx = -18; lx > pier.end; lx -= 6) {
-		for (const side of [-1, 1]) {
+	const platformStart = pier.end + platform.length;
+	for (let lx = pier.start; lx > platformStart; lx -= 0.6)
+		plank(lx, pier.halfWidth * 2);
+	for (let lx = platformStart; lx > pier.end; lx -= 0.6)
+		plank(lx, platform.halfWidth * 2);
+	// The ramp, sloping from the deck down onto the sand.
+	const ramp = new THREE.Group();
+	ramp.position.set(pier.start, deck - 0.05, 0);
+	const run = pier.foot - pier.start;
+	ramp.rotation.z = -Math.atan2(deck, run);
+	pierGroup.add(ramp);
+	const slope = Math.hypot(run, deck);
+	for (let s = 0.3; s < slope; s += 0.6)
+		box(
+			ramp,
+			Math.round(s / 0.6) % 2 ? '#9b7b58' : '#8a6c4c',
+			[0.55, 0.1, pier.halfWidth * 2],
+			[s, 0, 0],
+			0,
+			'boards',
+		);
+	// Piles into the sea bed, a white rail along both sides.
+	for (let lx = pier.start - 2; lx > pier.end; lx -= 6) {
+		const half = lx > platformStart ? pier.halfWidth : platform.halfWidth;
+		for (const side of [-1, 1])
 			cylinder(
 				pierGroup,
 				'#5d4a3a',
 				0.16,
 				deck + 6,
-				[lx, deck / 2 - 3, side * (pier.halfWidth - 0.2)],
+				[lx, deck - 0.12 - (deck + 6) / 2, side * (half - 0.25)],
 				0.16,
 				'post',
 			);
+	}
+	const rail = (x0: number, x1: number, z0: number, z1: number) => {
+		const length = Math.hypot(x1 - x0, z1 - z0);
+		const angle = Math.atan2(z1 - z0, x1 - x0);
+		const count = Math.max(1, Math.round(length / 3));
+		for (let i = 0; i <= count; i++) {
+			const t = i / count;
 			box(
 				pierGroup,
 				'#e8e2d4',
-				[0.1, 1.0, 0.1],
-				[lx, deck + 0.5, side * pier.halfWidth],
+				[0.12, 1.05, 0.12],
+				[x0 + (x1 - x0) * t, deck + 0.5, z0 + (z1 - z0) * t],
 				0,
 				'paint',
 			);
 		}
-	}
-	for (const side of [-1, 1])
+		for (const y of [0.55, 1.05])
+			box(
+				pierGroup,
+				'#e8e2d4',
+				[length, 0.08, 0.08],
+				[(x0 + x1) / 2, deck + y, (z0 + z1) / 2],
+				-angle,
+				'paint',
+			);
+		solids.push({
+			x: X + (x0 + x1) / 2,
+			z: Z + pier.z + (z0 + z1) / 2,
+			w: Math.max(0.3, Math.abs(x1 - x0)),
+			d: Math.max(0.3, Math.abs(z1 - z0)),
+		});
+	};
+	for (const side of [-1, 1]) {
+		const edge = side * pier.halfWidth,
+			wide = side * platform.halfWidth;
+		rail(pier.start, platformStart, edge, edge);
+		// The ramp's sides are closed too, so nobody steps off its edge.
+		solids.push({
+			x: X + (pier.foot + pier.start) / 2,
+			z: Z + pier.z + edge,
+			w: pier.foot - pier.start,
+			d: 0.3,
+		});
 		box(
 			pierGroup,
 			'#e8e2d4',
-			[-pier.end - 16, 0.08, 0.1],
-			[(pier.end - 16) / 2, deck + 1, side * pier.halfWidth],
+			[0.12, 1.05, 0.12],
+			[pier.foot - 0.3, 0.5, edge],
 			0,
 			'paint',
 		);
-	// Steps up from the sand and a pavilion at the far end.
-	for (let s = 0; s < 6; s++)
-		box(
-			pierGroup,
-			'#8a6c4c',
-			[0.5, 0.08, pier.halfWidth * 2],
-			[-13.2 - s * 0.5, 0.28 * (s + 1), 0],
-			0,
-			'boards',
-		);
-	const pavilion = placed(pierGroup, pier.end + 6, 0);
-	for (const px of [-3, 3])
-		for (const pz of [-2, 2])
-			cylinder(pavilion, '#e8e2d4', 0.1, 3, [px, deck + 1.5, pz]);
+		rail(platformStart, platformStart, edge, wide);
+		rail(platformStart, pier.end, wide, wide);
+	}
+	rail(pier.end, pier.end, -platform.halfWidth, platform.halfWidth);
+	// The pavilion and benches facing the sunset.
+	const pavilion = placed(pierGroup, pier.end + platform.length / 2, 0);
+	for (const px of [-3.5, 3.5])
+		for (const pz of [-3.5, 3.5]) {
+			cylinder(pavilion, '#e8e2d4', 0.12, 3.2, [px, deck + 1.6, pz]);
+			solids.push({
+				x: X + pier.end + platform.length / 2 + px,
+				z: Z + pier.z + pz,
+				w: 0.35,
+				d: 0.35,
+			});
+		}
 	const cap = new THREE.Mesh(
-		new THREE.ConeGeometry(4.8, 1.8, 8),
+		new THREE.ConeGeometry(5.6, 2, 8),
 		new THREE.MeshStandardMaterial({ color: '#2f5aa8', roughness: 0.6 }),
 	);
-	cap.position.y = deck + 3.9;
+	cap.position.y = deck + 4.2;
+	cap.rotation.y = Math.PI / 8;
 	cap.castShadow = true;
 	pavilion.add(cap);
-	at(
-		(BEACH.wade - 3 - 12.5) / 2,
-		pier.z,
-		-9.5 - BEACH.wade,
-		pier.halfWidth * 2 + 0.4,
+	for (const pz of [-1, 1]) {
+		const bench = placed(pierGroup, pier.end + 2.2, pz * 3.5, Math.PI / 2);
+		box(bench, '#8a6c4c', [2.2, 0.08, 0.5], [0, deck + 0.45, 0], 0, 'wood');
+		box(
+			bench,
+			'#8a6c4c',
+			[2.2, 0.45, 0.08],
+			[0, deck + 0.75, -0.22],
+			0,
+			'wood',
+		);
+		for (const bx of [-0.9, 0.9])
+			box(
+				bench,
+				'#5d4a3a',
+				[0.08, 0.45, 0.45],
+				[bx, deck + 0.22, 0],
+				0,
+				'post',
+			);
+		solids.push({
+			x: X + pier.end + 2.2,
+			z: Z + pier.z + pz * 3.5,
+			w: 0.6,
+			d: 2.3,
+		});
+	}
+	// A life ring on a post halfway out.
+	const ringPost = placed(
+		pierGroup,
+		(pier.start + platformStart) / 2,
+		pier.halfWidth - 0.1,
 	);
+	box(ringPost, '#e8e2d4', [0.12, 1.6, 0.12], [0, deck + 0.8, 0], 0, 'paint');
+	const lifeRing = new THREE.Mesh(
+		new THREE.TorusGeometry(0.3, 0.07, 8, 16),
+		new THREE.MeshStandardMaterial({ color: '#e0492f', roughness: 0.6 }),
+	);
+	lifeRing.position.set(0, deck + 1.25, -0.1);
+	lifeRing.castShadow = true;
+	ringPost.add(lifeRing);
 
 	// Marram grass on the dunes and pines beyond them.
 	const tuft = tuftGeometry();

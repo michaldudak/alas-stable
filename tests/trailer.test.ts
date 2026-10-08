@@ -22,7 +22,12 @@ import {
 	outsideWorld,
 	regionAt,
 } from '../src/game/regions.ts';
-import { PARKING } from '../src/world/region-layout.ts';
+import {
+	BEACH,
+	PARKING,
+	groundHeight,
+	pierHeight,
+} from '../src/world/region-layout.ts';
 
 const pose: RigPose = { x: 10, z: -4, heading: -Math.PI / 2 };
 
@@ -114,4 +119,28 @@ await test('every place has its own edge, and parking lies inside it', () => {
 		assert.ok(keepInsideWorld(state));
 		assert.ok(Math.abs(state.x - region.x - region.radius) < 1e-9);
 	}
+});
+
+await test('the pier rises from the sand to its deck and runs out to sea', () => {
+	const { pier } = BEACH;
+	const at = (lx: number, lz = 0) =>
+		pierHeight(BEACH.x + lx, BEACH.z + pier.z + lz);
+	assert.equal(at(pier.foot + 1), 0);
+	assert.ok(
+		at((pier.foot + pier.start) / 2) > 0 &&
+			at((pier.foot + pier.start) / 2) < pier.deck,
+	);
+	assert.equal(at(pier.start - 1), pier.deck);
+	assert.equal(at(-100), pier.deck);
+	assert.equal(at(-100, pier.halfWidth + 0.5), 0, 'beside the deck is the sea');
+	assert.equal(at(pier.end + 2, pier.platform.halfWidth - 1), pier.deck);
+	assert.equal(at(pier.end - 1), 0);
+	assert.equal(groundHeight(0, 0), 0, 'home stays flat');
+	assert.equal(groundHeight(BEACH.x - 100, BEACH.z + pier.z), pier.deck);
+	assert.ok(
+		!outsideWorld(
+			BEACH.x + pier.end,
+			BEACH.z + pier.z + pier.platform.halfWidth,
+		),
+	);
 });

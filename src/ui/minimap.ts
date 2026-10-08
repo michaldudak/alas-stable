@@ -121,7 +121,7 @@ export function createMinimap(
 			BEACH.x + BEACH.pier.end,
 			BEACH.z + BEACH.pier.z,
 		);
-		const [pierStart] = point(BEACH.x - 14, 0);
+		const [pierStart] = point(BEACH.x + BEACH.pier.foot, 0);
 		map.strokeStyle = '#8a6c4c';
 		map.lineWidth = BEACH.pier.halfWidth * 2 * SCALE;
 		map.beginPath();

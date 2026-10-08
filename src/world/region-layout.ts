@@ -19,9 +19,45 @@ export const BEACH = {
 	gapHalfWidth: 9,
 	/** East edge of the car park behind the dunes. */
 	parkEnd: 47,
-	/** A wooden pier running out to sea. */
-	pier: { z: 64, halfWidth: 2.2, end: -190 },
+	/**
+	 * A wooden pier running out to sea: a ramp up from the sand, a deck on
+	 * piles and a wide platform with a pavilion at the far end.
+	 */
+	pier: {
+		z: 64,
+		halfWidth: 2.6,
+		/** Where the ramp meets the sand, and where the deck begins. */
+		foot: -4,
+		start: -14,
+		end: -165,
+		/** Height of the deck above the sand. */
+		deck: 0.8,
+		/** The platform at the end, measured back from `end`. */
+		platform: { length: 16, halfWidth: 7.5 },
+	},
 };
+
+/** Height of the pier's deck or ramp under a point at the seaside, else 0. */
+export function pierHeight(x: number, z: number) {
+	const { pier } = BEACH;
+	const lx = x - BEACH.x,
+		lz = Math.abs(z - BEACH.z - pier.z);
+	if (lx > pier.foot || lx < pier.end) return 0;
+	if (lx > pier.end + pier.platform.length) {
+		if (lz > pier.halfWidth) return 0;
+		if (lx > pier.start)
+			return (pier.deck * (pier.foot - lx)) / (pier.foot - pier.start);
+		return pier.deck;
+	}
+	return lz > pier.platform.halfWidth ? 0 : pier.deck;
+}
+
+/** Height of whatever someone stands on: the ground, or a pier. */
+export function groundHeight(x: number, z: number) {
+	return Math.abs(x - BEACH.x) < 400 && Math.abs(z - BEACH.z) < 400
+		? pierHeight(x, z)
+		: 0;
+}
 
 /** A snowy valley ringed by mountains, with a hut and a frozen tarn. */
 export const MOUNTAINS = {

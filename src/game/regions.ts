@@ -13,7 +13,7 @@ export const REGIONS: Readonly<
 	Record<RegionId, { x: number; z: number; radius: number }>
 > = {
 	home: { x: 0, z: 0, radius: WORLD_RADIUS },
-	beach: { x: 3000, z: 0, radius: 160 },
+	beach: { x: 3000, z: 0, radius: 210 },
 	mountains: { x: 0, z: -3000, radius: 150 },
 	hippodrome: { x: -3000, z: 0, radius: 200 },
 };
