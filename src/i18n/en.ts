@@ -263,7 +263,7 @@ export const en = {
 		'Stables, the jumping arena, the pasture and the clubhouse.',
 	'travel.beachBody': 'Gallop along the sand and wade into the sea.',
 	'travel.mountainsBody':
-		'A snowy valley with a mountain hut and a frozen tarn.',
+		'A snowy valley with a stable, a mountain hut and a frozen tarn.',
 	'travel.hippodromeBody':
 		'A grand racecourse with stands and races against other horses.',
 	'prompt.car': 'Car',
@@ -292,6 +292,7 @@ export const en = {
 	'sign.beach': 'BEACH',
 	'sign.kiosk': 'ICE CREAM · WAFFLES',
 	'sign.hut': 'MOUNTAIN HUT',
+	'sign.alpine': 'MOUNTAIN STABLE',
 	'sign.hippodrome': 'HIPPODROME',
 	'sign.racing': 'RACING STABLES',
 	'location.racingStable': 'Racing stables',
@@ -319,6 +320,8 @@ export const en = {
 	'location.infield': 'Infield',
 	'location.grandstand': 'Grandstand',
 	'location.hut': 'Mountain hut',
+	'location.mountainStable': 'Mountain stable',
+	'location.paddock': 'Paddock',
 	'location.tarn': 'Frozen tarn',
 	'location.valley': 'Snowy valley',
 	'weather.snowy': 'Snowing',

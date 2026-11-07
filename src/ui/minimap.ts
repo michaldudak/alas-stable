@@ -8,7 +8,7 @@ import {
 } from '../world/stable-layout.ts';
 import { ARENA, CLUBHOUSE, PASTURE, RACE_TRACK } from '../world/layout.ts';
 import { WORLD_RADIUS } from '../game/tuning.ts';
-import { REGIONS, type RegionId } from '../game/regions.ts';
+import { REGIONS, regionAt, type RegionId } from '../game/regions.ts';
 import type { RigPose } from '../game/trailer.ts';
 import { BEACH, HIPPODROME, MOUNTAINS } from '../world/region-layout.ts';
 
@@ -176,7 +176,7 @@ export function createMinimap(
 		point: Project,
 		rect: (x: number, z: number, w: number, d: number) => void,
 	) {
-		const { x, z, radius, hut, tarn } = MOUNTAINS;
+		const { x, z, radius, hut, tarn, paddock } = MOUNTAINS;
 		map.fillStyle = '#8f9aa6';
 		map.fillRect(0, 0, SIZE, SIZE);
 		map.fillStyle = '#eef2f6';
@@ -207,6 +207,22 @@ export function createMinimap(
 		map.fill();
 		map.fillStyle = '#7a5a3e';
 		rect(x + hut.x, z + hut.z, hut.halfWidth, hut.halfDepth);
+		map.strokeStyle = '#8a6a4a';
+		map.lineWidth = 1.5;
+		map.strokeRect(
+			...point(
+				x + paddock.x - paddock.halfWidth,
+				z + paddock.z - paddock.halfDepth,
+			),
+			paddock.halfWidth * 2 * SCALE,
+			paddock.halfDepth * 2 * SCALE,
+		);
+		for (const spec of STABLES.filter((s) => s.id === 'alpine')) {
+			map.fillStyle = '#6f5238';
+			rect(spec.x, spec.z, STABLE_HALF_WIDTH, halfDepth(spec));
+			map.fillStyle = '#b79a72';
+			rect(spec.x, spec.z, AISLE_HALF_WIDTH, halfDepth(spec));
+		}
 	}
 	/** The stable yard with its stables, arena, racecourse and pasture. */
 	function drawHome(
@@ -258,7 +274,7 @@ export function createMinimap(
 		map.stroke();
 		map.fillStyle = '#e4cda5';
 		rect(ARENA.x, ARENA.z, ARENA.halfWidth, ARENA.halfDepth);
-		for (const spec of STABLES.filter((s) => s.id !== 'racing')) {
+		for (const spec of STABLES.filter((s) => regionAt(s.x, s.z) === 'home')) {
 			map.fillStyle = spec.id === 'linden' ? '#a2524a' : '#a96a4f';
 			rect(spec.x, spec.z, STABLE_HALF_WIDTH, halfDepth(spec));
 			map.fillStyle = '#eadcbb';

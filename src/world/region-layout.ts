@@ -59,12 +59,14 @@ export function groundHeight(x: number, z: number) {
 		: 0;
 }
 
-/** A snowy valley ringed by mountains, with a hut and a frozen tarn. */
+/** A snowy valley ringed by mountains, with a stable, a hut and a frozen tarn. */
 export const MOUNTAINS = {
 	...REGIONS.mountains,
 	hut: { x: -34, z: -40, halfWidth: 6, halfDepth: 4.5 },
 	/** The frozen tarn is fenced off. */
 	tarn: { x: 48, z: -38, radiusX: 26, radiusZ: 17 },
+	/** A fenced paddock east of the stable, with its gate in the south rail. */
+	paddock: { x: -2, z: 40, halfWidth: 18, halfDepth: 18, gateHalfWidth: 3 },
 };
 
 /** A grand racecourse with a grass track, a grandstand and a starting gate. */

@@ -122,21 +122,13 @@ export function createInput(canvas: HTMLCanvasElement, actions: InputActions) {
 			},
 			options,
 		);
-	window.addEventListener(
-		'blur',
-		() => {
-			clear();
-			actions.pause();
-		},
-		options,
-	);
+	// The game keeps running without focus, but keys released elsewhere must not
+	// stay held down.
+	window.addEventListener('blur', clear, options);
 	document.addEventListener(
 		'visibilitychange',
 		() => {
-			if (document.hidden) {
-				clear();
-				actions.pause();
-			}
+			if (document.hidden) clear();
 		},
 		options,
 	);

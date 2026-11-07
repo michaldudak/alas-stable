@@ -22,6 +22,7 @@ const FINISHES: Record<string, Finish> = {
 	'#e0d3b7': 'siding',
 	'#9a4a3b': 'siding',
 	'#7a624b': 'siding',
+	'#6f5238': 'siding',
 	'#976d48': 'boards',
 	'#8a6446': 'boards',
 	'#8f8877': 'concrete',
@@ -34,6 +35,8 @@ const FINISHES: Record<string, Finish> = {
 	'#5a6b63': 'roofing',
 	'#3e4547': 'roofing',
 	'#4b5456': 'roofing',
+	'#4a4f52': 'roofing',
+	'#565c5f': 'roofing',
 	'#5b6a44': 'roofing',
 	'#687a4f': 'roofing',
 	'#7b5137': 'door',
@@ -124,6 +127,18 @@ const PALETTES: Record<StableSpec['id'], Palette> = {
 		batten: '#3f6b4f',
 		trim: '#f7f4ec',
 		sign: 'sign.racing',
+	},
+	// Dark larch boards under a slate roof, with red doors.
+	alpine: {
+		siding: '#6f5238',
+		inner: '#8a6446',
+		gable: '#654a33',
+		roof: '#4a4f52',
+		rib: '#565c5f',
+		door: '#8e4436',
+		batten: '#a3503f',
+		trim: '#e3d7bd',
+		sign: 'sign.alpine',
 	},
 };
 
@@ -299,6 +314,8 @@ export function createStable(
 	solids.push(...stableSolids(spec));
 	// Paved, level thresholds and a broad central aisle, without a collision slab.
 	box('#b4aaa0', [24, 0.08, depth * 2], [0, -0.045, 0]);
+	// The ground shows through the stalls, so cover the snow with a board floor.
+	if (spec.snowy) box('#8a6446', [24, 0.02, depth * 2], [0, -0.002, 0]);
 	for (const end of [-1, 1])
 		if (end > 0 || spec.id !== 'main')
 			box('#bcae94', [9, 0.05, 9], [0, -0.01, end * (depth + 4)]);
@@ -393,6 +410,22 @@ export function createStable(
 			true,
 		);
 		roof.rotation.z = -side * roofAngle;
+		if (spec.snowy) {
+			// Rests on the roof's ribs, shifted along the slope's normal.
+			const lift = 0.28;
+			const snow = box(
+				'#f4f7fb',
+				[roofWidth - 0.2, 0.3, depth * 2 + 1.9],
+				[
+					side * (6.4 + lift * Math.sin(roofAngle)),
+					7.6 + lift * Math.cos(roofAngle),
+					0,
+				],
+				root,
+				true,
+			);
+			snow.rotation.z = -side * roofAngle;
+		}
 		for (let z = -depth - 0.7; z <= depth + 0.7; z += 0.58) {
 			const rib = box(
 				palette.rib,

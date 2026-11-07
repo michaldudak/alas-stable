@@ -8,6 +8,7 @@ import { createRegionGround } from './terrain.ts';
 import { railFence } from './fences.ts';
 import { mergeStatic } from '../rendering/merge.ts';
 import { MOUNTAINS, PARKING } from './region-layout.ts';
+import { STABLES, halfDepth, insideStable } from './stable-layout.ts';
 import type { SurfaceUniforms } from './lamps.ts';
 import type { Point } from './layout.ts';
 
@@ -174,10 +175,51 @@ function snowman(parent: THREE.Object3D, scarf: string) {
 	cylinder(parent, '#2b2622', 0.3, 0.03, [0, 1.92, 0], 0.3, 'plain');
 }
 
+/** A roofed rack of hay on four posts, about 3 m by 2 m. */
+function hayRack(parent: THREE.Object3D) {
+	for (const s of [-1, 1])
+		for (const e of [-1, 1])
+			box(
+				parent,
+				'#6b5139',
+				[0.16, 2.2, 0.16],
+				[s * 1.3, 1.1, e * 0.7],
+				0,
+				'post',
+			);
+	for (let i = 0; i < 9; i++)
+		box(
+			parent,
+			'#8a6a4a',
+			[0.05, 0.9, 0.05],
+			[-1.2 + i * 0.3, 1.25, 0],
+			0,
+			'wood',
+		).rotation.x = 0.35;
+	box(parent, '#c9ae6a', [2.4, 0.5, 0.8], [0, 1.6, 0.05], 0, 'straw');
+	const roof = box(
+		parent,
+		'#5a4636',
+		[3.1, 0.12, 2],
+		[0, 2.35, 0],
+		0,
+		'roofing',
+	);
+	roof.rotation.x = 0.1;
+	box(
+		parent,
+		'#f4f7fb',
+		[3.0, 0.18, 1.9],
+		[0, 2.48, 0],
+		0,
+		'plain',
+	).rotation.x = 0.1;
+}
+
 /**
- * A snowy valley ringed by peaks: a log mountain hut with smoke rising from
- * its chimney, a fenced frozen tarn, snowy spruces, snowmen, a hay rack for
- * the deer and a trail marked in red and white.
+ * A snowy valley ringed by peaks: a log stable with a fenced paddock, a log
+ * mountain hut with smoke rising from its chimney, a fenced frozen tarn, snowy
+ * spruces, snowmen, a hay rack for the deer and a trail marked in red and white.
  */
 export function createMountains(
 	scene: THREE.Scene,
@@ -198,8 +240,13 @@ export function createMountains(
 	const path = trail();
 	const parking = PARKING.mountains;
 	const hut = MOUNTAINS.hut,
-		tarn = MOUNTAINS.tarn;
-	// Spurs to the car park and past the hut; the loop is searched by angle.
+		tarn = MOUNTAINS.tarn,
+		paddock = MOUNTAINS.paddock;
+	const stable = STABLES.find((spec) => spec.id === 'alpine')!;
+	const south = stable.z + halfDepth(stable),
+		north = stable.z - halfDepth(stable);
+	// Spurs to the car park, past the hut and linking the stable's doors with
+	// the trail, the hut and the paddock gate; the loop is searched by angle.
 	const spurs: { a: Point; b: Point; width: number }[] = [
 		{
 			a: { x: parking.x, z: parking.z - 10 },
@@ -210,6 +257,21 @@ export function createMountains(
 			a: { x: X + hut.x + hut.halfWidth + 2, z: Z + hut.z },
 			b: { x: X - 60, z: Z - 62 },
 			width: 2.4,
+		},
+		{
+			a: { x: stable.x, z: south + 4 },
+			b: { x: X + 4, z: Z + 100 },
+			width: 2.6,
+		},
+		{
+			a: { x: stable.x, z: south + 4 },
+			b: { x: X + paddock.x, z: Z + paddock.z + paddock.halfDepth + 2 },
+			width: 2.2,
+		},
+		{
+			a: { x: stable.x, z: north - 4 },
+			b: { x: X - 24, z: Z - 33 },
+			width: 2.2,
 		},
 	];
 	/** Distance to the nearest trodden track, in track half-widths. */
@@ -258,7 +320,13 @@ export function createMountains(
 					Math.abs(x - parking.x) < 4 && Math.abs(z - parking.z + 1) < 11
 						? 0.7
 						: 0;
-				return [0, Math.max(packed * 0.8, yard, park), 0, 0];
+				// Bare, trampled ground at the stable and along its doors.
+				const stableYard =
+					insideStable(x, z, 0.5) ||
+					(Math.abs(x - stable.x) < 5 && z > north - 9 && z < south + 9)
+						? 1
+						: 0;
+				return [0, Math.max(packed * 0.8, yard, park, stableYard), 0, 0];
 			},
 		},
 		surface,
@@ -310,8 +378,49 @@ export function createMountains(
 		postHeight: 1.2,
 		spacing: 3,
 		finish: 'wood',
-		jumpable: false,
 	});
+
+	// The paddock east of the stable: its rails can be jumped, and a gate in the
+	// south rail faces the stable's yard.
+	const paddockFence = {
+		post: '#6b5139',
+		rail: '#8a6a4a',
+		rails: [0.5, 0.95],
+		postHeight: 1.2,
+		spacing: 3,
+		finish: 'wood',
+	} as const;
+	const west = X + paddock.x - paddock.halfWidth,
+		east = X + paddock.x + paddock.halfWidth,
+		top = Z + paddock.z - paddock.halfDepth,
+		bottom = Z + paddock.z + paddock.halfDepth;
+	railFence(
+		fences,
+		solids,
+		[
+			{ x: X + paddock.x - paddock.gateHalfWidth, z: bottom },
+			{ x: west, z: bottom },
+			{ x: west, z: top },
+			{ x: east, z: top },
+			{ x: east, z: bottom },
+			{ x: X + paddock.x + paddock.gateHalfWidth, z: bottom },
+		],
+		paddockFence,
+	);
+	hayRack(placed(props, paddock.x + 9, paddock.z - 10, -0.4));
+	at(paddock.x + 9, paddock.z - 10, 3.2, 2.8);
+	// A hitching rail and a water trough along the stable's east wall.
+	const eastWall = stable.x - X + 15,
+		wallZ = stable.z - Z;
+	const hitch = placed(props, eastWall, wallZ - 3);
+	for (const s of [-1, 1])
+		box(hitch, '#6b5139', [0.18, 1.3, 0.18], [0, 0.65, s * 2], 0, 'post');
+	box(hitch, '#8a6a4a', [0.1, 0.12, 4.4], [0, 1.2, 0], 0, 'wood');
+	at(eastWall, wallZ - 3, 0.3, 4.3);
+	const trough = placed(props, eastWall, wallZ + 4);
+	box(trough, '#71533b', [1, 0.6, 2.6], [0, 0.3, 0], 0, 'wood');
+	box(trough, '#b9d4e3', [0.84, 0.03, 2.44], [0, 0.61, 0], 0, 'plain');
+	at(eastWall, wallZ + 4, 1, 2.6);
 
 	// The mountain hut: a log cabin under a steep, snow-laden roof.
 	const cabin = placed(props, hut.x, hut.z);
@@ -513,38 +622,7 @@ export function createMountains(
 		snowman(placed(props, sx, sz, next() * 1.5 - 0.75), scarf);
 		at(sx, sz, 1.1, 1.1);
 	}
-	const rack = placed(props, -70, 30, 0.6);
-	for (const s of [-1, 1])
-		for (const e of [-1, 1])
-			box(
-				rack,
-				'#6b5139',
-				[0.16, 2.2, 0.16],
-				[s * 1.3, 1.1, e * 0.7],
-				0,
-				'post',
-			);
-	for (let i = 0; i < 9; i++)
-		box(
-			rack,
-			'#8a6a4a',
-			[0.05, 0.9, 0.05],
-			[-1.2 + i * 0.3, 1.25, 0],
-			0,
-			'wood',
-		).rotation.x = 0.35;
-	box(rack, '#c9ae6a', [2.4, 0.5, 0.8], [0, 1.6, 0.05], 0, 'straw');
-	const rackRoof = box(
-		rack,
-		'#5a4636',
-		[3.1, 0.12, 2],
-		[0, 2.35, 0],
-		0,
-		'roofing',
-	);
-	rackRoof.rotation.x = 0.1;
-	box(rack, '#f4f7fb', [3.0, 0.18, 1.9], [0, 2.48, 0], 0, 'plain').rotation.x =
-		0.1;
+	hayRack(placed(props, -70, 30, 0.6));
 	at(-70, 30, 3.2, 2.4);
 	const post = placed(props, 14, 96, -0.3);
 	cylinder(post, '#8a6a4a', 0.1, 2.8, [0, 1.4, 0], 0.1, 'post');
@@ -579,6 +657,10 @@ export function createMountains(
 		position = new THREE.Vector3();
 	const clear = (lx: number, lz: number) =>
 		Math.hypot(lx - hut.x, lz - hut.z) < 16 ||
+		(Math.abs(lx - paddock.x) < paddock.halfWidth + 6 &&
+			Math.abs(lz - paddock.z) < paddock.halfDepth + 6) ||
+		(Math.abs(X + lx - stable.x) < 20 &&
+			Math.abs(Z + lz - stable.z) < halfDepth(stable) + 16) ||
 		((lx - tarn.x) / (tarn.radiusX + 7)) ** 2 +
 			((lz - tarn.z) / (tarn.radiusZ + 7)) ** 2 <
 			1 ||

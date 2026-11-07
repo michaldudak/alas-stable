@@ -22,7 +22,7 @@ export function isSand(x: number, z: number) {
 	const region = regionAt(x, z);
 	// Hooves ring on the boards of the pier.
 	if (region === 'beach') return pierHeight(x, z) === 0;
-	if (region === 'mountains') return true;
+	if (region === 'mountains') return !stableAt(x, z);
 	if (region !== 'home') return false;
 	return (
 		(Math.abs(x - ARENA.x) < ARENA.halfWidth - 1 &&
@@ -43,7 +43,14 @@ export function locationName(x: number, z: number): MessageKey {
 	if (region === 'mountains') {
 		const lx = x - MOUNTAINS.x,
 			lz = z - MOUNTAINS.z;
-		const { hut, tarn } = MOUNTAINS;
+		const { hut, tarn, paddock } = MOUNTAINS;
+		if (inTackRoom(x, z)) return 'location.tack';
+		if (stableAt(x, z)) return 'location.mountainStable';
+		if (
+			Math.abs(lx - paddock.x) < paddock.halfWidth &&
+			Math.abs(lz - paddock.z) < paddock.halfDepth
+		)
+			return 'location.paddock';
 		if (Math.hypot(lx - hut.x, lz - hut.z) < 16) return 'location.hut';
 		if (
 			((lx - tarn.x) / (tarn.radiusX + 8)) ** 2 +

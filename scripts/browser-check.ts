@@ -49,6 +49,15 @@ try {
 		true,
 	);
 	await page.screenshot({ path: 'artifacts/first-person.png' });
+	// Losing focus leaves the game running; only Escape pauses it.
+	await page.evaluate(() => {
+		window.dispatchEvent(new Event('blur'));
+		document.dispatchEvent(new Event('visibilitychange'));
+	});
+	assert.equal(
+		(await page.evaluate(() => window.__alasStable!.snapshot())).paused,
+		false,
+	);
 	await page.keyboard.press('Escape');
 	const paused = await page.evaluate(() => window.__alasStable!.snapshot());
 	assert.equal(paused.paused, true);

@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict';
+import type { SkinnedMesh, Vector3 } from 'three';
+import type * as HorseModule from '../src/horse/model.ts';
+import type * as TrailerModule from '../src/game/trailer.ts';
 import { BASE_URL, launchBrowser } from './browser-support.ts';
 
 /**
@@ -61,6 +64,39 @@ try {
 	await teleport(-63.5, 26.4, -Math.PI / 2);
 	assert.ok(await until(async () => (await snapshot()).aboard === 'Raven', 15));
 
+	// The horse's ears, on the trailer floor, stay well under the roof.
+	const clearance = await page.evaluate(async () => {
+		const model = '/src/horse/model.ts',
+			trailer = '/src/game/trailer.ts';
+		const { createHorse } = (await import(
+			/* @vite-ignore */ model
+		)) as typeof HorseModule;
+		const { RIG } = (await import(
+			/* @vite-ignore */ trailer
+		)) as typeof TrailerModule;
+		const horse = createHorse();
+		horse.rider.visible = false;
+		horse.tack.visible = false;
+		horse.root.updateMatrixWorld(true);
+		let top = -Infinity;
+		horse.root.traverseVisible((object) => {
+			const mesh = object as SkinnedMesh;
+			const position = mesh.geometry?.attributes?.position;
+			if (!position) return;
+			const point = new (
+				horse.root.position.constructor as new () => Vector3
+			)();
+			for (let i = 0; i < position.count; i += 3) {
+				point.fromBufferAttribute(position, i);
+				if (mesh.isSkinnedMesh) mesh.applyBoneTransform(i, point);
+				top = Math.max(top, point.applyMatrix4(mesh.matrixWorld).y);
+			}
+		});
+		horse.dispose();
+		return RIG.trailer.roof - RIG.trailer.floor - top;
+	});
+	assert.ok(clearance > 0.3, `${clearance} m under the trailer roof`);
+
 	// E at the driver's door opens the map; the horse rides along.
 	await teleport(-76.3, 27.4, 0);
 	await page.waitForTimeout(400);
@@ -101,6 +137,42 @@ try {
 		state = await snapshot();
 		assert.ok(state.calls > 0);
 		assert.equal(state.riding, 'on-foot');
+		if (region === 'mountains') {
+			// The mountain stable can be walked into through its south door.
+			await teleport(-40, -2960 + 13 + 5, Math.PI);
+			await page.keyboard.press('ArrowUp');
+			assert.ok(
+				await until(
+					async () =>
+						(await page.textContent('#location')) === 'Górska stajnia',
+					10,
+				),
+			);
+			await page.keyboard.press('ArrowDown');
+			assert.ok(
+				await until(async () => Math.abs((await snapshot()).speed) < 0.1, 5),
+			);
+			// Its horses can be ridden, and the tarn's fence can be jumped.
+			await teleport(-37, -2960 - 8, -Math.PI / 2);
+			await page.waitForTimeout(400);
+			await page.keyboard.press('e');
+			assert.ok(
+				await until(async () => (await snapshot()).riding === 'mounted', 15),
+			);
+			assert.ok(['HALNY', 'TURNIA'].includes((await snapshot()).activeHorse));
+			const fence = -3000 - 38 + 17 + 2.5;
+			await teleport(48, fence + 16, Math.PI);
+			for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowUp');
+			assert.ok(await until(async () => (await snapshot()).z < fence + 6, 8));
+			await page.keyboard.press('Space');
+			assert.ok(await until(async () => (await snapshot()).z < fence - 2, 4));
+			for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+			assert.ok(await until(async () => (await snapshot()).speed < 0.05, 5));
+			await page.keyboard.press('e');
+			assert.ok(
+				await until(async () => (await snapshot()).riding === 'on-foot', 8),
+			);
+		}
 		if (region === 'hippodrome') {
 			// The racing stables can be walked into through their south door.
 			await teleport(-3092, -68, Math.PI);

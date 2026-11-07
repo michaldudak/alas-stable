@@ -9,7 +9,7 @@ import type { Solid } from '../game/types.ts';
 import { createJumps } from './jumps.ts';
 import * as THREE from 'three';
 import { createStable } from './stable.ts';
-import { insideStable, STABLES } from './stable-layout.ts';
+import { insideStable, STABLES, type StableSpec } from './stable-layout.ts';
 import { createSun } from './sun.ts';
 import { createSky } from './sky.ts';
 import {
@@ -250,15 +250,18 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 	mergeStatic(scenery);
 	// Everything built so far belongs to the stable yard, apart from the sky,
 	// the lights and the grass, which every place shares.
-	// The racing stables are built with the others but stand at the hippodrome.
-	const racingStable =
-		stables[STABLES.findIndex((spec) => spec.id === 'racing')];
+	// These stables are built with the others but stand in other places.
+	const stableRoot = (id: StableSpec['id']) =>
+		stables[STABLES.findIndex((spec) => spec.id === id)].root;
+	const racingStable = stableRoot('racing'),
+		alpineStable = stableRoot('alpine');
 	const home: Place = {
 		objects: scene.children.filter(
 			(object) =>
 				!(object instanceof THREE.Light) &&
 				!['sky', 'clouds', 'grass'].includes(object.name) &&
-				object !== racingStable.root,
+				object !== racingStable &&
+				object !== alpineStable,
 		),
 		grass: {
 			mask: terrain.mask,
@@ -294,7 +297,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 			const hippodrome = createHippodrome(scene, solids, surface);
 			cheer = (level) => hippodrome.cheer(level);
 			return {
-				objects: [hippodrome.root, ...hippodrome.extra, racingStable.root],
+				objects: [hippodrome.root, ...hippodrome.extra, racingStable],
 				grass: hippodrome.grass,
 				ground: hippodrome.ground,
 				fog: hippodrome.fog,
@@ -309,7 +312,7 @@ export function createWorld(scene: THREE.Scene, renderer: THREE.WebGLRenderer) {
 		if (id === 'mountains') {
 			const mountains = createMountains(scene, solids, surface);
 			return {
-				objects: [mountains.root],
+				objects: [mountains.root, alpineStable],
 				ground: mountains.ground,
 				fog: mountains.fog,
 				snowy: mountains.snowy,

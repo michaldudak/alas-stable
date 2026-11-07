@@ -3,13 +3,15 @@ import { REGIONS } from '../game/regions.ts';
 
 /** Every stable shares one cross-section; only the number of stall bays differs. */
 export interface StableSpec {
-	id: 'main' | 'linden' | 'meadow' | 'racing';
+	id: 'main' | 'linden' | 'meadow' | 'racing' | 'alpine';
 	x: number;
 	z: number;
 	/** Eight-metre stall bays on each side of the aisle. */
 	bays: number;
 	/** The bay nearest the south doors on the east side becomes the tack room. */
 	tackRoom: boolean;
+	/** Stands in the snow: snow lies on its roof and is kept off its floor. */
+	snowy?: boolean;
 }
 
 export const STABLE_HALF_WIDTH = 12;
@@ -27,6 +29,15 @@ export const STABLES: readonly StableSpec[] = [
 		z: REGIONS.hippodrome.z - 95,
 		bays: 4,
 		tackRoom: true,
+	},
+	// The log stable in the mountain valley, west of the paddock.
+	{
+		id: 'alpine',
+		x: REGIONS.mountains.x - 40,
+		z: REGIONS.mountains.z + 40,
+		bays: 3,
+		tackRoom: true,
+		snowy: true,
 	},
 ];
 

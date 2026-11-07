@@ -198,7 +198,7 @@ export function createVehicle(scene: THREE.Scene) {
 	const tLength = trailer.front - trailer.back,
 		tMiddle = (trailer.front + trailer.back) / 2,
 		floor = trailer.floor,
-		height = 3.3;
+		height = trailer.roof;
 	const shell = '#dfe3e4',
 		canvas = '#2f4a3d';
 	box(
@@ -232,8 +232,8 @@ export function createVehicle(scene: THREE.Scene) {
 		);
 		// A little window in each side of the canvas.
 		pane(
-			[0.07, 0.4, 0.8],
-			[side * (trailer.halfWidth - 0.03), floor + 1.95, trailer.front - 1.1],
+			[0.07, 0.5, 0.9],
+			[side * (trailer.halfWidth - 0.03), floor + 2.6, trailer.front - 1.1],
 		);
 		box(
 			root,

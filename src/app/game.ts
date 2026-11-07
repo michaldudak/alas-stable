@@ -1869,6 +1869,7 @@ export function startGame() {
 				active,
 				isSand(active.x, active.z),
 				riding === 'mounted' ? footfalls : 0,
+				world.region !== 'mountains',
 			);
 			$('location').textContent = t(locationName(active.x, active.z));
 			renderSky();

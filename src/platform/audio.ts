@@ -157,7 +157,14 @@ export class Soundscape {
 			0.9,
 		);
 	}
-	tick(dt: number, state: Pick<GameState, 'z'>, sand: boolean, footfalls = 0) {
+	/** `wildlife` is false where no birds or crickets live, as in the snow. */
+	tick(
+		dt: number,
+		state: Pick<GameState, 'z'>,
+		sand: boolean,
+		footfalls = 0,
+		wildlife = true,
+	) {
 		this.cricketTime -= dt;
 		this.birdTime -= dt;
 		this.horseTime -= dt;
@@ -205,12 +212,12 @@ export class Soundscape {
 		}
 		// Birds sing by day and fall silent in the rain; crickets chirp at night.
 		if (this.birdTime <= 0) {
-			if (this.darkness < 0.5 && Math.random() > this.rain)
+			if (wildlife && this.darkness < 0.5 && Math.random() > this.rain)
 				this.tone(1800 + Math.random() * 900, 0.16, 0.018, 3400);
 			this.birdTime = 1.2 + Math.random() * 3;
 		}
 		if (this.cricketTime <= 0) {
-			if (this.darkness > 0.6 && this.rain < 0.3)
+			if (wildlife && this.darkness > 0.6 && this.rain < 0.3)
 				for (let i = 0; i < 3; i++)
 					setTimeout(() => this.tone(4300, 0.035, 0.006, 4200), i * 70);
 			this.cricketTime = 0.7 + Math.random() * 1.6;

@@ -13,7 +13,14 @@ export interface RigPose {
  */
 export const RIG = {
 	car: { halfWidth: 1.02, front: 5.55, back: 0.7 },
-	trailer: { halfWidth: 1.08, front: -1.3, back: -5.4, floor: 0.42 },
+	trailer: {
+		halfWidth: 1.08,
+		front: -1.3,
+		back: -5.4,
+		floor: 0.42,
+		/** High enough for a horse's ears, with room for its head to nod. */
+		roof: 4.6,
+	},
 	/** The rear ramp is down, reaching the ground this far behind the hitch. */
 	ramp: { halfWidth: 0.85, end: -7.3 },
 	/** The middle of the horse's stall, where it travels facing ahead. */

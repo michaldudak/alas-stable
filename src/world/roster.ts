@@ -217,6 +217,38 @@ export const ROSTER: readonly HorseProfile[] = [
 			cloth: '#437f79',
 		},
 	},
+	// Sturdy mountain horses in the log stable in the valley.
+	{
+		id: 'HALNY',
+		name: 'Halny',
+		home: { stable: 'alpine', bay: 0, side: -1 },
+		starts: 'stall',
+		appearance: {
+			coat: '#665046',
+			hair: '#e9e3d1',
+			tailStyle: 'braided',
+			cloth: '#b75f59',
+		},
+	},
+	{
+		id: 'SNIEZKA',
+		name: 'Śnieżka',
+		home: { stable: 'alpine', bay: 1, side: -1 },
+		starts: 'stall',
+		appearance: {
+			coat: '#e6e0d2',
+			hair: '#e9e3d1',
+			maneStyle: 'braided',
+			cloth: '#437f79',
+		},
+	},
+	{
+		id: 'TURNIA',
+		name: 'Turnia',
+		home: { stable: 'alpine', bay: 0, side: 1 },
+		starts: 'stall',
+		appearance: { coat: '#343330', hair: '#d7b879', cloth: '#b3a45a' },
+	},
 ];
 
 export const profile = (id: string) => ROSTER.find((horse) => horse.id === id);
