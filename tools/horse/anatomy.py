@@ -367,6 +367,24 @@ def hindquarters(spec):
     ] + lower_details(spec)
 
 
+def ear():
+    """One ear as a loft up from the poll: (distance up, half-depth, half-width, x)."""
+    up = np.array([0.94, 0.34])  # (y, z): upright, tipped a little forward
+    across = np.array([-0.34, 0.94])
+    base = np.array([POLL[0] - 0.04, POLL[1] - 0.025])
+    stations = []
+    for rise, half, thick, x in (
+        (0.0, 0.026, 0.032, 0.088),
+        (0.06, 0.03, 0.05, 0.1),
+        (0.12, 0.027, 0.047, 0.106),
+        (0.18, 0.019, 0.031, 0.102),
+        (0.24, 0.008, 0.011, 0.092),
+    ):
+        centre = base + up * rise
+        stations.append((tuple(centre + across * half), tuple(centre - across * half), thick, {"x": x}))
+    return Loft(stations, k=0.02, cap=0.02)
+
+
 def head():
     h = head_point
 
@@ -410,9 +428,17 @@ def head():
         Ellipsoid(h(0.95, 0.295), (0.055, 0.035, 0.07), head_rot(-0.2), k=0.04),
         # The mouth is a groove along each side, not a slit through the muzzle.
         Ellipsoid(h(0.97, 0.262, 0.095), (0.03, 0.008, 0.085), head_rot(-0.1), k=0.012, subtract=True),
-        # Ears: pointed leaves on the poll, open to the front and a little outwards.
-        Ellipsoid(h(-0.02, -0.115, 0.1), (0.05, 0.15, 0.034), (0.28, 0.4, -0.16), k=0.03),
-        Ellipsoid(h(0.005, -0.125, 0.11), (0.03, 0.11, 0.022), (0.28, 0.4, -0.16), k=0.012, subtract=True),
+        # Ears: narrow at the base, widest a third of the way up, tapering to
+        # a point that curves a little inwards, with the hollow facing forward
+        # and out.
+        ear(),
+        Ellipsoid(
+            (0.104, POLL[0] + 0.085, POLL[1] + 0.045),
+            (0.03, 0.08, 0.02),
+            (0.35, 0, 0),
+            k=0.012,
+            subtract=True,
+        ),
     ]
 
 
