@@ -452,7 +452,12 @@ export function createHorse(): HorseModel {
 	// The rider pats the side of the crest, just in front of the withers.
 	const patPoint = new THREE.Vector3(0.12, topline(rig, 0.74).y - 0.03, 0.74),
 		patTarget = new THREE.Vector3();
-	const { rider, gesture, figure: riderFigure } = createRider(seat, patTarget);
+	const {
+		rider,
+		gesture,
+		follow,
+		figure: riderFigure,
+	} = createRider(seat, patTarget);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
 	decoration.position.copy(onHead(rig, 0.02, 0.1, 1, 0.04));
@@ -629,6 +634,7 @@ export function createHorse(): HorseModel {
 		tail,
 		rider,
 		swingRiderHair: (dt: number) => riderFigure.swingHair(dt),
+		followRider: follow,
 		tack,
 		halter,
 		bridle,

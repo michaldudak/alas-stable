@@ -1,3 +1,4 @@
+import { JUMP_DURATION } from '../game/tuning.ts';
 import type { HorseModel } from './types.ts';
 import type { MotionState } from '../game/types.ts';
 import * as THREE from 'three';
@@ -148,7 +149,30 @@ export function createHorseAnimation(horse: HorseModel) {
 				2.7 * (1 - Math.cos(pose.riderPitch)) + pose.riderY,
 				-2.7 * Math.sin(pose.riderPitch),
 			);
-			if (horse.rider.visible) horse.swingRiderHair(dt);
+			if (horse.rider.visible) {
+				// She posts to the trot, rising as one diagonal pair pushes off and
+				// sitting on the next beat, and lets her back absorb the rocking of
+				// the walk and canter so her shoulders stay quiet.
+				const going = Math.min(1, Math.abs(state.speed) / 1.5);
+				const cycle = pose.phase * Math.PI * 2;
+				// Over a fence she folds forward out of the saddle and follows the
+				// horse's neck, sitting up again as it lands.
+				const flight =
+					state.jump < 0
+						? 0
+						: Math.sin(Math.PI * Math.min(1, state.jump / JUMP_DURATION));
+				const rise =
+					pose.weights[2] *
+						going *
+						(0.5 - 0.5 * Math.cos(cycle + 0.3)) *
+						(state.jump < 0 ? 1 : 0) +
+					0.55 * flight;
+				horse.followRider(
+					rise,
+					-0.8 * pose.pitch - 0.6 * pose.riderPitch + 0.28 * flight,
+				);
+				horse.swingRiderHair(dt);
+			}
 			// Standing horses swish at flies in bursts; moving, the tail swings with
 			// the hind legs and lifts at the trot and canter.
 			const swish =
