@@ -7,7 +7,7 @@ import type * as RidingModule from '../src/game/riding.ts';
 import { BASE_URL, launchBrowser } from './browser-support.ts';
 import { mkdir } from 'node:fs/promises';
 
-// Renders the seated rider from four sides and the mount in twelve frames,
+// Renders the seated rider from four sides and the mount in sixteen frames,
 // from the side and from behind, for checking the choreography by eye.
 await mkdir('artifacts', { recursive: true });
 const browser = await launchBrowser();
@@ -118,8 +118,8 @@ try {
 			['side', [1, 0.12, 0.25]],
 			['behind', [0.25, 0.2, -1]],
 		] as const)
-			for (let i = 0; i <= 11; i++) {
-				const frame = transferFrame(state, side, 1 - i / 11);
+			for (let i = 0; i <= 15; i++) {
+				const frame = transferFrame(state, side, 1 - i / 15);
 				walker.root.position.set(frame.x, frame.height, frame.z);
 				for (let k = 0; k < 20; k++)
 					walker.pose(1 / 60, {
@@ -129,7 +129,7 @@ try {
 						away: frame.away,
 						lift: frame.height,
 					});
-				shot(`mount ${name} ${i}`, [...eye], [0.5, 2.1, 0], 4.6);
+				shot(`mount ${name} ${i}`, [...eye], [0.5, 2.1, 0], 4.4, 420, 440);
 			}
 	});
 	await page.screenshot({ path: 'artifacts/rider-mount.png', fullPage: true });

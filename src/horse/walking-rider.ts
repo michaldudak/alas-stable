@@ -499,8 +499,11 @@ export function createWalkingRider(model?: RiderModelId) {
 			side = action.side ?? -1,
 			drop = action.bareback ? 0.08 : 0;
 		const stepIn = smooth(0, 0.2, m),
-			footUp = smooth(0.13, 0.33, m),
-			rise = smooth(0.34, 0.56, m),
+			leanIn = smooth(0.1, 0.3, m),
+			// She is already rising when the foot meets the stirrup: from the
+			// ground it is higher than her hip.
+			footUp = smooth(0.33, 0.5, m),
+			rise = smooth(0.3, 0.58, m),
 			over = smooth(0.52, 0.84, m),
 			sit = smooth(0.78, 1, m);
 		// The walker's origin in the horse's seat space.
@@ -513,7 +516,7 @@ export function createWalkingRider(model?: RiderModelId) {
 		// Hips: beside the horse, up over the stirrup, across, down.
 		const standing = STIRRUP[1] + 0.035 + ankleHeight + legLength * 0.97;
 		// She sinks on the ground leg, then springs off it.
-		const crouch = 0.24 * Math.sin(Math.PI * smooth(0.2, 0.42, m) ** 1.6);
+		const crouch = 0.18 * Math.sin(Math.PI * smooth(0.16, 0.4, m) ** 1.5);
 		hips.set(
 			side * mix(origin.x * side, CLOSE, stepIn),
 			hipRest.y - crouch,
@@ -532,7 +535,7 @@ export function createWalkingRider(model?: RiderModelId) {
 		hips.lerp(a, sit);
 		bones.hips.position.copy(fromHorse(a.copy(hips)));
 		// She folds over the horse's back as she rises, then straightens.
-		const fold = 0.34 * footUp + 0.3 * rise * (1 - sit) - 0.08 * sit;
+		const fold = 0.34 * leanIn + 0.3 * rise * (1 - sit) - 0.08 * sit;
 		const roll = side * 0.16 * rise * (1 - over);
 		bones.hips.quaternion.setFromEuler(euler.set(fold * 0.55, 0, roll));
 		bones.spine.quaternion.setFromEuler(euler.set(fold * 0.25, 0, -roll * 0.5));
@@ -544,22 +547,23 @@ export function createWalkingRider(model?: RiderModelId) {
 		// Near leg: from the ground into the stirrup, where it carries her.
 		const near = side,
 			far = -side;
+		// In the stirrup the foot points along the horse, not at its side, so
+		// the leg turns out from the hip while she still faces the saddle.
 		footDirection(figure, near, 0.1 * rise, near * 0.1, direction);
-		// In seat space the foot points along the horse once it is in the stirrup.
+		direction.applyQuaternion(
+			blended.setFromAxisAngle(yawAxis, -yaw * 0.8 * footUp),
+		);
 		b.set(near * STIRRUP[0], STIRRUP[1] + 0.035 - drop * 0.5, STIRRUP[2]);
 		fromHorse(b).addScaledVector(direction, -ballFront * 1.02);
 		a.set(near * stance, ankleHeight, rest.footL.z - 0.02);
 		a.x += bones.hips.position.x;
 		a.z += bones.hips.position.z - hipRest.z;
-		// Lifting, the foot comes up and back before it reaches for the tread.
+		// Leaving the ground, the foot swings up under her to the tread.
 		target.lerpVectors(a, b, footUp);
-		target.y += 0.12 * Math.sin(Math.PI * footUp);
-		figure.reach(
-			limb('thigh', near),
-			limb('shin', near),
-			target,
-			pole.set(near * 0.35, 0.2, 1),
-		);
+		target.y += 0.1 * Math.sin(Math.PI * footUp);
+		// The knee follows the toes and stays below the hip.
+		pole.copy(direction).setY(0).normalize().setY(0.25);
+		figure.reach(limb('thigh', near), limb('shin', near), target, pole);
 		figure.aim(limb('foot', near), direction, up, up);
 
 		// Far leg: pushes off, trails, then sweeps over the croup to its stirrup.
@@ -571,7 +575,7 @@ export function createWalkingRider(model?: RiderModelId) {
 		b.set(side * 0.78, SEAT_POINT.y - 0.95, -0.3);
 		target.lerpVectors(a, b, smooth(0.34, 0.56, m));
 		// Over the back: up behind the saddle, across, and down the far side.
-		b.set(side * 0.3, SEAT_POINT.y + 0.5, -1.05);
+		b.set(side * 0.3, SEAT_POINT.y + 0.34, -1.28);
 		c.set(far * 0.62, SEAT_POINT.y - 0.2, -0.75);
 		const sweep = smooth(0.5, 0.8, m),
 			land = smooth(0.72, 0.98, m);
