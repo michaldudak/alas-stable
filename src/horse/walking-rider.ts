@@ -482,7 +482,7 @@ export function createWalkingRider(model?: RiderModelId) {
 		tilt = new THREE.Quaternion(),
 		seatedAnkle = new THREE.Vector3();
 	/** Where the walker stands to mount, measured from the horse's centre line. */
-	const CLOSE = 1.0;
+	const CLOSE = 0.86;
 
 	/** A point given in the horse's seat space, in the turned figure's space. */
 	const fromHorse = (out: THREE.Vector3) =>
@@ -500,7 +500,7 @@ export function createWalkingRider(model?: RiderModelId) {
 			drop = action.bareback ? 0.08 : 0;
 		const stepIn = smooth(0, 0.2, m),
 			footUp = smooth(0.13, 0.33, m),
-			rise = smooth(0.3, 0.56, m),
+			rise = smooth(0.34, 0.56, m),
 			over = smooth(0.52, 0.84, m),
 			sit = smooth(0.78, 1, m);
 		// The walker's origin in the horse's seat space.
@@ -512,7 +512,8 @@ export function createWalkingRider(model?: RiderModelId) {
 
 		// Hips: beside the horse, up over the stirrup, across, down.
 		const standing = STIRRUP[1] + 0.035 + ankleHeight + legLength * 0.97;
-		const crouch = 0.14 * Math.sin(Math.PI * smooth(0.16, 0.44, m));
+		// She sinks on the ground leg, then springs off it.
+		const crouch = 0.24 * Math.sin(Math.PI * smooth(0.2, 0.42, m) ** 1.6);
 		hips.set(
 			side * mix(origin.x * side, CLOSE, stepIn),
 			hipRest.y - crouch,
@@ -531,7 +532,7 @@ export function createWalkingRider(model?: RiderModelId) {
 		hips.lerp(a, sit);
 		bones.hips.position.copy(fromHorse(a.copy(hips)));
 		// She folds over the horse's back as she rises, then straightens.
-		const fold = 0.2 * footUp + 0.5 * rise * (1 - sit) - 0.08 * sit;
+		const fold = 0.34 * footUp + 0.3 * rise * (1 - sit) - 0.08 * sit;
 		const roll = side * 0.16 * rise * (1 - over);
 		bones.hips.quaternion.setFromEuler(euler.set(fold * 0.55, 0, roll));
 		bones.spine.quaternion.setFromEuler(euler.set(fold * 0.25, 0, -roll * 0.5));
@@ -603,12 +604,13 @@ export function createWalkingRider(model?: RiderModelId) {
 				shoulder.y - (armLength + forearmLength) * 0.93,
 				shoulder.z + 0.12,
 			);
-			if (hold === near)
-				b.set(side * 0.05, REIN_HAND[1] - 0.1 - drop, REIN_HAND[2] + 0.2);
-			else b.set(side * 0.1, SEAT_POINT.y + 0.1 - drop, SEAT_POINT.z - 0.52);
+			// The leading hand takes the mane just in front of the withers, the
+			// other rests on the near side of the saddle to push up from.
+			if (hold === near) b.set(side * 0.16, SEAT_POINT.y - 0.08 - drop, 0.5);
+			else b.set(side * 0.26, SEAT_POINT.y - 0.1 - drop, -0.02);
 			fromHorse(b);
 			target.lerpVectors(a, b, take);
-			// The far hand lets go of the cantle as the leg comes over.
+			// The saddle hand lets go as the leg comes over.
 			c.set(
 				hold * REIN_HAND[0],
 				REIN_HAND[1] - drop,
@@ -620,7 +622,7 @@ export function createWalkingRider(model?: RiderModelId) {
 				limb('arm', hold),
 				limb('forearm', hold),
 				target,
-				pole.set(hold * 0.6, -0.5, -0.8),
+				pole.set(hold * 0.7, -0.9, -0.5),
 			);
 			direction.copy(target).sub(shoulder).normalize();
 			direction.y -= 0.3;

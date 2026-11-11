@@ -143,7 +143,9 @@ function clothing(textures: RiderTextures) {
 		const material = surface(colour, roughness);
 		material.map = textures.outfit ?? null;
 		material.normalMap = textures.outfitNormal ?? null;
-		material.normalScale.set(bump, bump);
+		// The maps follow glTF's convention; without vertex tangents three.js
+		// needs the green channel flipped.
+		material.normalScale.set(bump, -bump);
 		return material;
 	};
 	const skin = new THREE.MeshPhysicalMaterial({
@@ -175,6 +177,7 @@ function clothing(textures: RiderTextures) {
 	const hair = hairSurface(DEFAULT_OUTFIT.hair, 0.5);
 	hair.map = textures.outfit ?? null;
 	hair.normalMap = textures.outfitNormal ?? null;
+	hair.normalScale.set(1, -1);
 	hair.side = THREE.DoubleSide;
 	const boots = cloth(DEFAULT_OUTFIT.boots, 0.3);
 	const strap = cloth('#17181a', 0.8);
