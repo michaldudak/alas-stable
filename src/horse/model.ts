@@ -143,7 +143,6 @@ function forelockHair(
 	reach: number,
 ): Lock[] {
 	const next = seeded(seed);
-	const poll = crestAt(rig, 0);
 	const strands: Lock[] = [];
 	for (let i = 0; i < count; i++) {
 		// A loose tuft: strands of different lengths fall a little apart, drift
@@ -154,7 +153,8 @@ function forelockHair(
 			drift = 0.03 + (next() - 0.5) * 0.12;
 		strands.push({
 			points: [
-				[x, poll.y + 0.02, poll.z + 0.02],
+				// Rooted on the poll itself, between the ears.
+				tuple(headPoint(rig, 0, faceTop(rig, 0) - 0.005, x)),
 				tuple(headPoint(rig, 0.05, faceTop(rig, 0.05) - lift - 0.015, x * 1.2)),
 				tuple(
 					headPoint(
