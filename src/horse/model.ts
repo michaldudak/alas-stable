@@ -70,7 +70,7 @@ function headLoop(rig: HorseRig, s: number, offset: number, bottom = 0.3) {
 
 /** A point on the crest from the poll (t = 0) to the withers (t = 1). */
 function crestAt(rig: HorseRig, t: number) {
-	const z = THREE.MathUtils.lerp(1.42, 0.46, t);
+	const z = THREE.MathUtils.lerp(rig.head.poll[1] - 0.1, 0.52, t);
 	return { z, ...topline(rig, z) };
 }
 
@@ -314,7 +314,7 @@ export function createHorse(): HorseModel {
 	tail.name = 'tail';
 	// The tail pivots at the tail head; hair grows around the top and sides of
 	// the dock and falls in a rounded, tapering bundle clear of the buttocks.
-	tail.position.set(0, 2.34, -1.44);
+	tail.position.set(0, 2.37, -1.7);
 	body.add(tail);
 	locks(tail, hair, tailHair(200, 1.55, 1), 12, 3);
 	const { legs, knees, fetlocks, hooves, legRigs } = buildLegs(rig, body);
@@ -415,13 +415,14 @@ export function createHorse(): HorseModel {
 			],
 			0.022,
 		);
-		const neck = topline(rig, 1.15);
+		const reinZ = rig.head.poll[1] * 0.75;
+		const neck = topline(rig, reinZ);
 		cord(
 			bridle,
 			leather,
 			[
 				tuple(bit),
-				[side * (neck.lowWidth + 0.12), neck.y - 0.45, 1.15],
+				[side * (neck.lowWidth + 0.12), neck.y - 0.45, reinZ],
 				[side * REIN_HAND[0], REIN_HAND[1] + settle.y, REIN_HAND[2]],
 			],
 			0.016,

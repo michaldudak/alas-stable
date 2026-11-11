@@ -88,7 +88,7 @@ def masks(points):
     hoof = np.where(lower_leg, 1 - smoothstep(0.125, 0.14, y), 0.0)
     axis = (-math.sin(anatomy.HEAD_TILT), math.cos(anatomy.HEAD_TILT))
     along = (y - anatomy.POLL[0]) * axis[0] + (z - anatomy.POLL[1]) * axis[1]
-    muzzle = smoothstep(0.78, 0.92, along) * (y > 2.4)
+    muzzle = smoothstep(0.78, 0.92, along / anatomy.HEAD_SCALE) * (y > 2.2)
     eye = np.array(anatomy.EYE)
     mirrored = np.stack([np.abs(x), y, z], 1)
     rim = 1 - smoothstep(0.05, 0.085, np.linalg.norm(mirrored - eye, axis=1))
@@ -192,7 +192,7 @@ def fitting(field):
     dirs = np.stack([np.sin(around), np.cos(around), np.zeros_like(around)], 1)
     data["girth"] = rounded(probe(field, np.tile([0.0, 1.95, 0.32], (25, 1)), dirs))
     # Topline from the poll to the croup, sampled straight down the midline.
-    zs = np.linspace(1.5, -1.3, 57)
+    zs = np.linspace(anatomy.POLL[1] - 0.02, -1.55, 67)
     tops = probe(field, np.stack([np.zeros_like(zs), np.full_like(zs, 2.4), zs], 1),
                  np.tile([0.0, 1.0, 0.0], (len(zs), 1)), reach=1.6)
     data["topline"] = rounded(tops)
@@ -212,6 +212,7 @@ def fitting(field):
     data["head"] = {
         "poll": list(anatomy.POLL),
         "tilt": anatomy.HEAD_TILT,
+        "scale": anatomy.HEAD_SCALE,
         "s": ss.tolist(),
         "t": ts.tolist(),
         "width": [round(float(w), 4) if np.isfinite(w) else 0 for w in widths],

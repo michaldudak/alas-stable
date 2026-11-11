@@ -27,6 +27,8 @@ export type HorseRig = {
 	toplineWidthLow: number[];
 	head: {
 		poll: [number, number];
+		/** Length of one unit of `s` and `t`; shorter heads keep the same landmarks. */
+		scale?: number;
 		tilt: number;
 		s: number[];
 		t: number[];
@@ -127,7 +129,10 @@ export function horseAsset() {
 /** Point in the head's own frame: `s` from poll to lips, `t` from forehead to jaw. */
 export function headPoint(rig: HorseRig, s: number, t: number, x = 0) {
 	const [y, z] = rig.head.poll,
-		tilt = rig.head.tilt;
+		tilt = rig.head.tilt,
+		scale = rig.head.scale ?? 1;
+	s *= scale;
+	t *= scale;
 	return new THREE.Vector3(
 		x,
 		y - s * Math.sin(tilt) - t * Math.cos(tilt),

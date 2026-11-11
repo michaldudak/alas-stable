@@ -8,17 +8,17 @@
 type YZ = readonly [number, number];
 
 /** Top of the withers and the point of the chest bound the base of the neck. */
-const WITHERS: YZ = [2.63, 0.5];
-const CHEST: YZ = [1.55, 1.05];
+const WITHERS: YZ = [2.6, 0.42];
+const CHEST: YZ = [1.72, 1.12];
 /** The poll and the throatlatch bound the head. */
-const POLL: YZ = [3.52, 1.52];
-const THROAT: YZ = [2.37, 1.3];
+const POLL: YZ = [3.42, 1.9];
+const THROAT: YZ = [2.92, 1.93];
 
 /** Joint pivots: neck root, mid-neck and the head at the atlas. */
 export const NECK_PIVOTS: readonly YZ[] = [
-	[1.75, 0.82],
-	[2.42, 1.12],
-	[2.95, 1.42],
+	[1.9, 0.85],
+	[2.5, 1.3],
+	[3.0, 1.75],
 ];
 
 function normal(a: YZ, b: YZ, towards: YZ): YZ {
@@ -35,7 +35,7 @@ function normal(a: YZ, b: YZ, towards: YZ): YZ {
 }
 
 const BASE_NORMAL = normal(WITHERS, CHEST, POLL),
-	HEAD_NORMAL = normal(POLL, THROAT, [2.7, 2.15]);
+	HEAD_NORMAL = normal(POLL, THROAT, [2.9, 2.4]);
 
 const smooth = (edge0: number, edge1: number, x: number) => {
 	const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));

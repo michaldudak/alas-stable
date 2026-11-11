@@ -12,7 +12,8 @@ export function createHalter(body: THREE.Group, rig: HorseRig) {
 	body.add(halter);
 	const webbing = surface('#437f79'),
 		metal = surface('#c7c6ac', 0.35);
-	const poll = topline(rig, 1.42);
+	const pollZ = rig.head.poll[1] - 0.1;
+	const poll = topline(rig, pollZ);
 	const nose = 0.7,
 		chin = headPoint(rig, nose, 0.36);
 	for (const side of [-1, 1]) {
@@ -22,7 +23,7 @@ export function createHalter(body: THREE.Group, rig: HorseRig) {
 			halter,
 			webbing,
 			[
-				[0, poll.y + 0.035, 1.4],
+				[0, poll.y + 0.035, pollZ - 0.02],
 				tuple(onHead(rig, 0.02, 0.08, side, 0.03)),
 				tuple(cheek),
 				tuple(onHead(rig, 0.48, 0.22, side, 0.03)),
