@@ -121,6 +121,9 @@ export function sampleGait(gait: number, phase: number) {
 		};
 	}
 	const flight = p > 0.85 ? Math.sin((Math.PI * (p - 0.85)) / 0.15) : 0;
+	// The hind legs swing through under the belly without folding up to it.
+	feet[0].lift *= 0.62;
+	feet[2].lift *= 0.62;
 	// The canter rocks: the hindquarters tuck under as they land, the forehand
 	// rises, and the neck swings down over the leading foreleg.
 	return {

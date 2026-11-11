@@ -18,7 +18,7 @@ BOUNDS = ((0.0, 0.62), (-0.03, 4.0), (-1.95, 2.62))
 FORE = {
     "x": 0.3,
     "lower_x": 0.33,
-    "root": (1.46, 0.62),  # elbow joint (y, z)
+    "root": (2.02, 0.7),  # the leg swings from the shoulder blade (y, z)
     "knee": (0.82, 0.66),  # carpus
     "fetlock": (0.34, 0.66),
     "hoof": (0.0, 0.79),  # ground contact below the toe

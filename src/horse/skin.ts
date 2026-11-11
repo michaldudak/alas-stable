@@ -131,6 +131,80 @@ export function attachSkin(
 	return { skin, neck, croup, skeleton };
 }
 
+/** Distance between the tail's bones, down its length. */
+const TAIL_SPACING = 0.38;
+
+/**
+ * Hangs every mesh of the tail from a chain of bones down its length, so the
+ * hair can trail and sway instead of swinging as one stiff piece. Returns the
+ * bones, dock first.
+ */
+export function bindTail(tail: THREE.Object3D, count = 4) {
+	tail.updateWorldMatrix(true, true);
+	const tailInverse = tail.matrixWorld.clone().invert();
+	const bones: THREE.Bone[] = [];
+	for (let i = 0; i < count; i++) {
+		const bone = new THREE.Bone();
+		bone.name = `tail-${i}`;
+		if (i) {
+			bone.position.y = -TAIL_SPACING;
+			bones[i - 1].add(bone);
+		} else tail.add(bone);
+		bones.push(bone);
+	}
+	tail.updateWorldMatrix(true, true);
+	const skeleton = new THREE.Skeleton(bones);
+	const meshes: THREE.Mesh[] = [];
+	tail.traverse((object) => {
+		if (object instanceof THREE.Mesh && !(object instanceof THREE.SkinnedMesh))
+			meshes.push(object);
+	});
+	const local = new THREE.Vector3(),
+		toTail = new THREE.Matrix4();
+	for (const mesh of meshes) {
+		const geometry = mesh.geometry.clone();
+		const position = geometry.getAttribute('position');
+		toTail.multiplyMatrices(tailInverse, mesh.matrixWorld);
+		const joints = new Uint16Array(position.count * 4),
+			weights = new Float32Array(position.count * 4);
+		for (let i = 0; i < position.count; i++) {
+			local.fromBufferAttribute(position, i).applyMatrix4(toTail);
+			const along = THREE.MathUtils.clamp(
+				-local.y / TAIL_SPACING,
+				0,
+				count - 1,
+			);
+			const first = Math.min(count - 2, Math.floor(along)),
+				share = along - first;
+			joints.set([first, first + 1, 0, 0], i * 4);
+			weights.set([1 - share, share, 0, 0], i * 4);
+		}
+		geometry.setAttribute(
+			'skinIndex',
+			new THREE.Uint16BufferAttribute(joints, 4),
+		);
+		geometry.setAttribute(
+			'skinWeight',
+			new THREE.Float32BufferAttribute(weights, 4),
+		);
+		const skinned = new THREE.SkinnedMesh(geometry, mesh.material);
+		skinned.name = mesh.name;
+		skinned.position.copy(mesh.position);
+		skinned.quaternion.copy(mesh.quaternion);
+		skinned.scale.copy(mesh.scale);
+		skinned.castShadow = mesh.castShadow;
+		skinned.receiveShadow = mesh.receiveShadow;
+		skinned.visible = mesh.visible;
+		skinned.frustumCulled = false;
+		const parent = mesh.parent!;
+		parent.add(skinned);
+		parent.remove(mesh);
+		skinned.updateMatrixWorld(true);
+		skinned.bind(skeleton, skinned.matrixWorld);
+	}
+	return bones;
+}
+
 const bodyPoint = new THREE.Vector3(),
 	rootPoint = new THREE.Vector3(),
 	toBody = new THREE.Matrix4();

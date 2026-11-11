@@ -136,7 +136,9 @@ def skin_weights(points):
         if index % 2 == 1:
             # Upper foreleg vertices far from the bone line belong to the chest.
             reach = np.where(along < knee - 0.1, 1 - smoothstep(0.17, 0.3, best), 1.0)
-            limb = reach * smoothstep(0.04, 0.32, along)
+            # The shoulder muscles move a little with the leg; from the elbow
+            # down the leg is all its own.
+            limb = reach * smoothstep(0.08, 0.6, along)
         else:
             # The thigh swings from the hip joint: everything below the croup and
             # behind the flank follows the leg, except the midline under the tail.

@@ -31,6 +31,8 @@ export const seatOrigin = (figure: Figure, out = new THREE.Vector3()) =>
 export interface SeatMotion {
 	rise: number;
 	absorb: number;
+	/** How far her hands go forward along the reins with the horse's head. */
+	give?: number;
 }
 
 export interface Pat {
@@ -130,7 +132,7 @@ export function seatedPose(figure: Figure, pat?: Pat, motion?: SeatMotion) {
 		wrist
 			.set(side * REIN_HAND[0], REIN_HAND[1], REIN_HAND[2])
 			.sub(origin)
-			.addScaledVector(direction, -palm * 0.8);
+			.addScaledVector(direction, -palm * 0.8 + (motion?.give ?? 0));
 		let curl = 0.82;
 		if (reaching) {
 			// The hand leaves the rein for the side of the neck, palm flat.
@@ -170,18 +172,22 @@ export function createRider(
 	rider.add(figure.root);
 	seatedPose(figure);
 	const pat: Pat = { lean: 0, lift: 0, side: -1, target: patTarget };
-	const motion: SeatMotion = { rise: 0, absorb: 0 };
+	const motion: SeatMotion = { rise: 0, absorb: 0, give: 0 };
 	let posed = false,
 		moved = false;
 	return {
 		rider,
 		figure,
 		/** Goes with the horse's movement; call each frame while she is visible. */
-		follow: (rise: number, absorb: number) => {
-			const moving = Math.abs(rise) > 0.002 || Math.abs(absorb) > 0.002;
+		follow: (rise: number, absorb: number, give = 0) => {
+			const moving =
+				Math.abs(rise) > 0.002 ||
+				Math.abs(absorb) > 0.002 ||
+				Math.abs(give) > 0.002;
 			if (!moving && !moved) return;
 			motion.rise = rise;
 			motion.absorb = absorb;
+			motion.give = give;
 			seatedPose(figure, posed ? pat : undefined, motion);
 			moved = moving;
 		},

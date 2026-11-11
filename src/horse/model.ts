@@ -1,7 +1,7 @@
 import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
 import { mergeStatic } from '../rendering/merge.ts';
-import { attachSkin, bindToNeck, skinMaterial } from './skin.ts';
+import { attachSkin, bindTail, bindToNeck, skinMaterial } from './skin.ts';
 import { createRider, REIN_HAND, STIRRUP } from './rider.ts';
 import {
 	surface,
@@ -583,6 +583,7 @@ export function createHorse(): HorseModel {
 
 	// The tail hangs from the croup and moves with the hindquarters.
 	croup.attach(tail);
+	const tailBones = bindTail(tail);
 	// Hair, headgear and ornaments follow the neck and head as they move.
 	bindToNeck(body, skeleton, [mane, bridle, halter, decoration, ...eyes]);
 	const headAnchor = new THREE.Group();
@@ -635,6 +636,7 @@ export function createHorse(): HorseModel {
 		rider,
 		swingRiderHair: (dt: number) => riderFigure.swingHair(dt),
 		followRider: follow,
+		tailBones,
 		tack,
 		halter,
 		bridle,

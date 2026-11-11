@@ -34,7 +34,8 @@ export function createHorseAnimation(horse: HorseModel) {
 	const rootHeights = horse.legs.map((leg) => leg.position.y);
 	const croupPivot = horse.croup.position.clone();
 	const head = { graze: 0, yaw: 0, nod: 0, chew: 0 };
-	let rest = 0;
+	let rest = 0,
+		tailSwing = 0;
 	// Each horse breathes and fidgets on its own rhythm.
 	const seed = Math.random() * 100;
 	for (const bone of horse.neck) bone.rotation.order = 'YXZ';
@@ -167,9 +168,12 @@ export function createHorseAnimation(horse: HorseModel) {
 						(0.5 - 0.5 * Math.cos(cycle + 0.3)) *
 						(state.jump < 0 ? 1 : 0) +
 					0.55 * flight;
+				// Her hands go with the nodding head, so the reins stay even.
+				const give = Math.max(-0.04, Math.min(0.05, pose.neck * 0.4));
 				horse.followRider(
 					rise,
 					-0.8 * pose.pitch - 0.6 * pose.riderPitch + 0.28 * flight,
+					give + 0.05 * flight,
 				);
 				horse.swingRiderHair(dt);
 			}
@@ -181,6 +185,21 @@ export function createHorseAnimation(horse: HorseModel) {
 			horse.tail.rotation.z = swish * (0.4 + 0.6 * still) + pose.tailSwing;
 			horse.tail.rotation.x =
 				pose.tailLift + 0.02 * Math.sin(pose.phase * Math.PI * 2);
+			// The dock carries the tail; the hair below hangs back towards the
+			// ground, trails behind a moving horse and follows each swing late.
+			const pace = Math.min(1, Math.abs(state.speed) / 9);
+			const follow = 1 - Math.exp(-dt * 7);
+			tailSwing += (horse.tail.rotation.z - tailSwing) * follow;
+			const late = horse.tail.rotation.z - tailSwing;
+			horse.tailBones.forEach((bone, i) => {
+				if (!i) return;
+				const wave = Math.sin(pose.phase * Math.PI * 4 - i * 1.1) * 0.05 * pace;
+				bone.rotation.x =
+					-horse.tail.rotation.x * [0, 0.6, 0.5, 0.4][i] +
+					pace * [0, 0.1, -0.04, -0.14][i] +
+					wave;
+				bone.rotation.z = -late * [0, 0.9, 0.8, 0.6][i];
+			});
 			return pose.footfalls;
 		},
 	};
