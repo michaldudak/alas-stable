@@ -90,7 +90,7 @@ export function sampleGait(gait: number, phase: number) {
 		// as its hind leg carries the weight and the head nods as a forefoot lands.
 		return {
 			feet,
-			y: -0.17 + 0.012 * Math.cos(tau * p * 2),
+			y: -0.07 + 0.012 * Math.cos(tau * p * 2),
 			pitch: 0.01 * Math.sin(tau * p * 2),
 			roll: 0.014 * Math.sin(tau * p),
 			riderY: 0,
@@ -98,7 +98,7 @@ export function sampleGait(gait: number, phase: number) {
 			sway: 0.022 * Math.sin(tau * (p - 0.1)),
 			croupRoll: 0.05 * Math.cos(tau * (p - 0.35)),
 			croupPitch: 0.012 * Math.cos(tau * 2 * (p - 0.1)),
-			neck: 0.065 * Math.cos(tau * 2 * (p - 0.3)),
+			neck: 0.08 * Math.cos(tau * 2 * (p - 0.3)),
 			tailSwing: 0.12 * Math.sin(tau * (p - 0.35)),
 			tailLift: 0,
 		};
@@ -107,7 +107,7 @@ export function sampleGait(gait: number, phase: number) {
 		// The trot: a springy two-beat bounce with a steady head and a lifted tail.
 		return {
 			feet,
-			y: -0.23 + 0.04 * bounce,
+			y: -0.11 + 0.05 * bounce,
 			pitch: 0.008 * Math.sin(tau * 2 * (p - 0.1)),
 			roll: 0.01 * Math.sin(tau * p),
 			riderY: 0.035 * bounce,
@@ -117,25 +117,28 @@ export function sampleGait(gait: number, phase: number) {
 			croupPitch: 0.015 * Math.cos(tau * 2 * (p - 0.2)),
 			neck: 0.03 - 0.025 * bounce,
 			tailSwing: 0.05 * Math.sin(tau * (p - 0.2)),
-			tailLift: 0.12 + 0.04 * bounce,
+			tailLift: 0.07 + 0.04 * bounce,
 		};
 	}
 	const flight = p > 0.85 ? Math.sin((Math.PI * (p - 0.85)) / 0.15) : 0;
+	// The hind legs swing through under the belly without folding up to it.
+	feet[0].lift *= 0.62;
+	feet[2].lift *= 0.62;
 	// The canter rocks: the hindquarters tuck under as they land, the forehand
 	// rises, and the neck swings down over the leading foreleg.
 	return {
 		feet,
-		y: -0.29 + 0.02 * Math.sin(tau * p) + 0.045 * flight,
+		y: -0.25 + 0.02 * Math.sin(tau * p) + 0.05 * flight,
 		pitch: 0.06 * Math.sin(tau * (p - 0.1)),
 		roll: 0.015 * Math.sin(tau * p),
 		riderY: 0.025 + 0.025 * Math.sin(tau * p),
-		riderPitch: 0.1 - 0.065 * Math.sin(tau * p),
+		riderPitch: 0.05 - 0.05 * Math.sin(tau * p),
 		sway: 0,
 		croupRoll: 0.02 * Math.sin(tau * p),
 		croupPitch: -0.05 * Math.sin(tau * (p - 0.05)),
 		neck: 0.13 * Math.sin(tau * (p - 0.4)),
 		tailSwing: 0.04 * Math.sin(tau * p),
-		tailLift: 0.28 + 0.1 * Math.sin(tau * (p - 0.5)),
+		tailLift: 0.16 + 0.08 * Math.sin(tau * (p - 0.5)),
 	};
 }
 /** Rest offsets (y, z) of the upper and lower leg segments in the leg's plane. */

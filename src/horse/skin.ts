@@ -11,12 +11,14 @@ const skinVertex = /* glsl */ `
 attribute float ao;
 attribute vec3 mask;
 varying float vOcclusion;
-varying vec3 vMask;`;
+varying vec3 vMask;
+varying vec4 vCoat;`;
 
 const skinFragment = /* glsl */ `
 uniform vec3 sockColor, pointColor, hoofColor;
 varying float vOcclusion;
-varying vec3 vMask;`;
+varying vec3 vMask;
+varying vec4 vCoat;`;
 
 /**
  * Coat shading for the body: white socks, darker muzzle and eye rims and hoof
@@ -42,13 +44,19 @@ export function skinMaterial(
 			.replace('#include <common>', `#include <common>\n${skinVertex}`)
 			.replace(
 				'#include <begin_vertex>',
-				'#include <begin_vertex>\nvOcclusion = ao;\nvMask = mask;',
+				'#include <begin_vertex>\nvOcclusion = ao;\nvMask = mask;\nvCoat = vec4(position, normal.y);',
 			);
 		shader.fragmentShader = shader.fragmentShader
 			.replace('#include <common>', `#include <common>\n${skinFragment}`)
 			.replace(
 				'#include <map_fragment>',
 				`#include <map_fragment>
+// A living coat is never one flat colour: paler under the belly and inside
+// the legs, with soft mottling over the body.
+float mottle = sin(vCoat.x * 9.0 + sin(vCoat.z * 7.0) * 1.7) * sin(vCoat.y * 8.0 + vCoat.z * 5.0)
+	+ 0.5 * sin(vCoat.z * 23.0 + vCoat.y * 17.0) * sin(vCoat.x * 29.0 - vCoat.y * 13.0);
+diffuseColor.rgb *= 1.0 + 0.035 * mottle;
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.18 + 0.03, 0.5 * smoothstep(-0.25, -0.95, vCoat.w));
 diffuseColor.rgb = mix(diffuseColor.rgb, sockColor, vMask.x);
 diffuseColor.rgb = mix(diffuseColor.rgb, pointColor, vMask.y * 0.85);
 diffuseColor.rgb = mix(diffuseColor.rgb, hoofColor, vMask.z);
@@ -121,6 +129,80 @@ export function attachSkin(
 	// Animated bounds vary during jumping; this hero mesh should never be culled by its bind pose.
 	skin.frustumCulled = false;
 	return { skin, neck, croup, skeleton };
+}
+
+/** Distance between the tail's bones, down its length. */
+const TAIL_SPACING = 0.38;
+
+/**
+ * Hangs every mesh of the tail from a chain of bones down its length, so the
+ * hair can trail and sway instead of swinging as one stiff piece. Returns the
+ * bones, dock first.
+ */
+export function bindTail(tail: THREE.Object3D, count = 4) {
+	tail.updateWorldMatrix(true, true);
+	const tailInverse = tail.matrixWorld.clone().invert();
+	const bones: THREE.Bone[] = [];
+	for (let i = 0; i < count; i++) {
+		const bone = new THREE.Bone();
+		bone.name = `tail-${i}`;
+		if (i) {
+			bone.position.y = -TAIL_SPACING;
+			bones[i - 1].add(bone);
+		} else tail.add(bone);
+		bones.push(bone);
+	}
+	tail.updateWorldMatrix(true, true);
+	const skeleton = new THREE.Skeleton(bones);
+	const meshes: THREE.Mesh[] = [];
+	tail.traverse((object) => {
+		if (object instanceof THREE.Mesh && !(object instanceof THREE.SkinnedMesh))
+			meshes.push(object);
+	});
+	const local = new THREE.Vector3(),
+		toTail = new THREE.Matrix4();
+	for (const mesh of meshes) {
+		const geometry = mesh.geometry.clone();
+		const position = geometry.getAttribute('position');
+		toTail.multiplyMatrices(tailInverse, mesh.matrixWorld);
+		const joints = new Uint16Array(position.count * 4),
+			weights = new Float32Array(position.count * 4);
+		for (let i = 0; i < position.count; i++) {
+			local.fromBufferAttribute(position, i).applyMatrix4(toTail);
+			const along = THREE.MathUtils.clamp(
+				-local.y / TAIL_SPACING,
+				0,
+				count - 1,
+			);
+			const first = Math.min(count - 2, Math.floor(along)),
+				share = along - first;
+			joints.set([first, first + 1, 0, 0], i * 4);
+			weights.set([1 - share, share, 0, 0], i * 4);
+		}
+		geometry.setAttribute(
+			'skinIndex',
+			new THREE.Uint16BufferAttribute(joints, 4),
+		);
+		geometry.setAttribute(
+			'skinWeight',
+			new THREE.Float32BufferAttribute(weights, 4),
+		);
+		const skinned = new THREE.SkinnedMesh(geometry, mesh.material);
+		skinned.name = mesh.name;
+		skinned.position.copy(mesh.position);
+		skinned.quaternion.copy(mesh.quaternion);
+		skinned.scale.copy(mesh.scale);
+		skinned.castShadow = mesh.castShadow;
+		skinned.receiveShadow = mesh.receiveShadow;
+		skinned.visible = mesh.visible;
+		skinned.frustumCulled = false;
+		const parent = mesh.parent!;
+		parent.add(skinned);
+		parent.remove(mesh);
+		skinned.updateMatrixWorld(true);
+		skinned.bind(skeleton, skinned.matrixWorld);
+	}
+	return bones;
 }
 
 const bodyPoint = new THREE.Vector3(),

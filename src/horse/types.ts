@@ -30,6 +30,13 @@ export interface HorseModel {
 	rider: THREE.Group;
 	/** Lets the seated rider's ponytail follow her movement; call once per frame. */
 	swingRiderHair(dt: number): void;
+	/**
+	 * Moves the seated rider with the horse: `rise` (0-1) posts her out of the
+	 * saddle, `absorb` bends her back to keep her shoulders level.
+	 */
+	followRider(rise: number, absorb: number, give?: number): void;
+	/** Bones down the tail, from the dock to the end of the hair. */
+	tailBones: THREE.Bone[];
 	tack: THREE.Group;
 	halter: THREE.Group;
 	bridle: THREE.Group;

@@ -23,6 +23,18 @@ export const seatOrigin = (figure: Figure, out = new THREE.Vector3()) =>
  * the hand on `side` (+1 left, -1 right) from the rein to the neck at
  * `target` (seat space); `lift` raises the hand between pats.
  */
+/**
+ * How the rider goes with the horse: `rise` (0-1) lifts her out of the saddle
+ * as she posts to the trot, `absorb` bends her back (radians, forward
+ * positive) so her shoulders stay level while the horse rocks under her.
+ */
+export interface SeatMotion {
+	rise: number;
+	absorb: number;
+	/** How far her hands go forward along the reins with the horse's head. */
+	give?: number;
+}
+
 export interface Pat {
 	lean: number;
 	lift: number;
@@ -59,25 +71,37 @@ export function footDirection(
  * flaps, heels down in the stirrups, elbows by the sides and closed hands
  * carried thumbs-up above the withers. A pat bends the rider over the neck.
  */
-export function seatedPose(figure: Figure, pat?: Pat) {
+export function seatedPose(figure: Figure, pat?: Pat, motion?: SeatMotion) {
 	const lean = pat?.lean ?? 0,
-		turn = pat?.side ?? 0;
+		turn = pat?.side ?? 0,
+		rise = motion?.rise ?? 0,
+		absorb = motion?.absorb ?? 0;
 	const { bones } = figure;
 	figure.resetPose();
 	seatOrigin(figure, origin);
+	// Posting, she swings up and forward over her knees, hinging at the hips.
+	bones.hips.position
+		.copy(figure.rest.hips)
+		.add(target.set(0, 0.17 * rise, 0.1 * rise));
 	// Leaning folds at the hips first, then rounds the back and turns the head.
-	bones.hips.quaternion.setFromEuler(euler.set(0.04 + 0.2 * lean, 0, 0));
+	bones.hips.quaternion.setFromEuler(
+		euler.set(0.04 + 0.2 * lean + 0.2 * rise, 0, 0),
+	);
 	bones.spine.quaternion.setFromEuler(
-		euler.set(-0.03 + 0.22 * lean, 0.06 * lean * turn, 0),
+		euler.set(-0.03 + 0.22 * lean + 0.5 * absorb, 0.06 * lean * turn, 0),
 	);
 	bones.chest.quaternion.setFromEuler(
-		euler.set(0.02 + 0.2 * lean, 0.06 * lean * turn, 0),
+		euler.set(0.02 + 0.2 * lean + 0.5 * absorb, 0.06 * lean * turn, 0),
 	);
 	bones.neck.quaternion.setFromEuler(
-		euler.set(-0.02 + 0.05 * lean, 0.12 * lean * turn, 0),
+		euler.set(-0.02 + 0.05 * lean - 0.07 * rise, 0.12 * lean * turn, 0),
 	);
 	bones.head.quaternion.setFromEuler(
-		euler.set(-0.03 + 0.07 * lean, 0.18 * lean * turn, -0.08 * lean * turn),
+		euler.set(
+			-0.03 + 0.07 * lean - 0.08 * rise,
+			0.18 * lean * turn,
+			-0.08 * lean * turn,
+		),
 	);
 	for (const side of [1, -1]) {
 		// The ball of the foot rests on the tread, the heel sinks below it.
@@ -108,7 +132,7 @@ export function seatedPose(figure: Figure, pat?: Pat) {
 		wrist
 			.set(side * REIN_HAND[0], REIN_HAND[1], REIN_HAND[2])
 			.sub(origin)
-			.addScaledVector(direction, -palm * 0.8);
+			.addScaledVector(direction, -palm * 0.8 + (motion?.give ?? 0));
 		let curl = 0.82;
 		if (reaching) {
 			// The hand leaves the rein for the side of the neck, palm flat.
@@ -148,21 +172,36 @@ export function createRider(
 	rider.add(figure.root);
 	seatedPose(figure);
 	const pat: Pat = { lean: 0, lift: 0, side: -1, target: patTarget };
-	let posed = false;
+	const motion: SeatMotion = { rise: 0, absorb: 0, give: 0 };
+	let posed = false,
+		moved = false;
 	return {
 		rider,
 		figure,
+		/** Goes with the horse's movement; call each frame while she is visible. */
+		follow: (rise: number, absorb: number, give = 0) => {
+			const moving =
+				Math.abs(rise) > 0.002 ||
+				Math.abs(absorb) > 0.002 ||
+				Math.abs(give) > 0.002;
+			if (!moving && !moved) return;
+			motion.rise = rise;
+			motion.absorb = absorb;
+			motion.give = give;
+			seatedPose(figure, posed ? pat : undefined, motion);
+			moved = moving;
+		},
 		/** Leans over to pat the neck; zero returns to the plain seat. */
 		gesture: (lean: number, lift: number, side: number) => {
 			if (lean <= 0.001) {
-				if (posed) seatedPose(figure);
+				if (posed) seatedPose(figure, undefined, motion);
 				posed = false;
 				return;
 			}
 			pat.lean = lean;
 			pat.lift = lift;
 			pat.side = side;
-			seatedPose(figure, pat);
+			seatedPose(figure, pat, motion);
 			posed = true;
 		},
 	};

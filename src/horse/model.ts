@@ -1,7 +1,7 @@
 import { createHalter } from './halter.ts';
 import { createSaddle } from './saddle.ts';
 import { mergeStatic } from '../rendering/merge.ts';
-import { attachSkin, bindToNeck, skinMaterial } from './skin.ts';
+import { attachSkin, bindTail, bindToNeck, skinMaterial } from './skin.ts';
 import { createRider, REIN_HAND, STIRRUP } from './rider.ts';
 import {
 	surface,
@@ -70,7 +70,7 @@ function headLoop(rig: HorseRig, s: number, offset: number, bottom = 0.3) {
 
 /** A point on the crest from the poll (t = 0) to the withers (t = 1). */
 function crestAt(rig: HorseRig, t: number) {
-	const z = THREE.MathUtils.lerp(1.42, 0.46, t);
+	const z = THREE.MathUtils.lerp(rig.head.poll[1] - 0.1, 0.52, t);
 	return { z, ...topline(rig, z) };
 }
 
@@ -104,8 +104,8 @@ function maneHair(
 					[x + 0.02, y + height * 0.6, z - 0.01],
 					[x + 0.04 + next() * 0.02, y + height, z - 0.03],
 				],
-				radius: 0.018 + next() * 0.006,
-				tip: 0.5,
+				radius: 0.01 + next() * 0.005,
+				tip: 0.4,
 			});
 			continue;
 		}
@@ -115,7 +115,7 @@ function maneHair(
 			(0.85 + next() * 0.3);
 		const side = next() < 0.1 ? -1 : 1,
 			lie = (depth: number) =>
-				side * (neckWidth(width, lowWidth, depth) + 0.03);
+				side * (neckWidth(width, lowWidth, depth) + 0.05);
 		strands.push({
 			points: [
 				[x, y + 0.01, z],
@@ -128,8 +128,8 @@ function maneHair(
 					z + 0.02 + (next() - 0.5) * 0.04,
 				],
 			],
-			radius: 0.017 + next() * 0.009,
-			tip: 0.3,
+			radius: 0.0055 + next() * 0.0045,
+			tip: 0.2,
 		});
 	}
 	return strands;
@@ -143,29 +143,31 @@ function forelockHair(
 	reach: number,
 ): Lock[] {
 	const next = seeded(seed);
-	const poll = crestAt(rig, 0);
 	const strands: Lock[] = [];
 	for (let i = 0; i < count; i++) {
-		const x = (next() - 0.5) * 0.06,
-			end = reach * (0.8 + next() * 0.3);
+		// A loose tuft: strands of different lengths fall a little apart, drift
+		// to one side and lift off the forehead before they settle on it.
+		const x = (next() - 0.5) * 0.1,
+			end = reach * (0.5 + next() * 0.65),
+			lift = 0.028 + next() * 0.035,
+			drift = 0.03 + (next() - 0.5) * 0.12;
 		strands.push({
 			points: [
-				[x, poll.y + 0.02, poll.z + 0.02],
-				tuple(headPoint(rig, 0.05, faceTop(rig, 0.05) - 0.045, x * 1.2)),
-				tuple(
-					headPoint(rig, end * 0.6, faceTop(rig, end * 0.6) - 0.03, x * 1.5),
-				),
+				// Rooted on the poll itself, between the ears.
+				tuple(headPoint(rig, 0, faceTop(rig, 0) - 0.005, x)),
+				tuple(headPoint(rig, 0.05, faceTop(rig, 0.05) - lift - 0.015, x * 1.2)),
 				tuple(
 					headPoint(
 						rig,
-						end,
-						faceTop(rig, end) - 0.02,
-						x * 1.8 + (next() - 0.5) * 0.03,
+						end * 0.6,
+						faceTop(rig, end * 0.6) - lift,
+						x * 1.5 + drift * 0.5,
 					),
 				),
+				tuple(headPoint(rig, end, faceTop(rig, end) - 0.016, x * 1.8 + drift)),
 			],
-			radius: 0.024 + next() * 0.008,
-			tip: 0.3,
+			radius: 0.006 + next() * 0.005,
+			tip: 0.2,
 		});
 	}
 	return strands;
@@ -206,8 +208,8 @@ function tailHair(count: number, length: number, seed: number): Lock[] {
 					-0.16 + (next() - 0.5) * 0.05,
 				],
 			],
-			radius: 0.03 + next() * 0.012,
-			tip: 0.35,
+			radius: 0.009 + next() * 0.007,
+			tip: 0.25,
 		});
 	}
 	return strands;
@@ -280,19 +282,41 @@ export function createHorse(): HorseModel {
 		metal = surface('#b6b7ab', 0.32);
 	metal.metalness = 0.65;
 
-	// Glossy dark eyes sit in the sculpted sockets.
+	// Glossy eyes sit in the sculpted sockets: a warm brown iris around a
+	// wide, dark pupil, darkening towards the lids.
 	const eyeball = new THREE.MeshPhysicalMaterial({
-		color: '#1d130d',
-		roughness: 0.25,
+		color: '#ffffff',
+		roughness: 0.1,
 		clearcoat: 1,
-		clearcoatRoughness: 0.04,
+		clearcoatRoughness: 0.03,
 	});
+	eyeball.onBeforeCompile = (shader) => {
+		shader.vertexShader = shader.vertexShader
+			.replace('#include <common>', '#include <common>\nvarying vec3 vEye;')
+			.replace(
+				'#include <begin_vertex>',
+				'#include <begin_vertex>\nvEye = normal;',
+			);
+		shader.fragmentShader = shader.fragmentShader
+			.replace('#include <common>', '#include <common>\nvarying vec3 vEye;')
+			.replace(
+				'#include <map_fragment>',
+				`#include <map_fragment>
+vec3 eyeNormal = normalize(vEye);
+// The eye looks out sideways; its pupil is a horizontal oval.
+float outward = abs(eyeNormal.x);
+float iris = smoothstep(0.45, 0.7, outward);
+float pupil = 1.0 - smoothstep(0.5, 0.68, length(vec2(eyeNormal.y * 1.6, eyeNormal.z)));
+vec3 eyeColour = mix(vec3(0.012, 0.008, 0.006), vec3(0.07, 0.034, 0.014), iris);
+diffuseColor.rgb = mix(eyeColour, vec3(0.006, 0.005, 0.005), pupil * step(0.5, outward));`,
+			);
+	};
 	const eyes = [-1, 1].map((side) => {
 		const [x, y, z] = rig.eye;
 		return oval(
 			body,
 			eyeball,
-			[0.046, 0.046, 0.054],
+			[0.042, 0.042, 0.05],
 			[side * (x - 0.004), y, z],
 		);
 	});
@@ -304,16 +328,17 @@ export function createHorse(): HorseModel {
 	locks(
 		mane,
 		hair,
-		[...maneHair(rig, 110, 11, false), ...forelockHair(rig, 24, 12, 0.3)],
-		14,
+		[...maneHair(rig, 420, 11, false), ...forelockHair(rig, 70, 12, 0.34)],
+		10,
+		3,
 	);
 	const tail = new THREE.Group();
 	tail.name = 'tail';
 	// The tail pivots at the tail head; hair grows around the top and sides of
 	// the dock and falls in a rounded, tapering bundle clear of the buttocks.
-	tail.position.set(0, 2.47, -1.32);
+	tail.position.set(0, 2.37, -1.7);
 	body.add(tail);
-	locks(tail, hair, tailHair(40, 1.55, 1));
+	locks(tail, hair, tailHair(200, 1.55, 1), 12, 3);
 	const { legs, knees, fetlocks, hooves, legRigs } = buildLegs(rig, body);
 	const { neck, croup, skeleton } = attachSkin(
 		body,
@@ -412,13 +437,14 @@ export function createHorse(): HorseModel {
 			],
 			0.022,
 		);
-		const neck = topline(rig, 1.15);
+		const reinZ = rig.head.poll[1] * 0.75;
+		const neck = topline(rig, reinZ);
 		cord(
 			bridle,
 			leather,
 			[
 				tuple(bit),
-				[side * (neck.lowWidth + 0.12), neck.y - 0.45, 1.15],
+				[side * (neck.lowWidth + 0.12), neck.y - 0.45, reinZ],
 				[side * REIN_HAND[0], REIN_HAND[1] + settle.y, REIN_HAND[2]],
 			],
 			0.016,
@@ -448,7 +474,12 @@ export function createHorse(): HorseModel {
 	// The rider pats the side of the crest, just in front of the withers.
 	const patPoint = new THREE.Vector3(0.12, topline(rig, 0.74).y - 0.03, 0.74),
 		patTarget = new THREE.Vector3();
-	const { rider, gesture, figure: riderFigure } = createRider(seat, patTarget);
+	const {
+		rider,
+		gesture,
+		follow,
+		figure: riderFigure,
+	} = createRider(seat, patTarget);
 	const decoration = new THREE.Group();
 	decoration.name = 'decoration';
 	decoration.position.copy(onHead(rig, 0.02, 0.1, 1, 0.04));
@@ -496,8 +527,9 @@ export function createHorse(): HorseModel {
 	locks(
 		shortMane,
 		hair,
-		[...maneHair(rig, 90, 13, true), ...forelockHair(rig, 10, 14, 0.16)],
+		[...maneHair(rig, 180, 13, true), ...forelockHair(rig, 22, 14, 0.16)],
 		6,
+		4,
 	);
 	for (let i = 0; i < 13; i += 2) {
 		const { y, z, width } = crest(i / 12);
@@ -510,10 +542,10 @@ export function createHorse(): HorseModel {
 			).rotation.z = side * 0.5;
 		oval(braidedMane, hair, [0.075, 0.06, 0.065], [width + 0.02, y - 0.17, z]);
 	}
-	locks(braidedMane, hair, forelockHair(rig, 10, 15, 0.16), 8);
+	locks(braidedMane, hair, forelockHair(rig, 22, 15, 0.16), 8, 4);
 	const shortTail = variant(tail, 'tailStyle', 'short'),
 		braidedTail = variant(tail, 'tailStyle', 'braided');
-	locks(shortTail, hair, tailHair(30, 0.95, 2));
+	locks(shortTail, hair, tailHair(150, 0.95, 2), 10, 3);
 	for (let i = 0; i < 13; i++) {
 		for (const side of [-1, 1]) {
 			const piece = oval(
@@ -573,6 +605,7 @@ export function createHorse(): HorseModel {
 
 	// The tail hangs from the croup and moves with the hindquarters.
 	croup.attach(tail);
+	const tailBones = bindTail(tail);
 	// Hair, headgear and ornaments follow the neck and head as they move.
 	bindToNeck(body, skeleton, [mane, bridle, halter, decoration, ...eyes]);
 	const headAnchor = new THREE.Group();
@@ -624,6 +657,8 @@ export function createHorse(): HorseModel {
 		tail,
 		rider,
 		swingRiderHair: (dt: number) => riderFigure.swingHair(dt),
+		followRider: follow,
+		tailBones,
 		tack,
 		halter,
 		bridle,
