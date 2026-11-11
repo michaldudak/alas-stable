@@ -572,10 +572,12 @@ export function createWalkingRider(model?: RiderModelId) {
 			.set(far * STIRRUP[0], STIRRUP[1] + 0.035, STIRRUP[2])
 			.addScaledVector(direction, -ballFront);
 		a.set(side * (CLOSE + 0.06), ankleHeight, -0.34);
-		b.set(side * 0.78, SEAT_POINT.y - 0.95, -0.3);
+		// It hangs and swings well clear of the horse, so the hip opens
+		// sideways instead of twisting the leg against the flank.
+		b.set(side * 1.08, SEAT_POINT.y - 1.0, -0.28);
 		target.lerpVectors(a, b, smooth(0.34, 0.56, m));
 		// Over the back: up behind the saddle, across, and down the far side.
-		b.set(side * 0.3, SEAT_POINT.y + 0.34, -1.28);
+		b.set(side * 0.62, SEAT_POINT.y + 0.36, -1.3);
 		c.set(far * 0.62, SEAT_POINT.y - 0.2, -0.75);
 		const sweep = smooth(0.5, 0.8, m),
 			land = smooth(0.72, 0.98, m);
@@ -586,7 +588,7 @@ export function createWalkingRider(model?: RiderModelId) {
 		// The knee leads the sweep, pointing up and back over the croup.
 		pole
 			.set(far * 0.2, 0.25, 1)
-			.lerp(a.set(side * 0.5, -0.7, -0.3), Math.sin(Math.PI * sweep) * 0.9)
+			.lerp(a.set(side * 0.9, -0.55, -0.1), Math.sin(Math.PI * sweep) * 0.9)
 			.lerp(a.set(far * 0.55, 0.3, 1), land);
 		pole.applyQuaternion(facing);
 		figure.reach(limb('thigh', far), limb('shin', far), target, pole);

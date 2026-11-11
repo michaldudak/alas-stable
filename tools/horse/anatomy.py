@@ -11,7 +11,7 @@ import math
 
 import numpy as np
 
-VOXEL = 0.011
+VOXEL = 0.009
 BOUNDS = ((0.0, 0.62), (-0.03, 3.95), (-1.62, 2.34))
 
 # Rig landmarks shared with the skinning and the game's leg solver.
@@ -288,22 +288,27 @@ def foreleg(spec):
     return [
         leg,
         # Scapula under its muscles, sloping from the withers to the point of shoulder.
-        Ellipsoid((0.22, 2.16, 0.72), (0.1, 0.42, 0.22), (-0.55, 0, 0), k=0.12),
+        Ellipsoid((0.2, 2.14, 0.72), (0.1, 0.42, 0.22), (-0.55, 0, 0), k=0.16),
+
         # Point of shoulder.
-        Ellipsoid((0.21, 1.9, 0.99), (0.08, 0.09, 0.08), k=0.12),
+        Ellipsoid((0.2, 1.9, 0.98), (0.075, 0.085, 0.075), k=0.14),
         # Triceps fill the angle behind the shoulder down to the elbow.
-        Ellipsoid((0.27, 1.8, 0.58), (0.1, 0.26, 0.22), (0.5, 0, 0), k=0.1),
+        Ellipsoid((0.26, 1.8, 0.58), (0.1, 0.26, 0.22), (0.5, 0, 0), k=0.12),
+
         # Point of elbow.
         Ellipsoid((x, 1.5, 0.45), (0.05, 0.06, 0.06), k=0.07),
         # Extensor muscles on the outside of the forearm.
         Ellipsoid((x + 0.05, 1.36, 0.72), (0.055, 0.2, 0.085), k=0.06),
         # Accessory carpal bone behind the knee.
         Ellipsoid((cx, ky + 0.01, kz - 0.082), (0.034, 0.048, 0.04), k=0.03),
+        # The cannon's tendons stand apart from the bone.
+        Cone((cx + 0.052, ky - 0.2, kz), (cx + 0.052, 0.47, 0.66), 0.014, 0.014, k=0.02, subtract=True),
+        Cone((cx - 0.052, ky - 0.2, kz), (cx - 0.052, 0.47, 0.66), 0.014, 0.014, k=0.02, subtract=True),
     ] + lower_details(spec)
 
 
 # Bony landmarks of the hindquarters.
-TUBER_COXAE = (0.31, 2.32, -0.52)  # point of hip
+TUBER_COXAE = (0.29, 2.32, -0.52)  # point of hip
 TUBER_ISCHII = (0.13, 1.98, -1.5)  # point of buttock
 
 
@@ -319,10 +324,10 @@ def hindquarters(spec):
         limb_stations(
             cx,
             [
-                (1.82, -0.56, 1.92, -1.3, 0.16, 2.0, 0.27),
-                (1.6, -0.62, 1.68, -1.32, 0.16, 2.0, 0.3),
-                (1.42, -0.82, 1.46, -1.37, 0.125, 2.0, 0.295),
-                (1.24, -1.03, 1.27, -1.43, 0.09, 2.0, 0.28),
+                (1.84, -0.62, 1.92, -1.24, 0.14, 2.0, 0.27),
+                (1.58, -0.67, 1.63, -1.3, 0.14, 2.0, 0.29),
+                (1.4, -0.85, 1.43, -1.34, 0.11, 2.0, 0.285),
+                (1.24, -1.02, 1.26, -1.4, 0.084, 2.0, 0.275),
                 (1.1, -1.22, 1.13, -1.5, 0.068, 2.0, None),
                 (ky + 0.01, -1.3, ky + 0.04, -1.505, 0.07, 2.5, None),
                 (ky - 0.09, -1.335, ky - 0.09, -1.485, 0.064, 2.5, None),
@@ -343,22 +348,23 @@ def hindquarters(spec):
     )
     return [
         gaskin,
-        # Croup: gluteal muscles from the point of hip back to the tail.
-        Ellipsoid((0.2, 2.27, -0.95), (0.24, 0.24, 0.46), k=0.16),
-        Ellipsoid(TUBER_COXAE, (0.04, 0.045, 0.07), k=0.12),
-        # Tuber sacrale, the highest point of the croup.
-        Ellipsoid((0.05, 2.5, -0.84), (0.09, 0.07, 0.2), k=0.12),
+        # Croup: gluteal muscles round the quarters from the point of hip back.
+        Ellipsoid((0.2, 2.18, -0.98), (0.25, 0.3, 0.44), k=0.16),
+        Ellipsoid(TUBER_COXAE, (0.03, 0.035, 0.055), k=0.14),
         # Biceps femoris fans from the croup down to the stifle and gaskin.
-        Ellipsoid((0.29, 1.9, -1.02), (0.15, 0.5, 0.33), (-0.42, 0, 0), k=0.16),
-        # Semitendinosus rounds the back of the thigh below the point of buttock.
-        Cone((0.15, 2.0, -1.4), (0.25, 1.42, -1.3), 0.15, 0.085, k=0.14, squash=0.85),
-        Ellipsoid(TUBER_ISCHII, (0.07, 0.08, 0.07), k=0.12),
-        # Inner thighs meet under the tail, then part above the gaskins.
-        Ellipsoid((0.1, 1.84, -1.28), (0.12, 0.3, 0.2), (-0.2, 0, 0), k=0.15),
+        Ellipsoid((0.28, 1.88, -1.02), (0.15, 0.46, 0.3), (-0.42, 0, 0), k=0.16),
+        # Semitendinosus: the full, rounded buttock behind and below the tail.
+        Ellipsoid((0.14, 1.9, -1.37), (0.13, 0.36, 0.19), (-0.12, 0, 0), k=0.12),
+        # The buttocks meet under the tail and part above the gaskins.
+        Ellipsoid((0, 1.96, -1.38), (0.14, 0.26, 0.14), k=0.12),
         # Quadriceps in front of the femur, the stifle and its fold to the flank.
-        Ellipsoid((0.3, 1.84, -0.72), (0.13, 0.3, 0.19), (-0.62, 0, 0), k=0.15),
-        Ellipsoid((0.32, sy + 0.02, sz + 0.02), (0.06, 0.07, 0.07), k=0.1),
+        Ellipsoid((0.29, 1.84, -0.74), (0.12, 0.3, 0.18), (-0.62, 0, 0), k=0.15),
         Cone((0.3, 1.7, -0.5), (0.26, 1.62, -0.25), 0.09, 0.05, k=0.12),
+        # Gaskin muscle on the outside of the leg.
+        Ellipsoid((0.335, 1.4, -1.08), (0.055, 0.16, 0.12), (-0.75, 0, 0), k=0.06),
+        # The cannon's tendons stand apart from the bone.
+        Cone((cx + 0.055, ky - 0.22, kz + 0.002), (cx + 0.055, 0.48, -1.425), 0.014, 0.014, k=0.02, subtract=True),
+        Cone((cx - 0.055, ky - 0.22, kz + 0.002), (cx - 0.055, 0.48, -1.425), 0.014, 0.014, k=0.02, subtract=True),
     ] + lower_details(spec)
 
 
@@ -427,10 +433,10 @@ def primitives():
                 ((2.54, 0.3), (1.38, 0.3), 0.41, {"e": -0.15, "peak": 0.45, "n": 2.2}),
                 ((2.48, 0.0), (1.36, 0.0), 0.45, {"e": -0.12, "peak": 0.3, "n": 2.2}),
                 ((2.47, -0.35), (1.42, -0.35), 0.46, {"e": -0.05, "peak": 0.25, "n": 2.2}),
-                ((2.5, -0.65), (1.6, -0.62), 0.42, {"e": 0.1, "peak": 0.2, "keel": 0.25}),
-                ((2.56, -0.95), (1.78, -0.9), 0.39, {"e": 0.2, "peak": 0.2, "keel": 0.3}),
-                ((2.46, -1.25), (1.86, -1.2), 0.3, {"e": 0.2, "peak": 0.2, "keel": 0.3}),
-                ((2.26, -1.45), (1.92, -1.43), 0.17, {"e": 0.1}),
+                ((2.52, -0.65), (1.6, -0.62), 0.43, {"e": 0.15, "peak": 0.15, "keel": 0.25, "n": 2.2}),
+                ((2.58, -0.95), (1.78, -0.9), 0.42, {"e": 0.25, "peak": 0.12, "keel": 0.3, "n": 2.3}),
+                ((2.5, -1.25), (1.82, -1.22), 0.36, {"e": 0.2, "peak": 0.15, "keel": 0.3, "n": 2.2}),
+                ((2.32, -1.47), (1.86, -1.46), 0.22, {"e": 0.1}),
             ],
             k=0.08,
             cap=0.08,
@@ -438,28 +444,29 @@ def primitives():
         # Withers: the spines of the vertebrae between the shoulder blades.
         Ellipsoid((0, 2.55, 0.52), (0.07, 0.11, 0.3), (0.12, 0, 0), k=0.08),
         # Long back muscles on each side of the spine.
-        Ellipsoid((0.13, 2.38, -0.25), (0.14, 0.1, 0.62), k=0.14),
         # Breast muscles between and in front of the forelegs.
         Ellipsoid((0.1, 1.74, 0.95), (0.13, 0.22, 0.14), (0.25, 0, 0), k=0.12),
         # Dock of the tail.
-        Cone((0, 2.44, -1.3), (0, 2.16, -1.47), 0.08, 0.055, k=0.07),
+        Cone((0, 2.37, -1.38), (0, 2.16, -1.53), 0.07, 0.05, k=0.09),
         # Neck from the shoulders to the poll, traced along the crest and the
         # underline: deep at the base, fine at the throat, the crest arched.
         Loft(
             [
-                ((2.42, 0.45), (1.66, 0.94), 0.29, {"e": -0.2, "peak": 0.5}),
-                ((2.57, 0.62), (1.8, 1.07), 0.28, {"e": -0.2, "peak": 0.5}),
-                ((2.82, 0.84), (2.07, 1.25), 0.235, {"e": -0.25, "peak": 0.5, "keel": 0.2}),
-                ((3.08, 1.06), (2.4, 1.41), 0.195, {"e": -0.25, "peak": 0.5, "keel": 0.25}),
-                ((3.3, 1.25), (2.74, 1.53), 0.165, {"e": -0.2, "peak": 0.45, "keel": 0.3}),
-                ((3.47, 1.4), (3.0, 1.63), 0.145, {"e": -0.1, "peak": 0.4, "keel": 0.3}),
-                ((3.56, 1.5), (3.18, 1.69), 0.13, {"e": 0.0, "peak": 0.3, "keel": 0.3}),
+                ((2.42, 0.45), (1.8, 0.86), 0.27, {"e": -0.15, "peak": 0.5}),
+                ((2.57, 0.62), (1.97, 1.03), 0.25, {"e": -0.15, "peak": 0.5}),
+                ((2.82, 0.84), (2.3, 1.2), 0.205, {"e": -0.2, "peak": 0.5, "keel": 0.2}),
+                ((3.08, 1.06), (2.62, 1.37), 0.17, {"e": -0.2, "peak": 0.5, "keel": 0.25}),
+                ((3.3, 1.25), (2.9, 1.51), 0.148, {"e": -0.15, "peak": 0.45, "keel": 0.3}),
+                ((3.47, 1.4), (3.1, 1.62), 0.135, {"e": -0.1, "peak": 0.4, "keel": 0.3}),
+                ((3.56, 1.5), (3.22, 1.69), 0.125, {"e": 0.0, "peak": 0.3, "keel": 0.3}),
             ],
             k=0.1,
             cap=0.1,
         ),
         # Windpipe along the underside of the neck.
-        Cone((0, 2.0, 1.12), (0, 3.02, 1.57), 0.085, 0.06, k=0.08),
+        Cone((0, 2.12, 1.1), (0, 3.06, 1.58), 0.075, 0.055, k=0.08),
+        # The long muscle from the shoulder to the jaw rounds each side of the neck.
+        Cone((0.14, 2.15, 0.98), (0.09, 3.0, 1.48), 0.085, 0.055, k=0.09),
     ]
     ps += head()
     ps += foreleg(FORE) + hindquarters(HIND)
