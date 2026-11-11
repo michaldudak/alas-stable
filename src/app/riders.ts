@@ -176,7 +176,9 @@ export function createRiders(
 			wander: undefined as Wander | undefined,
 			head: { graze: 0, yaw: 0, nod: 0, chew: false } as HeadTarget,
 			stroke: 0,
-			transfer: undefined as { seat: number; swing: number } | undefined,
+			transfer: undefined as
+				| { seat: number; away: number; lift: number; bareback: boolean }
+				| undefined,
 			wakeHour: 7 + rank * 0.45 + random() * 0.3,
 			homeHour: 18.6 + rank * 0.4 + random() * 0.3,
 			started: false,
@@ -555,7 +557,12 @@ export function createRiders(
 					speed: 0,
 					turn: 0,
 				});
-				rider.transfer = { seat: frame.seat, swing: frame.swing };
+				rider.transfer = {
+					seat: frame.seat,
+					away: frame.away,
+					lift: frame.height,
+					bareback: frame.bareback,
+				};
 				if (t < 1) return false;
 				rider.transfer = undefined;
 				p.height = 0;
@@ -721,7 +728,9 @@ export function createRiders(
 				turn: p.turn,
 				lead: rider.horseMode === 'led',
 				seat: rider.transfer?.seat,
-				swing: rider.transfer?.swing,
+				away: rider.transfer?.away,
+				lift: rider.transfer?.lift,
+				bareback: rider.transfer?.bareback,
 				side: 1,
 				look: withHorse ? neckPoint : undefined,
 				touch:

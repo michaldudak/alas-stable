@@ -3,7 +3,9 @@ import { STICK_PACE_ADJUSTMENT } from './tuning.ts';
 import { outsideWorld } from './regions.ts';
 export const FOOT_SPEEDS = [0, 1.8, 3.8] as const;
 export const FOOT_REVERSE_SPEED = -0.9;
-export const MOUNT_DURATION = 1.6;
+export const MOUNT_DURATION = 2.6;
+/** How far to the side of a horse its rider stands to mount. */
+export const MOUNT_DISTANCE = 1.65;
 export function clearForPerson(x: number, z: number, solids: readonly Solid[]) {
 	return (
 		!outsideWorld(x, z, 0.3) &&
@@ -28,8 +30,8 @@ export function mountSide(
 ) {
 	const choices = [-1, 1].map((side) => ({
 		side,
-		x: horse.x + Math.cos(horse.heading) * side * 1.65,
-		z: horse.z - Math.sin(horse.heading) * side * 1.65,
+		x: horse.x + Math.cos(horse.heading) * side * MOUNT_DISTANCE,
+		z: horse.z - Math.sin(horse.heading) * side * MOUNT_DISTANCE,
 	}));
 	if (person)
 		choices.sort(
@@ -187,8 +189,9 @@ const settle = (value: number) => {
 
 /**
  * The rider climbing on or off: `ground` runs from 0 in the saddle to 1
- * standing at `side`. Gives her place, height, how seated her pose is and the
- * swing of the leg over the horse's back.
+ * standing at `side`. Gives where her ground-level origin is (`away` from the
+ * horse's centre line and lifted by `height`) and how far through the mount
+ * she is (`seat`); the walking figure works out the pose from those.
  */
 export function transferFrame(
 	horse: GameState,
@@ -196,16 +199,18 @@ export function transferFrame(
 	ground: number,
 	bareback = false,
 ) {
-	const across = settle(ground / 0.8);
+	const seat = 1 - Math.min(1, Math.max(0, ground));
+	// She stays beside the horse until she stands in the stirrup, then moves
+	// across; her origin rises while she climbs.
+	const across = settle((seat - 0.3) / 0.55);
 	return {
-		x: horse.x + (side.x - horse.x) * across,
-		z: horse.z + (side.z - horse.z) * across,
+		x: side.x + (horse.x - side.x) * across,
+		z: side.z + (horse.z - side.z) * across,
 		heading: horse.heading,
-		height:
-			(bareback ? 1.32 : 1.4) * (1 - settle((ground - 0.15) / 0.85)) +
-			0.18 * Math.sin(Math.PI * ground),
-		seat: 1 - settle(ground),
-		swing: Math.sin(Math.PI * ground),
+		height: (bareback ? 1.17 : 1.25) * settle((seat - 0.28) / 0.6),
+		away: Math.hypot(side.x - horse.x, side.z - horse.z) * (1 - across),
+		seat,
+		bareback,
 	};
 }
 

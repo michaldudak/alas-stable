@@ -15,11 +15,13 @@ try {
 	);
 	await page.goto(`${BASE_URL}/lifecycle-inspection`);
 	const results = await page.evaluate(async () => {
-		const { startGame, loadHorseAsset, loadRiderAsset } = (await import(
-			String('/src/app/game.ts')
-		)) as typeof GameModule;
+		const { startGame, loadHorseAsset, loadRiderAsset, riderFiles } =
+			(await import(String('/src/app/game.ts'))) as typeof GameModule;
 		await loadHorseAsset('/src/assets/horse.glb');
-		await loadRiderAsset('/src/assets/rider.glb');
+		await loadRiderAsset(
+			'adult-female',
+			riderFiles('/src/assets/riders', 'adult-female'),
+		);
 		const results: {
 			activeGait: number;
 			disposedGait: number;
