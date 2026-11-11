@@ -12,7 +12,11 @@ import sys
 import bmesh
 import bpy
 import numpy as np
-import openvdb
+
+try:
+    import openvdb
+except ImportError:  # Blender 4.2 and 4.3 ship it under the older name.
+    import pyopenvdb as openvdb
 
 HERE = os.path.dirname(os.path.abspath(globals().get("__file__", "")))
 if HERE not in sys.path:

@@ -75,7 +75,7 @@ Scenery costs about one to two million triangles per frame from the default came
 
 ## The horse asset
 
-The horse body is `src/assets/horse.glb`, built by `tools/horse/build_horse.py` in Blender 4.2 or later (it needs the bundled numpy and OpenVDB). `tools/horse/anatomy.py` describes the body as smoothly blended signed-distance primitives in game coordinates; OpenVDB meshes the field, and `tools/horse/game_mesh.py` reduces it to about 46,000 triangles, transfers smooth normals from the high-resolution surface and writes everything the game needs as custom vertex attributes: distance-field ambient occlusion (`_ao`), sock/muzzle/hoof masks (`_mask`), and per-vertex leg and bone weights (`_leg`, `_weight`). Rig landmarks and surface samples used to fit tack, hair and ornaments travel as JSON in the node extras. There is no armature or texture in the file.
+The horse body is `src/assets/horse.glb`, built by `tools/horse/build_horse.py` in Blender 4.2 or later (it needs the bundled numpy and OpenVDB). `tools/horse/anatomy.py` describes the body as smoothly blended signed-distance primitives in game coordinates: the trunk, neck, skull and each leg are lofts traced from their side outlines (a point on the topline or the front of the leg, the opposite point, and a half-width per station), with muscles and bony landmarks as ellipsoids and cones on top; OpenVDB meshes the field, and `tools/horse/game_mesh.py` reduces it to about 46,000 triangles, transfers smooth normals from the high-resolution surface and writes everything the game needs as custom vertex attributes: distance-field ambient occlusion (`_ao`), sock/muzzle/hoof masks (`_mask`), and per-vertex leg and bone weights (`_leg`, `_weight`). Rig landmarks and surface samples used to fit tack, hair and ornaments travel as JSON in the node extras. There is no armature or texture in the file.
 
 Rebuild after editing the anatomy:
 
@@ -83,7 +83,7 @@ Rebuild after editing the anatomy:
 blender --background --python tools/horse/build_horse.py -- --preview artifacts/horse
 ```
 
-The build refuses to export a body with tunnels (Euler characteristic other than 2); blend the masses around the reported gap. `--preview DIR` also renders side, front, three-quarter and head views, and `--sculpt-only` stops before export.
+The build refuses to export a body with tunnels (Euler characteristic other than 2); blend the masses around the reported gap. `--preview DIR` also renders side, front, three-quarter and head views, and `--sculpt-only` stops before export. While editing the anatomy, `python3 tools/horse/quickview.py OUT.png` shades side, front, rear and top views from the distance field in a couple of seconds without Blender, and `node scripts/horse-check.ts` renders the exported horse without tack in the game's renderer from every side.
 
 `src/main.ts` loads the asset before `startGame()`; unit tests load it from disk through `tests/support/horse-asset.ts`. `createHorse()` stays synchronous and shares one body geometry between all horses.
 

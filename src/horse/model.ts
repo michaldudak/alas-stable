@@ -104,8 +104,8 @@ function maneHair(
 					[x + 0.02, y + height * 0.6, z - 0.01],
 					[x + 0.04 + next() * 0.02, y + height, z - 0.03],
 				],
-				radius: 0.018 + next() * 0.006,
-				tip: 0.5,
+				radius: 0.01 + next() * 0.005,
+				tip: 0.4,
 			});
 			continue;
 		}
@@ -128,8 +128,8 @@ function maneHair(
 					z + 0.02 + (next() - 0.5) * 0.04,
 				],
 			],
-			radius: 0.017 + next() * 0.009,
-			tip: 0.3,
+			radius: 0.008 + next() * 0.006,
+			tip: 0.25,
 		});
 	}
 	return strands;
@@ -146,7 +146,7 @@ function forelockHair(
 	const poll = crestAt(rig, 0);
 	const strands: Lock[] = [];
 	for (let i = 0; i < count; i++) {
-		const x = (next() - 0.5) * 0.06,
+		const x = (next() - 0.5) * 0.085,
 			end = reach * (0.8 + next() * 0.3);
 		strands.push({
 			points: [
@@ -164,7 +164,7 @@ function forelockHair(
 					),
 				),
 			],
-			radius: 0.024 + next() * 0.008,
+			radius: 0.009 + next() * 0.006,
 			tip: 0.3,
 		});
 	}
@@ -206,8 +206,8 @@ function tailHair(count: number, length: number, seed: number): Lock[] {
 					-0.16 + (next() - 0.5) * 0.05,
 				],
 			],
-			radius: 0.03 + next() * 0.012,
-			tip: 0.35,
+			radius: 0.014 + next() * 0.009,
+			tip: 0.3,
 		});
 	}
 	return strands;
@@ -304,8 +304,9 @@ export function createHorse(): HorseModel {
 	locks(
 		mane,
 		hair,
-		[...maneHair(rig, 110, 11, false), ...forelockHair(rig, 24, 12, 0.3)],
-		14,
+		[...maneHair(rig, 250, 11, false), ...forelockHair(rig, 46, 12, 0.3)],
+		12,
+		4,
 	);
 	const tail = new THREE.Group();
 	tail.name = 'tail';
@@ -313,7 +314,7 @@ export function createHorse(): HorseModel {
 	// the dock and falls in a rounded, tapering bundle clear of the buttocks.
 	tail.position.set(0, 2.47, -1.32);
 	body.add(tail);
-	locks(tail, hair, tailHair(40, 1.55, 1));
+	locks(tail, hair, tailHair(120, 1.55, 1), 14, 4);
 	const { legs, knees, fetlocks, hooves, legRigs } = buildLegs(rig, body);
 	const { neck, croup, skeleton } = attachSkin(
 		body,
@@ -496,8 +497,9 @@ export function createHorse(): HorseModel {
 	locks(
 		shortMane,
 		hair,
-		[...maneHair(rig, 90, 13, true), ...forelockHair(rig, 10, 14, 0.16)],
+		[...maneHair(rig, 180, 13, true), ...forelockHair(rig, 22, 14, 0.16)],
 		6,
+		4,
 	);
 	for (let i = 0; i < 13; i += 2) {
 		const { y, z, width } = crest(i / 12);
@@ -510,10 +512,10 @@ export function createHorse(): HorseModel {
 			).rotation.z = side * 0.5;
 		oval(braidedMane, hair, [0.075, 0.06, 0.065], [width + 0.02, y - 0.17, z]);
 	}
-	locks(braidedMane, hair, forelockHair(rig, 10, 15, 0.16), 8);
+	locks(braidedMane, hair, forelockHair(rig, 22, 15, 0.16), 8, 4);
 	const shortTail = variant(tail, 'tailStyle', 'short'),
 		braidedTail = variant(tail, 'tailStyle', 'braided');
-	locks(shortTail, hair, tailHair(30, 0.95, 2));
+	locks(shortTail, hair, tailHair(90, 0.95, 2), 12, 4);
 	for (let i = 0; i < 13; i++) {
 		for (const side of [-1, 1]) {
 			const piece = oval(

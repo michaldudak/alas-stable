@@ -11,12 +11,14 @@ const skinVertex = /* glsl */ `
 attribute float ao;
 attribute vec3 mask;
 varying float vOcclusion;
-varying vec3 vMask;`;
+varying vec3 vMask;
+varying vec4 vCoat;`;
 
 const skinFragment = /* glsl */ `
 uniform vec3 sockColor, pointColor, hoofColor;
 varying float vOcclusion;
-varying vec3 vMask;`;
+varying vec3 vMask;
+varying vec4 vCoat;`;
 
 /**
  * Coat shading for the body: white socks, darker muzzle and eye rims and hoof
@@ -42,13 +44,19 @@ export function skinMaterial(
 			.replace('#include <common>', `#include <common>\n${skinVertex}`)
 			.replace(
 				'#include <begin_vertex>',
-				'#include <begin_vertex>\nvOcclusion = ao;\nvMask = mask;',
+				'#include <begin_vertex>\nvOcclusion = ao;\nvMask = mask;\nvCoat = vec4(position, normal.y);',
 			);
 		shader.fragmentShader = shader.fragmentShader
 			.replace('#include <common>', `#include <common>\n${skinFragment}`)
 			.replace(
 				'#include <map_fragment>',
 				`#include <map_fragment>
+// A living coat is never one flat colour: paler under the belly and inside
+// the legs, with soft mottling over the body.
+float mottle = sin(vCoat.x * 9.0 + sin(vCoat.z * 7.0) * 1.7) * sin(vCoat.y * 8.0 + vCoat.z * 5.0)
+	+ 0.5 * sin(vCoat.z * 23.0 + vCoat.y * 17.0) * sin(vCoat.x * 29.0 - vCoat.y * 13.0);
+diffuseColor.rgb *= 1.0 + 0.035 * mottle;
+diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.18 + 0.03, 0.5 * smoothstep(-0.25, -0.95, vCoat.w));
 diffuseColor.rgb = mix(diffuseColor.rgb, sockColor, vMask.x);
 diffuseColor.rgb = mix(diffuseColor.rgb, pointColor, vMask.y * 0.85);
 diffuseColor.rgb = mix(diffuseColor.rgb, hoofColor, vMask.z);

@@ -144,9 +144,9 @@ export function locks(
 	material: THREE.Material,
 	strands: Lock[],
 	segments = 20,
+	radial = 6,
 ) {
-	const radial = 6,
-		center = new THREE.Vector3(),
+	const center = new THREE.Vector3(),
 		vertex = new THREE.Vector3();
 	const geometries = strands.map(({ points, radius, tip = 0.3 }) => {
 		const curve = new THREE.CatmullRomCurve3(
