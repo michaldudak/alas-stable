@@ -222,7 +222,7 @@ def lerp(a, b, t):
 # `t` from the forehead towards the jaw.
 POLL = (3.42, 1.9)  # (y, z)
 HEAD_TILT = 1.08  # radians below horizontal
-HEAD_SCALE = 0.9  # length of one unit of `s` and `t`
+HEAD_SCALE = 0.98  # length of one unit of `s` and `t`
 
 
 def head_point(s, t, x=0.0):
