@@ -411,23 +411,31 @@ def head():
             cap=0.05,
         ),
         # Jowls: the flat, round plate of the cheek muscle on each side.
-        Ellipsoid(h(0.33, 0.27, 0.105), (0.055, 0.19, 0.19), head_rot(), k=0.035),
+        Ellipsoid(h(0.33, 0.285, 0.118), (0.05, 0.21, 0.205), head_rot(), k=0.018),
+        # The cheekbone arches back from the eye to the base of the ear.
+        Cone(h(0.2, 0.11, 0.168), h(0.05, 0.1, 0.14), 0.024, 0.02, k=0.03),
         # Facial crest, a ridge from below the eye towards the nostril.
-        Cone(h(0.34, 0.15, 0.14), h(0.56, 0.17, 0.11), 0.02, 0.012, k=0.045),
+        Cone(h(0.33, 0.155, 0.158), h(0.58, 0.175, 0.118), 0.026, 0.015, k=0.03),
+        # The face is hollowed above the crest, beside the nasal bones, and
+        # below it, in front of the jowl.
+        Ellipsoid(h(0.6, 0.07, 0.135), (0.03, 0.035, 0.13), head_rot(), k=0.06, subtract=True),
+        Ellipsoid(h(0.68, 0.26, 0.12), (0.025, 0.035, 0.1), head_rot(), k=0.06, subtract=True),
         # Brow: the bony rim over each eye, and the hollow above it.
         Ellipsoid(h(0.215, 0.045, 0.15), (0.045, 0.035, 0.085), head_rot(0.25), k=0.03),
-        Ellipsoid(h(0.13, 0.02, 0.15), (0.02, 0.02, 0.04), head_rot(), k=0.05, subtract=True),
+        Ellipsoid(h(0.14, 0.035, 0.175), (0.018, 0.018, 0.034), head_rot(), k=0.05, subtract=True),
         # Eye socket for the separate eyeball, with lids above and below it.
         Ellipsoid(EYE, (0.05, 0.046, 0.058), head_rot(), k=0.02, subtract=True),
-        Ellipsoid(h(0.255, 0.085, 0.158), (0.022, 0.017, 0.068), head_rot(0.18), k=0.014),
-        Ellipsoid(h(0.29, 0.165, 0.156), (0.02, 0.015, 0.06), head_rot(-0.12), k=0.014),
+        Ellipsoid(h(0.25, 0.088, 0.156), (0.03, 0.024, 0.074), head_rot(0.2), k=0.014),
+        Ellipsoid(h(0.292, 0.166, 0.153), (0.026, 0.02, 0.066), head_rot(-0.14), k=0.014),
         # Muzzle: nostril rims, upper lip and chin.
         Ellipsoid(h(0.95, 0.085, 0.07), (0.045, 0.045, 0.075), head_rot(0.1), k=0.025),
-        Ellipsoid(h(0.985, 0.095, 0.082), (0.02, 0.03, 0.055), head_rot(0.25), k=0.018, subtract=True),
+        Ellipsoid(h(0.995, 0.1, 0.09), (0.02, 0.03, 0.048), head_rot(0.35), k=0.016, subtract=True),
         Ellipsoid(h(1.04, 0.19), (0.085, 0.07, 0.07), head_rot(0.2), k=0.03),
         Ellipsoid(h(0.95, 0.295), (0.055, 0.035, 0.07), head_rot(-0.2), k=0.04),
         # The mouth is a groove along each side, not a slit through the muzzle.
-        Ellipsoid(h(0.97, 0.262, 0.095), (0.03, 0.008, 0.085), head_rot(-0.1), k=0.012, subtract=True),
+        Ellipsoid(h(0.93, 0.262, 0.098), (0.03, 0.009, 0.13), head_rot(-0.08), k=0.012, subtract=True),
+        # A groove sets the chin off from the jaw.
+        Ellipsoid(h(0.89, 0.325, 0.0), (0.07, 0.012, 0.03), head_rot(), k=0.02, subtract=True),
         # Ears: narrow at the base, widest a third of the way up, tapering to
         # a point that curves a little inwards, with the hollow facing forward
         # and out.
@@ -442,7 +450,7 @@ def head():
     ]
 
 
-EYE = head_point(0.27, 0.125, 0.152)
+EYE = head_point(0.27, 0.125, 0.146)
 
 
 def primitives():

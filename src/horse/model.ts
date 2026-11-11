@@ -294,7 +294,7 @@ export function createHorse(): HorseModel {
 		return oval(
 			body,
 			eyeball,
-			[0.046, 0.046, 0.054],
+			[0.042, 0.042, 0.05],
 			[side * (x - 0.004), y, z],
 		);
 	});
