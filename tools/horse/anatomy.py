@@ -399,8 +399,8 @@ def head():
             [
                 outline(-0.03, 0.0, 0.25, 0.12, e=0.2, n=2.3),
                 outline(0.1, -0.035, 0.37, 0.158, e=0.4, n=2.5, keel=0.45),
-                outline(0.27, -0.045, 0.5, 0.175, e=0.5, n=2.6, keel=0.6),
-                outline(0.44, -0.025, 0.47, 0.15, e=0.45, n=2.5, keel=0.62),
+                outline(0.27, -0.045, 0.5, 0.183, e=0.5, n=2.6, keel=0.55),
+                outline(0.44, -0.025, 0.47, 0.16, e=0.45, n=2.5, keel=0.55),
                 outline(0.6, -0.005, 0.36, 0.118, e=0.35, n=2.4, keel=0.5),
                 outline(0.76, 0.015, 0.29, 0.096, e=0.25, n=2.3, keel=0.3),
                 outline(0.9, 0.02, 0.275, 0.098, e=0.1, n=2.4, keel=0.1),
@@ -411,11 +411,11 @@ def head():
             cap=0.05,
         ),
         # Jowls: the flat, round plate of the cheek muscle on each side.
-        Ellipsoid(h(0.33, 0.285, 0.118), (0.05, 0.21, 0.205), head_rot(), k=0.018),
+        Ellipsoid(h(0.33, 0.285, 0.13), (0.055, 0.21, 0.205), head_rot(), k=0.018),
         # The cheekbone arches back from the eye to the base of the ear.
-        Cone(h(0.2, 0.11, 0.168), h(0.05, 0.1, 0.14), 0.024, 0.02, k=0.03),
+        Cone(h(0.2, 0.11, 0.15), h(0.05, 0.1, 0.125), 0.014, 0.012, k=0.06),
         # Facial crest, a ridge from below the eye towards the nostril.
-        Cone(h(0.33, 0.155, 0.158), h(0.58, 0.175, 0.118), 0.026, 0.015, k=0.03),
+        Cone(h(0.33, 0.155, 0.146), h(0.58, 0.175, 0.112), 0.016, 0.009, k=0.05),
         # The face is hollowed above the crest, beside the nasal bones, and
         # below it, in front of the jowl.
         Ellipsoid(h(0.6, 0.07, 0.135), (0.03, 0.035, 0.13), head_rot(), k=0.06, subtract=True),

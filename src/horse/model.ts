@@ -282,13 +282,35 @@ export function createHorse(): HorseModel {
 		metal = surface('#b6b7ab', 0.32);
 	metal.metalness = 0.65;
 
-	// Glossy dark eyes sit in the sculpted sockets.
+	// Glossy eyes sit in the sculpted sockets: a warm brown iris around a
+	// wide, dark pupil, darkening towards the lids.
 	const eyeball = new THREE.MeshPhysicalMaterial({
-		color: '#1d130d',
-		roughness: 0.25,
+		color: '#ffffff',
+		roughness: 0.1,
 		clearcoat: 1,
-		clearcoatRoughness: 0.04,
+		clearcoatRoughness: 0.03,
 	});
+	eyeball.onBeforeCompile = (shader) => {
+		shader.vertexShader = shader.vertexShader
+			.replace('#include <common>', '#include <common>\nvarying vec3 vEye;')
+			.replace(
+				'#include <begin_vertex>',
+				'#include <begin_vertex>\nvEye = normal;',
+			);
+		shader.fragmentShader = shader.fragmentShader
+			.replace('#include <common>', '#include <common>\nvarying vec3 vEye;')
+			.replace(
+				'#include <map_fragment>',
+				`#include <map_fragment>
+vec3 eyeNormal = normalize(vEye);
+// The eye looks out sideways; its pupil is a horizontal oval.
+float outward = abs(eyeNormal.x);
+float iris = smoothstep(0.45, 0.7, outward);
+float pupil = 1.0 - smoothstep(0.5, 0.68, length(vec2(eyeNormal.y * 1.6, eyeNormal.z)));
+vec3 eyeColour = mix(vec3(0.012, 0.008, 0.006), vec3(0.07, 0.034, 0.014), iris);
+diffuseColor.rgb = mix(eyeColour, vec3(0.006, 0.005, 0.005), pupil * step(0.5, outward));`,
+			);
+	};
 	const eyes = [-1, 1].map((side) => {
 		const [x, y, z] = rig.eye;
 		return oval(
