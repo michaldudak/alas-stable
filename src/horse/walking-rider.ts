@@ -590,12 +590,14 @@ export function createWalkingRider(model?: RiderModelId) {
 			.lerp(a.set(far * 0.55, 0.3, 1), land);
 		pole.applyQuaternion(facing);
 		figure.reach(limb('thigh', far), limb('shin', far), target, pole);
-		// Pushing off, the foot points; over the back it trails; then heel down.
-		const toePoint =
-			-0.7 * smooth(0.28, 0.42, m) * (1 - smooth(0.6, 0.85, m)) + 0.16 * land;
-		footDirection(figure, far, toePoint, far * 0.14 * land, direction);
+		// The foot settles heel-down as it nears its stirrup; until then it
+		// hangs from the shin, toes a little pointed from the push off.
+		footDirection(figure, far, 0.16 * land, far * 0.14 * land, direction);
 		direction.applyQuaternion(tilt);
 		figure.aim(limb('foot', far), direction, up, up);
+		const trailing = smooth(0.3, 0.42, m) * (1 - land);
+		blended.setFromAxisAngle(pole.set(1, 0, 0), 0.4);
+		bones[limb('foot', far)].quaternion.slerp(blended, trailing);
 
 		// Hands: the near one takes the mane in front of the saddle, the far
 		// one the cantle; both come to the reins as she sits.

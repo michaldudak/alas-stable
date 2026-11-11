@@ -219,6 +219,8 @@ function splitTwist(
 	else twist.normalize();
 	swing.copy(q).multiply(scratchInverse.copy(twist).invert());
 }
+/** How far an ankle can turn from its rest angle, in radians. */
+const ANKLE_RANGE = 0.7;
 const scratchInverse = new THREE.Quaternion(),
 	identity = new THREE.Quaternion();
 
@@ -371,6 +373,17 @@ export function createFigure(model: RiderModelId = DEFAULT_RIDER_MODEL) {
 		}
 		figureQuaternion(bone.parent!, parentQuaternion);
 		bone.quaternion.copy(parentQuaternion.invert()).multiply(desired);
+		if (name === 'footL' || name === 'footR') {
+			// An ankle only flexes so far from its rest angle, wherever the
+			// foot is asked to point.
+			const angle = 2 * Math.acos(Math.min(1, Math.abs(bone.quaternion.w)));
+			if (angle > ANKLE_RANGE)
+				bone.quaternion.slerpQuaternions(
+					identity,
+					local.copy(bone.quaternion),
+					ANKLE_RANGE / angle,
+				);
+		}
 		const twistChild = TWIST_CHILD[name] as BoneName | undefined;
 		if (twistChild) {
 			splitTwist(bone.quaternion, directions[name], swing, twist);
