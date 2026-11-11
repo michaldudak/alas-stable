@@ -3,86 +3,124 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Vector3Tuple } from '../rendering/types.ts';
 
-/** Written by `tools/rider/build_rider.py`; bones are listed parents first. */
+/** Every rider model built by `tools/rider/build_rider.py`. */
+export const RIDER_MODEL_IDS = ['adult-female'] as const;
+export type RiderModelId = (typeof RIDER_MODEL_IDS)[number];
+export const DEFAULT_RIDER_MODEL: RiderModelId = 'adult-female';
+
+/** Written by the build; bones are listed parents first, in game units. */
 export type RiderRig = {
 	bones: Record<string, { parent: string | null; position: Vector3Tuple }>;
-	ends: Record<'handL' | 'footL' | 'head', Vector3Tuple>;
+	/** Tips of the chains that end without a child bone (head, hands, toes, fingers). */
+	ends: Record<string, Vector3Tuple>;
 	eye: Vector3Tuple;
-	headCenter: Vector3Tuple;
-	headRadii: Vector3Tuple;
+	crown: number;
+	scale: number;
 };
 
-/** One body geometry with a group per clothing material, named in `materials`. */
+/** The files of one model; textures are optional so tests can load geometry alone. */
+export type RiderFiles = {
+	model: string;
+	skin?: string;
+	face?: string;
+	outfit?: string;
+	outfitNormal?: string;
+};
+
+export type RiderTextures = {
+	skin?: THREE.Texture;
+	face?: THREE.Texture;
+	outfit?: THREE.Texture;
+	outfitNormal?: THREE.Texture;
+};
+
+/** One skinned geometry with a group per material, named in `materials`. */
 export type RiderAsset = {
+	id: RiderModelId;
 	geometry: THREE.BufferGeometry;
 	materials: string[];
 	rig: RiderRig;
+	textures: RiderTextures;
 };
 
-let current: RiderAsset | undefined;
+const assets = new Map<RiderModelId, RiderAsset>();
 
-/** Two bone influences per vertex become three.js skinning attributes. */
-function skinned(source: THREE.BufferGeometry) {
-	const geometry = new THREE.BufferGeometry();
-	geometry.setIndex(source.getIndex());
-	geometry.setAttribute('position', source.getAttribute('position'));
-	geometry.setAttribute('normal', source.getAttribute('normal'));
-	geometry.setAttribute('ao', source.getAttribute('_ao'));
-	const joint = source.getAttribute('_joint'),
-		blend = source.getAttribute('_blend');
-	const joints = new Uint16Array(joint.count * 4),
-		weights = new Float32Array(joint.count * 4);
-	for (let i = 0; i < joint.count; i++) {
-		joints.set(
-			[Math.round(joint.getX(i)), Math.round(joint.getY(i)), 0, 0],
-			i * 4,
-		);
-		weights.set([1 - blend.getX(i), blend.getX(i), 0, 0], i * 4);
-	}
-	geometry.setAttribute(
-		'skinIndex',
-		new THREE.Uint16BufferAttribute(joints, 4),
-	);
-	geometry.setAttribute(
-		'skinWeight',
-		new THREE.Float32BufferAttribute(weights, 4),
-	);
-	return geometry;
-}
+/** Where a model's files sit below `base`, as the build writes them. */
+export const riderFiles = (base: string, id: RiderModelId): RiderFiles => ({
+	model: `${base}/${id}/rider.glb`,
+	skin: `${base}/${id}/skin.webp`,
+	face: `${base}/${id}/face.webp`,
+	outfit: `${base}/${id}/outfit.webp`,
+	outfitNormal: `${base}/${id}/outfit-normal.webp`,
+});
 
-export async function parseRiderAsset(data: ArrayBuffer): Promise<RiderAsset> {
+export async function parseRiderAsset(
+	id: RiderModelId,
+	data: ArrayBuffer,
+	textures: RiderTextures = {},
+): Promise<RiderAsset> {
 	const gltf = await new GLTFLoader().parseAsync(data, '');
-	const node = gltf.scene.getObjectByName('RiderBody');
-	if (!node) throw new Error('The rider asset has no RiderBody node.');
 	const parts: THREE.Mesh[] = [];
-	node.traverse((object) => {
+	let rig: RiderRig | undefined;
+	gltf.scene.traverse((object) => {
 		if (object instanceof THREE.Mesh) parts.push(object);
+		if (object.userData.rig) rig = object.userData.rig as RiderRig;
 	});
-	const geometries = parts.map((part) => skinned(part.geometry));
-	const geometry = mergeGeometries(geometries, true);
+	if (!rig || !parts.length)
+		throw new Error(`The rider asset "${id}" has no rig or mesh.`);
+	const geometry = mergeGeometries(
+		parts.map((part) => part.geometry),
+		true,
+	);
+	geometry.setAttribute('ao', geometry.getAttribute('_ao'));
+	geometry.deleteAttribute('_ao');
 	geometry.computeBoundingSphere();
 	for (const part of parts) part.geometry.dispose();
-	for (const piece of geometries) piece.dispose();
-	const materials = parts.map((part) =>
-		Array.isArray(part.material) ? '' : part.material.name,
-	);
-	current = {
+	const asset: RiderAsset = {
+		id,
 		geometry,
-		materials,
-		rig: JSON.parse(String(node.userData.rig)) as RiderRig,
+		materials: parts.map((part) =>
+			Array.isArray(part.material) ? '' : part.material.name,
+		),
+		rig,
+		textures,
 	};
-	return current;
+	assets.set(id, asset);
+	return asset;
 }
 
-export async function loadRiderAsset(url: string) {
-	const response = await fetch(url);
+async function loadTexture(url: string | undefined, colour: boolean) {
+	if (!url) return undefined;
+	const texture = await new THREE.TextureLoader().loadAsync(url);
+	// glTF texture coordinates start at the top left of the image.
+	texture.flipY = false;
+	texture.colorSpace = colour ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+	texture.anisotropy = 4;
+	return texture;
+}
+
+export async function loadRiderAsset(id: RiderModelId, files: RiderFiles) {
+	const [response, skin, face, outfit, outfitNormal] = await Promise.all([
+		fetch(files.model),
+		loadTexture(files.skin, true),
+		loadTexture(files.face, true),
+		loadTexture(files.outfit, true),
+		loadTexture(files.outfitNormal, false),
+	]);
 	if (!response.ok)
 		throw new Error(`Rider asset failed to load: ${response.status}`);
-	return parseRiderAsset(await response.arrayBuffer());
+	return parseRiderAsset(id, await response.arrayBuffer(), {
+		skin,
+		face,
+		outfit,
+		outfitNormal,
+	});
 }
 
-/** The loaded rider; call `loadRiderAsset` before creating horses or walkers. */
-export function riderAsset() {
-	if (!current) throw new Error('Load the rider asset before creating riders.');
-	return current;
+/** A loaded rider model; call `loadRiderAsset` before creating horses or walkers. */
+export function riderAsset(id: RiderModelId = DEFAULT_RIDER_MODEL) {
+	const asset = assets.get(id);
+	if (!asset)
+		throw new Error(`Load the rider asset "${id}" before creating riders.`);
+	return asset;
 }

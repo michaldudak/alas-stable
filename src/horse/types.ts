@@ -28,6 +28,8 @@ export interface HorseModel {
 	legRigs: LegRig[];
 	tail: THREE.Group;
 	rider: THREE.Group;
+	/** Lets the seated rider's ponytail follow her movement; call once per frame. */
+	swingRiderHair(dt: number): void;
 	tack: THREE.Group;
 	halter: THREE.Group;
 	bridle: THREE.Group;

@@ -11,8 +11,9 @@ This is a small Three.js game, with explicit modules rather than an engine frame
 | Gait rhythm, blending, foot contacts, inverse kinematics | `src/game/gaits.ts`                                   |
 | Horse body sculpture and export (Blender)                | `tools/horse/`                                        |
 | Horse asset loading, rig landmarks, fitting samples      | `src/horse/asset.ts`                                  |
-| Rider body sculpture and export (Blender)                | `tools/rider/`                                        |
-| Rider skeleton, pose solver, seat and walking poses      | `src/horse/figure.ts`, `rider.ts`, `walking-rider.ts` |
+| Rider models: body, clothes, textures, export            | `tools/rider/`                                        |
+| Rider skeleton, pose solver, seat, walking and mounting  | `src/horse/figure.ts`, `rider.ts`, `walking-rider.ts` |
+| Rider model registry and loading                         | `src/horse/rider-asset.ts`, `rider-files.ts`          |
 | Horse rig, tack, hairstyles and ornaments                | `src/horse/model.ts`, `halter.ts`, `saddle.ts`        |
 | Coat shading from baked masks                            | `src/horse/skin.ts`                                   |
 | Procedural mesh helpers, rider, cloth textures           | `src/horse/geometry.ts`, `rider.ts`, `patterns.ts`    |
@@ -90,11 +91,17 @@ The rig uses metres, +Y up and +Z forward, with the root at ground level. Each l
 
 The preview clones the model before locomotion starts. It uses the names of `body` and `rider`, shares materials and geometry with the live model, and synchronizes visibility for unique `choice:<field>:<id>` groups. Keep collision shapes independent of mesh detail.
 
-## The rider asset
+## The rider assets
 
-The rider is `src/assets/rider.glb`, built by `tools/rider/build_rider.py` with the same distance-field pipeline as the horse. `tools/rider/figure.py` sculpts a teenage girl standing in a relaxed A-pose with feet on the ground. The build cuts the reduced mesh exactly along the collar, waistband, boot tops and glove cuffs, then assigns one material per garment (skin, hair, jacket, breeches, boots, gloves), so clothing edges stay straight. Each vertex stores its two nearest bones and a blend weight (`_joint`, `_blend`) plus occlusion (`_ao`); bone joints travel in the node extras.
+Riders are built by `tools/rider/build_rider.py` from MakeHuman's CC0 base mesh, morph targets, rig and skin (see `tools/rider/README.md` for the sources); the build needs only numpy and Pillow, plus Blender's `bpy` module to bake ambient occlusion. Each model has a folder in `src/assets/riders/<id>/` holding `rider.glb` and four WebP textures: the skin of the head, a sheet with eyes, eyebrows and lashes, and the outfit's detail and normal maps. `tools/rider/characters.py` lists the models; `RIDER_MODEL_IDS` in `src/horse/rider-asset.ts` lists the ones the game loads, and `createFigure(model)`, `createRider(..., model)` and `createWalkingRider(model)` pick one (the default is `adult-female`).
 
-`src/horse/figure.ts` builds the skeleton with identity rest rotations and poses it by aiming bones at targets in figure space, with two-bone IK for arms and legs. `rider.ts` seats a figure in the saddle (knees on the flaps, feet in the stirrups at `STIRRUP`, hands on the reins at `REIN_HAND`), and the saddle is fitted to the horse's measured flank. `walking-rider.ts` animates a second figure on foot and blends it into the seated pose while mounting. Helmet, eyes and ponytail are code-built on the head bone. Load both assets before `startGame()`; tests load them through `tests/support/horse-asset.ts`.
+The body is morphed with MakeHuman's sliders, then dressed: top, breeches and boots are cut from MakeHuman's smooth clothing helper surface along lines measured from the joints, gloves are the smoothed hands, and the helmet, harness, belt, soles and ponytail are generated. Only the head and neck keep their skin. Garment UVs are cylinders around the trunk and limbs, each in its own slot of one atlas, so `textures.py` paints seams, zips, wrinkles and weave in the garment's own coordinates. The detail map is a grey multiplier of each material's colour, which is how `dressFigure` dyes jacket, breeches, helmet, hair, boots and gloves for other riders.
+
+The GLB is plain glTF with quantised attributes, a primitive per material and joints without rest rotations; joint positions, chain ends and head landmarks are repeated in the mesh node's `extras.rig`. `skeleton.py` reduces MakeHuman's rig to about sixty bones: hips, spine, chest, neck and head; clavicles, arms and legs with twist bones in the upper arm, forearm and thigh; three bones per finger; a toe bone; and three bones for the ponytail.
+
+`src/horse/figure.ts` builds the skeleton and poses it by aiming bones along directions in figure space (soles on the ground, facing +Z). `reach` is two-bone IK for arms and legs and `bend` lays a limb along two directions; both twist each bone so elbows and knees keep their hinge, and twist is shared with the twist bones so skin turns gradually. `grip` closes a hand and `swingHair` lets the ponytail swing as a damped pendulum. `rider.ts` seats a figure with her hip joints at `SEAT_POINT`, feet in the stirrups at `STIRRUP` and hands on the reins at `REIN_HAND`; the saddle is fitted to the horse's measured flank. `walking-rider.ts` animates a second figure on foot (planted feet, heel strike and toe-off, arm swing, running with a flight phase) and plays the mount: she steps in facing the saddle, puts the near foot in the stirrup, rises to stand in it, swings the far leg over and sits. `transferFrame` in `src/game/riding.ts` only says how far through the mount she is and where her origin is; the choreography is worked out in the horse's seat space. Because every measurement comes from the model's rig, poses adapt to models with other proportions. Load the horse and the riders before `startGame()`; tests load geometry without textures through `tests/support/horse-asset.ts`.
+
+Check a rebuilt model in the game's renderer with `node scripts/rider-check.ts` (the model from every side), `node scripts/mount-check.ts` (seat and mount) and `node scripts/walk-check.ts` (walking, running, gestures); each needs a dev server and writes a sheet to `artifacts/`.
 
 ## Timing and ownership
 

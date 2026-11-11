@@ -119,7 +119,8 @@ const CAMERA_LIFT: Record<RegionId, number> = {
 
 // Horses are built from the sculpted asset: load it before calling startGame().
 export { loadHorseAsset } from '../horse/asset.ts';
-export { loadRiderAsset } from '../horse/rider-asset.ts';
+export { loadRiderAsset, riderFiles } from '../horse/rider-asset.ts';
+export { loadRiderAssets } from '../horse/rider-files.ts';
 
 export function startGame() {
 	const events = new AbortController();
@@ -1102,8 +1103,10 @@ export function startGame() {
 			walker.pose(dt, {
 				speed: 0,
 				seat: frame.seat,
-				swing: frame.swing,
 				side: transferSide.side,
+				away: frame.away,
+				lift: frame.height,
+				bareback: frame.bareback,
 			});
 		}
 		if (t >= 1) {

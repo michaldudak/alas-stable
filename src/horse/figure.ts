@@ -1,56 +1,90 @@
 import * as THREE from 'three';
-import { riderAsset } from './rider-asset.ts';
 import {
-	hairSurface,
-	locks,
-	mesh,
-	oval,
-	seeded,
-	surface,
-	type Lock,
-} from './geometry.ts';
+	DEFAULT_RIDER_MODEL,
+	riderAsset,
+	type RiderModelId,
+	type RiderTextures,
+} from './rider-asset.ts';
+import { hairSurface, surface } from './geometry.ts';
 
+type Side = 'L' | 'R';
+type Finger = 'thumb' | 'index' | 'middle' | 'ring' | 'pinky';
+type SideBone =
+	| 'clavicle'
+	| 'arm'
+	| 'armTwist'
+	| 'forearm'
+	| 'forearmTwist'
+	| 'hand'
+	| 'thigh'
+	| 'thighTwist'
+	| 'shin'
+	| 'foot'
+	| 'toe'
+	| `${Finger}${1 | 2 | 3}`;
 export type BoneName =
-	| 'pelvis'
+	| 'hips'
 	| 'spine'
+	| 'chest'
+	| 'neck'
 	| 'head'
-	| 'thighL'
-	| 'shinL'
-	| 'footL'
-	| 'thighR'
-	| 'shinR'
-	| 'footR'
-	| 'armL'
-	| 'forearmL'
-	| 'handL'
-	| 'armR'
-	| 'forearmR'
-	| 'handR';
+	| 'tail1'
+	| 'tail2'
+	| 'tail3'
+	| `${SideBone}${Side}`;
 
-/** Each bone points at this child (or end point) in the rest pose. */
-const CHAINS: Record<BoneName, BoneName | 'handEnd' | 'footEnd' | 'crown'> = {
-	pelvis: 'spine',
-	spine: 'head',
-	head: 'crown',
-	thighL: 'shinL',
-	shinL: 'footL',
-	footL: 'footEnd',
-	thighR: 'shinR',
-	shinR: 'footR',
-	footR: 'footEnd',
-	armL: 'forearmL',
+const FINGERS: Finger[] = ['thumb', 'index', 'middle', 'ring', 'pinky'];
+const SIDES: Side[] = ['L', 'R'];
+
+/** The bone each bone points at in the rest pose; others point at a chain end. */
+const NEXT: Partial<Record<string, string>> = {
+	hips: 'spine',
+	spine: 'chest',
+	chest: 'neck',
+	neck: 'head',
+	tail1: 'tail2',
+	tail2: 'tail3',
+};
+/** Bones that pass part of their twist on to a child bone lying along them. */
+const TWIST_CHILD: Partial<Record<string, string>> = {};
+/** Bones whose own twist is shared with the twist bone they hang from. */
+const TWIST_PARENT: Partial<Record<string, string>> = {};
+for (const side of SIDES) {
+	// Twist bones sit part-way along a limb; each limb bone points at the
+	// limb's next real joint so that lengths and hinges stay exact.
+	const chain = [
+		['clavicle', 'arm'],
+		['arm', 'forearm'],
+		['armTwist', 'forearm'],
+		['forearm', 'hand'],
+		['forearmTwist', 'hand'],
+		['thigh', 'shin'],
+		['thighTwist', 'shin'],
+		['shin', 'foot'],
+		['foot', 'toe'],
+	];
+	for (const [from, to] of chain) NEXT[from + side] = to + side;
+	for (const finger of FINGERS) {
+		NEXT[`${finger}1${side}`] = `${finger}2${side}`;
+		NEXT[`${finger}2${side}`] = `${finger}3${side}`;
+	}
+	TWIST_CHILD[`arm${side}`] = `armTwist${side}`;
+	TWIST_CHILD[`thigh${side}`] = `thighTwist${side}`;
+	TWIST_PARENT[`hand${side}`] = `forearmTwist${side}`;
+}
+/** The joint a two-bone limb reaches with: its lower bone ends there. */
+const LIMB_END: Partial<Record<string, string>> = {
 	forearmL: 'handL',
-	handL: 'handEnd',
-	armR: 'forearmR',
 	forearmR: 'handR',
-	handR: 'handEnd',
+	shinL: 'footL',
+	shinR: 'footR',
 };
 
 const occlusionVertex = /* glsl */ `
 attribute float ao;
 varying float vOcclusion;`;
 
-/** Applies the sculpt's baked occlusion to indirect light and, gently, to colour. */
+/** Applies the model's baked occlusion to indirect light and, gently, to colour. */
 function withOcclusion<T extends THREE.MeshStandardMaterial>(material: T) {
 	material.onBeforeCompile = (shader) => {
 		shader.vertexShader = shader.vertexShader
@@ -66,7 +100,7 @@ function withOcclusion<T extends THREE.MeshStandardMaterial>(material: T) {
 			)
 			.replace(
 				'#include <map_fragment>',
-				'#include <map_fragment>\ndiffuseColor.rgb *= mix(1.0, vOcclusion, 0.4);',
+				'#include <map_fragment>\ndiffuseColor.rgb *= mix(1.0, vOcclusion, 0.45);',
 			)
 			.replace(
 				'#include <aomap_fragment>',
@@ -76,92 +110,129 @@ function withOcclusion<T extends THREE.MeshStandardMaterial>(material: T) {
 	return material;
 }
 
-function clothing() {
+/** Colours worn by a rider; unset parts keep the default outfit. */
+export interface Outfit {
+	jacket?: string;
+	breeches?: string;
+	helmet?: string;
+	hair?: string;
+	boots?: string;
+	gloves?: string;
+}
+
+const DEFAULT_OUTFIT: Required<Outfit> = {
+	jacket: '#2e4260',
+	breeches: '#ddd3bf',
+	helmet: '#26302f',
+	hair: '#5a3d2a',
+	boots: '#1d1916',
+	gloves: '#3b2f27',
+};
+/** The asset material each outfit colour dyes. */
+const OUTFIT_MATERIAL: Record<keyof Outfit, string> = {
+	jacket: 'top',
+	breeches: 'breeches',
+	helmet: 'helmet',
+	hair: 'hair',
+	boots: 'boots',
+	gloves: 'gloves',
+};
+
+function clothing(textures: RiderTextures) {
+	const cloth = (colour: string, roughness: number, bump = 1) => {
+		const material = surface(colour, roughness);
+		material.map = textures.outfit ?? null;
+		material.normalMap = textures.outfitNormal ?? null;
+		// The maps follow glTF's convention; without vertex tangents three.js
+		// needs the green channel flipped.
+		material.normalScale.set(bump, -bump);
+		return material;
+	};
 	const skin = new THREE.MeshPhysicalMaterial({
-		color: '#e8b896',
-		roughness: 0.55,
-		sheen: 0.4,
-		sheenColor: new THREE.Color('#ffb59a'),
+		color: '#ffffff',
+		map: textures.skin ?? null,
+		roughness: 0.52,
+		sheen: 0.35,
+		sheenColor: new THREE.Color('#ff9d85'),
 		sheenRoughness: 0.5,
 	});
-	return {
-		skin: withOcclusion(skin),
-		hair: withOcclusion(hairSurface('#5a3d2a', 0.55)),
-		shirt: withOcclusion(surface('#2e4260', 0.8)),
-		breeches: withOcclusion(surface('#ddd3bf', 0.85)),
-		boots: withOcclusion(surface('#26211d', 0.38)),
-		gloves: withOcclusion(surface('#4d4036', 0.7)),
-	} as Record<string, THREE.MeshStandardMaterial>;
-}
-
-/** A ponytail below the back rim of the helmet, in head-bone space. */
-function ponytail(center: THREE.Vector3, radii: THREE.Vector3): Lock[] {
-	const next = seeded(31);
-	const root = center.clone().add(new THREE.Vector3(0, -0.05, -radii.z * 0.85));
-	const strands: Lock[] = [];
-	for (let i = 0; i < 26; i++) {
-		const angle = next() * Math.PI * 2,
-			spread = 0.018 * Math.sqrt(next());
-		const x = Math.cos(angle) * spread,
-			z = Math.sin(angle) * spread;
-		const length = 0.26 + next() * 0.08;
-		strands.push({
-			points: [
-				[root.x + x * 0.5, root.y + 0.01, root.z + z * 0.5],
-				[root.x + x, root.y - 0.03, root.z - 0.035 + z],
-				[root.x + x * 2.2, root.y - length * 0.55, root.z - 0.05 + z * 1.6],
-				[
-					root.x + x * 1.8 + (next() - 0.5) * 0.03,
-					root.y - length,
-					root.z - 0.035 + z,
-				],
-			],
-			radius: 0.011 + next() * 0.005,
-			tip: 0.35,
-		});
+	if (!textures.skin) skin.color.set('#e2b193');
+	const eyes = new THREE.MeshPhysicalMaterial({
+		color: '#ffffff',
+		map: textures.face ?? null,
+		roughness: 0.12,
+		clearcoat: 1,
+		clearcoatRoughness: 0.05,
+	});
+	const lashes = new THREE.MeshStandardMaterial({
+		color: '#ffffff',
+		map: textures.face ?? null,
+		roughness: 0.8,
+		transparent: true,
+		alphaTest: 0.04,
+		depthWrite: false,
+		side: THREE.DoubleSide,
+	});
+	lashes.visible = !!textures.face;
+	const hair = hairSurface(DEFAULT_OUTFIT.hair, 0.5);
+	hair.map = textures.outfit ?? null;
+	hair.normalMap = textures.outfitNormal ?? null;
+	hair.normalScale.set(1, -1);
+	hair.side = THREE.DoubleSide;
+	const boots = cloth(DEFAULT_OUTFIT.boots, 0.3);
+	const strap = cloth('#17181a', 0.8);
+	strap.side = THREE.DoubleSide;
+	const metal = surface('#c8c9cc', 0.3);
+	metal.metalness = 1;
+	const palette: Record<string, THREE.MeshStandardMaterial> = {
+		skin,
+		eyes,
+		lashes,
+		hair,
+		top: cloth(DEFAULT_OUTFIT.jacket, 0.78),
+		breeches: cloth(DEFAULT_OUTFIT.breeches, 0.82),
+		boots,
+		soles: cloth('#100f0e', 0.85),
+		gloves: cloth(DEFAULT_OUTFIT.gloves, 0.62),
+		belt: cloth('#5b3a22', 0.5),
+		metal,
+		helmet: cloth(DEFAULT_OUTFIT.helmet, 0.55),
+		strap,
+	};
+	for (const [name, material] of Object.entries(palette)) {
+		material.name = name;
+		withOcclusion(material);
 	}
-	return strands;
+	return palette;
 }
 
-/** Riding helmet: a shell over the cranium, a short peak and a harness. */
-function helmet(
-	parent: THREE.Object3D,
-	center: THREE.Vector3,
-	radii: THREE.Vector3,
+/** Splits `q` into a twist about the unit `axis` (written to `twist`) and the remaining swing. */
+function splitTwist(
+	q: THREE.Quaternion,
+	axis: THREE.Vector3,
+	swing: THREE.Quaternion,
+	twist: THREE.Quaternion,
 ) {
-	const shell = surface('#2f4a43', 0.62),
-		trim = surface('#1f2a27', 0.5);
-	const dome = mesh(
-		parent,
-		new THREE.SphereGeometry(1, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.56),
-		shell,
-	);
-	dome.scale.set(radii.x * 1.13, radii.y * 1.02, radii.z * 1.1);
-	dome.position.copy(center).add(new THREE.Vector3(0, 0.005, -0.004));
-	dome.rotation.x = -0.12;
-	const peak = mesh(
-		parent,
-		new THREE.SphereGeometry(1, 24, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-		shell,
-	);
-	peak.scale.set(radii.x * 0.95, 0.018, radii.z * 0.55);
-	peak.position.copy(center).add(new THREE.Vector3(0, -0.005, radii.z * 0.72));
-	peak.rotation.x = 0.12;
-	const band = mesh(parent, new THREE.TorusGeometry(1, 0.012, 6, 40), trim);
-	band.rotation.x = Math.PI / 2 - 0.12;
-	band.scale.set(radii.x * 1.12, radii.z * 1.09, 1);
-	band.position.copy(center).add(new THREE.Vector3(0, -0.002, -0.004));
-	return [shell, trim];
+	const along = q.x * axis.x + q.y * axis.y + q.z * axis.z;
+	twist.set(axis.x * along, axis.y * along, axis.z * along, q.w);
+	if (twist.lengthSq() < 1e-10) twist.identity();
+	else twist.normalize();
+	swing.copy(q).multiply(scratchInverse.copy(twist).invert());
 }
+/** How far an ankle can turn from its rest angle, in radians. */
+const ANKLE_RANGE = 0.7;
+const scratchInverse = new THREE.Quaternion(),
+	identity = new THREE.Quaternion();
 
 export type Figure = ReturnType<typeof createFigure>;
 
 /**
- * The rider's skinned body with bones in figure space (feet on the ground,
- * facing +Z). Poses are set by aiming bones at targets.
+ * A rider's skinned body with bones in figure space (soles on the ground,
+ * facing +Z, left at +X). Rest rotations are all identity, so poses are set by
+ * aiming bones along directions given in figure space.
  */
-export function createFigure() {
-	const { geometry, materials: names, rig } = riderAsset();
+export function createFigure(model: RiderModelId = DEFAULT_RIDER_MODEL) {
+	const { geometry, materials: names, rig, textures } = riderAsset(model);
 	const root = new THREE.Group();
 	root.name = 'figure';
 	const bones = {} as Record<BoneName, THREE.Bone>;
@@ -183,26 +254,30 @@ export function createFigure() {
 		bones[name] = bone;
 		rest[name] = world;
 	}
-	const mirror = (v: THREE.Vector3, name: string) =>
-		name.endsWith('R') ? v.clone().setX(-v.x) : v.clone();
 	// Rest directions from each joint to the next, in figure space.
 	const directions = {} as Record<BoneName, THREE.Vector3>;
-	for (const name of Object.keys(CHAINS) as BoneName[]) {
-		const child = CHAINS[name];
-		const end =
-			child === 'handEnd'
-				? mirror(new THREE.Vector3(...rig.ends.handL), name)
-				: child === 'footEnd'
-					? mirror(new THREE.Vector3(...rig.ends.footL), name)
-					: child === 'crown'
-						? new THREE.Vector3(...rig.ends.head)
-						: rest[child];
-		directions[name] = end.clone().sub(rest[name]).normalize();
+	const ends = {} as Record<BoneName, THREE.Vector3>;
+	for (const name of Object.keys(bones) as BoneName[]) {
+		const next = NEXT[name] as BoneName | undefined;
+		const end = next
+			? rest[next]
+			: rig.ends[name]
+				? new THREE.Vector3(...rig.ends[name])
+				: undefined;
+		if (end) {
+			ends[name] = end.clone();
+			directions[name] = end.clone().sub(rest[name]).normalize();
+		} else {
+			// The last bone of a chain continues its parent's line.
+			const parent = rig.bones[name].parent as BoneName;
+			directions[name] = directions[parent].clone();
+			ends[name] = rest[name].clone().addScaledVector(directions[name], 0.1);
+		}
 	}
-	const palette = clothing();
+	const palette = clothing(textures);
 	const skin = new THREE.SkinnedMesh(
 		geometry,
-		names.map((name) => palette[name] ?? palette.shirt),
+		names.map((name) => palette[name] ?? palette.top),
 	);
 	skin.name = 'rider-body';
 	skin.castShadow = true;
@@ -212,65 +287,55 @@ export function createFigure() {
 	root.updateMatrixWorld(true);
 	skin.bind(new THREE.Skeleton(Object.values(bones)));
 
-	// Head details ride on the head bone, in its rest-relative frame.
-	const head = bones.head,
-		headRest = rest.head;
-	const center = new THREE.Vector3(...rig.headCenter).sub(headRest),
-		radii = new THREE.Vector3(...rig.headRadii);
-	const white = surface('#f2eee6', 0.25),
-		iris = new THREE.MeshPhysicalMaterial({
-			color: '#4a3322',
-			roughness: 0.15,
-			clearcoat: 1,
-		});
-	for (const side of [-1, 1]) {
-		const eye = new THREE.Vector3(
-			side * rig.eye[0],
-			rig.eye[1],
-			rig.eye[2],
-		).sub(headRest);
-		oval(head, white, [0.016, 0.014, 0.015], [eye.x, eye.y, eye.z - 0.004]);
-		oval(head, iris, [0.0078, 0.0078, 0.005], [eye.x, eye.y, eye.z + 0.008]);
+	const chain: THREE.Object3D[] = [];
+	function ancestry(bone: THREE.Object3D) {
+		chain.length = 0;
+		for (
+			let node: THREE.Object3D | null = bone;
+			node && node !== root;
+			node = node.parent
+		)
+			chain.push(node);
+		return chain;
 	}
-	helmet(head, center, radii);
-	locks(head, palette.hair, ponytail(center, radii), 10);
-
+	/** Orientation of a bone in figure space. */
 	const figureQuaternion = (bone: THREE.Object3D, out: THREE.Quaternion) => {
 		out.identity();
-		const chain: THREE.Object3D[] = [];
-		for (
-			let node: THREE.Object3D | null = bone;
-			node && node !== root;
-			node = node.parent
-		)
-			chain.unshift(node);
-		for (const node of chain) out.multiply(node.quaternion);
+		const nodes = ancestry(bone);
+		for (let i = nodes.length - 1; i >= 0; i--)
+			out.multiply(nodes[i].quaternion);
 		return out;
 	};
+	const walk = new THREE.Quaternion(),
+		step = new THREE.Vector3();
+	/** Position of a bone's joint in figure space. */
 	const figurePosition = (bone: THREE.Object3D, out: THREE.Vector3) => {
-		const chain: THREE.Object3D[] = [];
-		for (
-			let node: THREE.Object3D | null = bone;
-			node && node !== root;
-			node = node.parent
-		)
-			chain.unshift(node);
+		const nodes = ancestry(bone);
 		out.set(0, 0, 0);
-		const q = new THREE.Quaternion();
-		for (const node of chain) {
-			out.add(node.position.clone().applyQuaternion(q));
-			q.multiply(node.quaternion);
+		walk.identity();
+		for (let i = nodes.length - 1; i >= 0; i--) {
+			out.add(step.copy(nodes[i].position).applyQuaternion(walk));
+			walk.multiply(nodes[i].quaternion);
 		}
 		return out;
 	};
 	const parentQuaternion = new THREE.Quaternion(),
 		desired = new THREE.Quaternion(),
 		twist = new THREE.Quaternion(),
-		forward = new THREE.Vector3(0, 0, 1);
+		swing = new THREE.Quaternion(),
+		local = new THREE.Quaternion(),
+		forward = new THREE.Vector3(0, 0, 1),
+		dir = new THREE.Vector3(),
+		turned = new THREE.Vector3(),
+		wanted = new THREE.Vector3(),
+		cross = new THREE.Vector3();
 
 	/**
 	 * Points `name` along `direction` (figure space). `hint` picks the twist:
 	 * the bone's rest `reference` axis (forward by default) turns towards it.
+	 * Upper arms and thighs hand part of their twist to the twist bone below
+	 * them, and a hand shares its twist with the lower forearm, so the skin
+	 * turns gradually along the limb.
 	 */
 	function aim(
 		name: BoneName,
@@ -278,61 +343,186 @@ export function createFigure() {
 		hint?: THREE.Vector3,
 		reference = forward,
 	) {
-		const dir = direction.clone().normalize();
+		dir.copy(direction).normalize();
 		desired.setFromUnitVectors(directions[name], dir);
 		if (hint) {
-			const turned = reference
-				.clone()
-				.applyQuaternion(desired)
-				.projectOnPlane(dir);
-			const target = hint.clone().projectOnPlane(dir);
-			if (turned.lengthSq() > 1e-6 && target.lengthSq() > 1e-6) {
+			turned.copy(reference).applyQuaternion(desired).projectOnPlane(dir);
+			wanted.copy(hint).projectOnPlane(dir);
+			if (turned.lengthSq() > 1e-6 && wanted.lengthSq() > 1e-6) {
 				turned.normalize();
-				target.normalize();
+				wanted.normalize();
 				const angle = Math.atan2(
-					turned.clone().cross(target).dot(dir),
-					turned.dot(target),
+					cross.crossVectors(turned, wanted).dot(dir),
+					turned.dot(wanted),
 				);
 				desired.premultiply(twist.setFromAxisAngle(dir, angle));
 			}
 		}
-		const parent = bones[name].parent!;
-		figureQuaternion(parent, parentQuaternion);
-		bones[name].quaternion.copy(parentQuaternion.invert().multiply(desired));
+		const bone = bones[name];
+		const twistParent = TWIST_PARENT[name] as BoneName | undefined;
+		if (twistParent) {
+			// Measure against the forearm itself, then share the twist.
+			const carrier = bones[twistParent];
+			carrier.quaternion.identity();
+			figureQuaternion(carrier, parentQuaternion);
+			local.copy(parentQuaternion.invert()).multiply(desired);
+			splitTwist(local, directions[twistParent], swing, twist);
+			carrier.quaternion.slerpQuaternions(identity, twist, 0.75);
+			bone.quaternion.copy(carrier.quaternion).invert().multiply(local);
+			return;
+		}
+		figureQuaternion(bone.parent!, parentQuaternion);
+		bone.quaternion.copy(parentQuaternion.invert()).multiply(desired);
+		if (name === 'footL' || name === 'footR') {
+			// An ankle only flexes so far from its rest angle, wherever the
+			// foot is asked to point.
+			const angle = 2 * Math.acos(Math.min(1, Math.abs(bone.quaternion.w)));
+			if (angle > ANKLE_RANGE)
+				bone.quaternion.slerpQuaternions(
+					identity,
+					local.copy(bone.quaternion),
+					ANKLE_RANGE / angle,
+				);
+		}
+		const twistChild = TWIST_CHILD[name] as BoneName | undefined;
+		if (twistChild) {
+			splitTwist(bone.quaternion, directions[name], swing, twist);
+			local.slerpQuaternions(identity, twist, 0.45);
+			bones[twistChild].quaternion.copy(local).invert().multiply(twist);
+			bone.quaternion.copy(swing).multiply(local);
+		}
 	}
 
-	const lengths = (upper: BoneName, lower: BoneName) => [
-		rest[lower].distanceTo(rest[upper]),
-		rest[CHAINS[lower] as BoneName].distanceTo(rest[lower]),
-	];
+	const start = new THREE.Vector3(),
+		toTarget = new THREE.Vector3(),
+		bendSide = new THREE.Vector3(),
+		joint = new THREE.Vector3(),
+		segment = new THREE.Vector3();
 
-	/** Two-bone IK: `end` joint of the lower bone reaches `target`, bending towards `pole`. */
+	/**
+	 * Two-bone IK: the end joint of `lower` (wrist or ankle) reaches `target`,
+	 * bending towards `pole`. Twist bones between the joints stay in line.
+	 */
 	function reach(
 		upper: BoneName,
 		lower: BoneName,
 		target: THREE.Vector3,
 		pole: THREE.Vector3,
-		hint?: THREE.Vector3,
 	) {
-		const [a, b] = lengths(upper, lower);
-		const start = figurePosition(bones[upper], new THREE.Vector3());
-		const toTarget = target.clone().sub(start);
+		const a = rest[lower].distanceTo(rest[upper]),
+			b = rest[LIMB_END[lower] as BoneName].distanceTo(rest[lower]);
+		figurePosition(bones[upper], start);
+		toTarget.copy(target).sub(start);
 		const distance = THREE.MathUtils.clamp(
 			toTarget.length(),
 			Math.abs(a - b) + 1e-4,
 			a + b - 1e-4,
 		);
-		const axis = toTarget.normalize();
-		const side = pole.clone().projectOnPlane(axis).normalize();
+		toTarget.normalize();
+		bendSide.copy(pole).projectOnPlane(toTarget).normalize();
 		const cos = (a * a + distance * distance - b * b) / (2 * a * distance);
 		const sin = Math.sqrt(Math.max(0, 1 - cos * cos));
-		const joint = start
-			.clone()
-			.addScaledVector(axis, a * cos)
-			.addScaledVector(side, a * sin);
-		const end = start.clone().addScaledVector(axis, distance);
-		aim(upper, joint.clone().sub(start), hint ?? pole);
-		aim(lower, end.sub(joint), hint ?? pole);
+		joint
+			.copy(start)
+			.addScaledVector(toTarget, a * cos)
+			.addScaledVector(bendSide, a * sin);
+		bend(
+			upper,
+			lower,
+			segment.copy(joint).sub(start),
+			lowerSegment.copy(start).addScaledVector(toTarget, distance).sub(joint),
+		);
+	}
+
+	const upperDirection = new THREE.Vector3(),
+		lowerDirection = new THREE.Vector3(),
+		lowerSegment = new THREE.Vector3(),
+		hintA = new THREE.Vector3(),
+		hintB = new THREE.Vector3(),
+		referenceA = new THREE.Vector3(),
+		referenceB = new THREE.Vector3();
+
+	/**
+	 * Lays a limb's two bones along the given directions. Each bone twists so
+	 * that the elbow or knee keeps hinging about the same axis as at rest.
+	 */
+	function bend(
+		upper: BoneName,
+		lower: BoneName,
+		upperTo: THREE.Vector3,
+		lowerTo: THREE.Vector3,
+	) {
+		upperDirection.copy(upperTo).normalize();
+		lowerDirection.copy(lowerTo).normalize();
+		aim(
+			upper,
+			upperDirection,
+			hintA.copy(lowerDirection),
+			referenceA.copy(directions[lower]),
+		);
+		aim(
+			lower,
+			lowerDirection,
+			hintB.copy(upperDirection).negate(),
+			referenceB.copy(directions[upper]).negate(),
+		);
+	}
+
+	// Fingers curl about the axis across the palm.
+	const curlAxes = {} as Record<string, THREE.Vector3>;
+	for (const side of SIDES) {
+		const sign = side === 'L' ? 1 : -1;
+		const hand = rest[`hand${side}`];
+		const palm = new THREE.Vector3()
+			.subVectors(rest[`index1${side}`], hand)
+			.cross(new THREE.Vector3().subVectors(rest[`pinky1${side}`], hand))
+			.normalize();
+		// In the rest pose the palms face the thighs.
+		if (palm.x * sign > 0) palm.negate();
+		for (const finger of FINGERS)
+			for (const joint of [1, 2, 3] as const) {
+				const name = `${finger}${joint}${side}` as BoneName;
+				const axis = new THREE.Vector3().crossVectors(directions[name], palm);
+				if (finger === 'thumb')
+					// The thumb folds across the palm rather than into it.
+					axis
+						.crossVectors(directions[name], directions[`index1${side}`])
+						.multiplyScalar(-1)
+						.addScaledVector(
+							new THREE.Vector3().crossVectors(directions[name], palm),
+							0.6,
+						);
+				curlAxes[name] = axis.normalize();
+			}
+	}
+	const CURL = [1.25, 1.5, 1.05];
+	// The direction across each hand towards its thumb, to roll hands by.
+	const thumbward = {
+		L: new THREE.Vector3()
+			.subVectors(rest.index1L, rest.pinky1L)
+			.projectOnPlane(directions.handL)
+			.normalize(),
+		R: new THREE.Vector3()
+			.subVectors(rest.index1R, rest.pinky1R)
+			.projectOnPlane(directions.handR)
+			.normalize(),
+	};
+
+	/**
+	 * Closes the fingers of one hand: 0 is the flat rest pose, 1 a fist.
+	 * `thumb` defaults to a little less than the fingers.
+	 */
+	function grip(side: number, curl: number, thumb = curl * 0.55) {
+		const letter = side > 0 ? 'L' : 'R';
+		for (const finger of FINGERS)
+			for (let joint = 0; joint < 3; joint++) {
+				const name = `${finger}${joint + 1}${letter}` as BoneName;
+				const amount =
+					finger === 'thumb'
+						? thumb * [0.5, 0.55, 0.7][joint]
+						: curl * CURL[joint] * (finger === 'pinky' ? 1.08 : 1);
+				bones[name].quaternion.setFromAxisAngle(curlAxes[name], amount);
+			}
 	}
 
 	function resetPose() {
@@ -348,44 +538,93 @@ export function createFigure() {
 		) as Record<BoneName, THREE.Quaternion>;
 	}
 
+	// The ponytail is a short pendulum hanging from the back of the head.
+	const tailRoot = new THREE.Vector3(),
+		tailTip = new THREE.Vector3(),
+		tailBefore = new THREE.Vector3(),
+		tailDirection = new THREE.Vector3(),
+		rootQuaternion = new THREE.Quaternion(),
+		headQuaternion = new THREE.Quaternion();
+	const tailLength = bones.tail1 ? rest.tail3.distanceTo(rest.tail1) * 1.6 : 0;
+	let tailLive = false;
+
+	/**
+	 * Lets the ponytail swing behind the head. Call once per frame after the
+	 * pose is set and the figure has been placed in the world.
+	 */
+	function swingHair(dt: number) {
+		if (!bones.tail1 || dt <= 0) return;
+		bones.tail1.quaternion.identity();
+		bones.tail2.quaternion.identity();
+		bones.tail3.quaternion.identity();
+		bones.head.updateWorldMatrix(true, false);
+		bones.tail1.updateWorldMatrix(false, false);
+		tailRoot.setFromMatrixPosition(bones.tail1.matrixWorld);
+		root.getWorldQuaternion(rootQuaternion);
+		if (!tailLive || tailTip.distanceTo(tailRoot) > tailLength * 3) {
+			tailTip
+				.copy(directions.tail1)
+				.applyQuaternion(rootQuaternion)
+				.multiplyScalar(tailLength)
+				.add(tailRoot);
+			tailBefore.copy(tailTip);
+			tailLive = true;
+		}
+		// Verlet step: keep some momentum, fall, then stay on the hair's length.
+		const damping = Math.exp(-dt * 5);
+		step.copy(tailTip).sub(tailBefore).multiplyScalar(damping);
+		tailBefore.copy(tailTip);
+		tailTip.add(step);
+		tailTip.y -= 26 * dt * dt;
+		tailDirection.copy(tailTip).sub(tailRoot).normalize();
+		// In figure space the hair stays behind the neck and off the shoulders.
+		tailDirection.applyQuaternion(rootQuaternion.invert());
+		tailDirection.z = Math.min(tailDirection.z, -0.2);
+		tailDirection.x = THREE.MathUtils.clamp(tailDirection.x, -0.45, 0.45);
+		tailDirection.y = Math.min(tailDirection.y, -0.35);
+		tailDirection.normalize();
+		rootQuaternion.invert();
+		tailTip
+			.copy(tailDirection)
+			.applyQuaternion(rootQuaternion)
+			.multiplyScalar(tailLength)
+			.add(tailRoot);
+		// Bend gradually: each bone covers a share of the way to the direction.
+		figureQuaternion(bones.head, headQuaternion);
+		desired.setFromUnitVectors(directions.tail1, tailDirection);
+		local.copy(headQuaternion).invert().multiply(desired);
+		bones.tail1.quaternion.slerpQuaternions(identity, local, 0.5);
+		bones.tail2.quaternion.slerpQuaternions(identity, local, 0.35);
+		bones.tail3.quaternion.slerpQuaternions(identity, local, 0.2);
+	}
+
 	return {
+		model,
 		root,
 		bones,
 		rest,
+		ends,
 		directions,
+		materials: palette,
 		aim,
 		reach,
+		bend,
+		grip,
+		thumbward,
 		resetPose,
 		snapshot,
+		swingHair,
 		figurePosition,
+		figureQuaternion,
 	};
 }
 
-/** Colours worn by a rider; unset parts keep the default outfit. */
-export interface Outfit {
-	jacket?: string;
-	breeches?: string;
-	helmet?: string;
-	hair?: string;
-}
-
-const DEFAULT_OUTFIT: Required<Outfit> = {
-	jacket: '#2e4260',
-	breeches: '#ddd3bf',
-	helmet: '#2f4a43',
-	hair: '#5a3d2a',
-};
-
-/** Re-dresses every figure under `root`, matching the default outfit colours. */
+/** Re-dresses every figure under `root`; unset colours keep what is worn. */
 export function dressFigure(root: THREE.Object3D, outfit: Outfit) {
-	const swaps = new Map<number, THREE.Color>();
-	for (const key of Object.keys(DEFAULT_OUTFIT) as (keyof Outfit)[]) {
+	const colours = new Map<string, string>();
+	for (const key of Object.keys(OUTFIT_MATERIAL) as (keyof Outfit)[]) {
 		const colour = outfit[key];
-		if (colour)
-			swaps.set(
-				new THREE.Color(DEFAULT_OUTFIT[key]).getHex(),
-				new THREE.Color(colour),
-			);
+		if (colour) colours.set(OUTFIT_MATERIAL[key], colour);
 	}
 	const seen = new Set<THREE.Material>();
 	root.traverse((object) => {
@@ -400,8 +639,8 @@ export function dressFigure(root: THREE.Object3D, outfit: Outfit) {
 			)
 				continue;
 			seen.add(material);
-			const swap = swaps.get(material.color.getHex());
-			if (swap) material.color.copy(swap);
+			const colour = colours.get(material.name);
+			if (colour) material.color.set(colour);
 		}
 	});
 }

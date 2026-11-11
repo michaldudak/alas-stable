@@ -33,10 +33,13 @@ try {
 			String('/src/horse/asset.ts')
 		)) as typeof AssetModule;
 		await loadHorseAsset('/src/assets/horse.glb');
-		const { loadRiderAsset } = (await import(
+		const { loadRiderAsset, riderFiles } = (await import(
 			String('/src/horse/rider-asset.ts')
 		)) as typeof RiderAssetModule;
-		await loadRiderAsset('/src/assets/rider.glb');
+		await loadRiderAsset(
+			'adult-female',
+			riderFiles('/src/assets/riders', 'adult-female'),
+		);
 		const renderer = new THREE.WebGLRenderer({
 			antialias: true,
 			preserveDrawingBuffer: true,

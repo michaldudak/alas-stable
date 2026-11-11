@@ -1,19 +1,22 @@
 import * as THREE from 'three';
 import type { Vector3Tuple } from '../rendering/types.ts';
 import { createFigure, type BoneName, type Figure } from './figure.ts';
+import type { RiderModelId } from './rider-asset.ts';
 
-/** Where the figure's feet-level origin sits in the horse's seat space. */
-export const RIDER_SEAT = new THREE.Vector3(0, 1.4, -0.12);
+/** Where the seated rider's hip joint rests, in the horse's seat space. */
+export const SEAT_POINT = new THREE.Vector3(0, 2.72, -0.14);
 /** The rider's left hand on the reins in seat space; the right mirrors it. */
-export const REIN_HAND: Vector3Tuple = [0.15, 2.94, 0.36];
+export const REIN_HAND: Vector3Tuple = [0.13, 2.98, 0.42];
 /** Left stirrup tread in seat space, under the ball of the rider's foot. */
-export const STIRRUP: Vector3Tuple = [0.52, 1.66, 0.28];
-
-const up = new THREE.Vector3(0, 1, 0);
+export const STIRRUP: Vector3Tuple = [0.56, 1.64, 0.26];
 
 /** Bone of the given limb on the +X (`L`) or -X (`R`) side. */
 export const limb = (part: string, side: number) =>
 	`${part}${side > 0 ? 'L' : 'R'}` as BoneName;
+
+/** Where a figure's ground-level origin sits in seat space when it is in the saddle. */
+export const seatOrigin = (figure: Figure, out = new THREE.Vector3()) =>
+	out.copy(SEAT_POINT).sub(figure.rest.hips);
 
 /**
  * A pat on the neck from the saddle: `lean` folds the rider forward and moves
@@ -27,93 +30,128 @@ export interface Pat {
 	target: THREE.Vector3;
 }
 
-const hand = new THREE.Vector3(),
-	patHand = new THREE.Vector3(),
-	euler = new THREE.Euler();
+const euler = new THREE.Euler(),
+	target = new THREE.Vector3(),
+	pole = new THREE.Vector3(),
+	direction = new THREE.Vector3(),
+	hint = new THREE.Vector3(),
+	origin = new THREE.Vector3(),
+	wrist = new THREE.Vector3(),
+	pitchAxis = new THREE.Vector3(1, 0, 0),
+	yawAxis = new THREE.Vector3(0, 1, 0);
+
+/** The foot's rest direction tipped toe-up by `pitch` and turned out by `yaw`. */
+export function footDirection(
+	figure: Figure,
+	side: number,
+	pitch: number,
+	yaw: number,
+	out: THREE.Vector3,
+) {
+	return out
+		.copy(figure.directions[limb('foot', side)])
+		.applyAxisAngle(pitchAxis, -pitch)
+		.applyAxisAngle(yawAxis, yaw);
+}
 
 /**
- * Upright seat with a slight forward lean: knees against the saddle flaps,
- * lower legs on the girth, heels down in the stirrups and hands a fist's width
- * above the withers. A pat bends the rider forward over the horse's neck.
+ * A balanced seat: ear, shoulder, hip and heel in line, thighs on the saddle
+ * flaps, heels down in the stirrups, elbows by the sides and closed hands
+ * carried thumbs-up above the withers. A pat bends the rider over the neck.
  */
 export function seatedPose(figure: Figure, pat?: Pat) {
 	const lean = pat?.lean ?? 0,
 		turn = pat?.side ?? 0;
+	const { bones } = figure;
 	figure.resetPose();
+	seatOrigin(figure, origin);
 	// Leaning folds at the hips first, then rounds the back and turns the head.
-	figure.bones.pelvis.quaternion.setFromEuler(euler.set(0.2 * lean, 0, 0));
-	figure.bones.spine.quaternion.setFromEuler(
-		euler.set(0.08 + 0.42 * lean, 0.12 * lean * turn, 0),
+	bones.hips.quaternion.setFromEuler(euler.set(0.04 + 0.2 * lean, 0, 0));
+	bones.spine.quaternion.setFromEuler(
+		euler.set(-0.03 + 0.22 * lean, 0.06 * lean * turn, 0),
 	);
-	figure.bones.head.quaternion.setFromEuler(
-		euler.set(-0.06 + 0.12 * lean, 0.3 * lean * turn, -0.08 * lean * turn),
+	bones.chest.quaternion.setFromEuler(
+		euler.set(0.02 + 0.2 * lean, 0.06 * lean * turn, 0),
 	);
-	hand.set(...REIN_HAND).sub(RIDER_SEAT);
+	bones.neck.quaternion.setFromEuler(
+		euler.set(-0.02 + 0.05 * lean, 0.12 * lean * turn, 0),
+	);
+	bones.head.quaternion.setFromEuler(
+		euler.set(-0.03 + 0.07 * lean, 0.18 * lean * turn, -0.08 * lean * turn),
+	);
 	for (const side of [1, -1]) {
-		// Ankle just behind and above the tread: heels down, knee on the flap.
+		// The ball of the foot rests on the tread, the heel sinks below it.
+		const heelDown = 0.16;
+		footDirection(figure, side, heelDown, side * 0.14, direction);
+		const ball = figure.rest.toeL.distanceTo(figure.rest.footL);
+		target
+			.set(side * STIRRUP[0], STIRRUP[1] + 0.035, STIRRUP[2])
+			.sub(origin)
+			.addScaledVector(direction, -ball);
 		figure.reach(
 			limb('thigh', side),
 			limb('shin', side),
-			new THREE.Vector3(
-				side * STIRRUP[0],
-				STIRRUP[1] + 0.1,
-				STIRRUP[2] - 0.13,
-			).sub(RIDER_SEAT),
-			new THREE.Vector3(side, 0, 0.45),
-			new THREE.Vector3(side * 0.3, 0, 1),
+			target,
+			pole.set(side * 0.55, 0.3, 1),
 		);
-		figure.aim(
-			limb('foot', side),
-			new THREE.Vector3(side * 0.12, 0.1, 1),
-			up,
-			up,
-		);
+		figure.aim(limb('foot', side), direction, yawAxis, yawAxis);
+		bones[limb('toe', side)].quaternion.identity();
+
 		const reaching = pat && lean > 0 && side === pat.side;
-		const target = hand.clone().setX(side * hand.x);
+		const letter = side > 0 ? 'L' : 'R';
+		// The closed hand points down the rein towards the bit, thumb on top.
+		direction.set(-side * 0.22, -0.18, 1).normalize();
+		hint.set(-side * 0.25, 1, 0);
+		const palm = figure.rest[limb('middle1', side)].distanceTo(
+			figure.rest[limb('hand', side)],
+		);
+		wrist
+			.set(side * REIN_HAND[0], REIN_HAND[1], REIN_HAND[2])
+			.sub(origin)
+			.addScaledVector(direction, -palm * 0.8);
+		let curl = 0.82;
 		if (reaching) {
-			// The hand leaves the rein for the side of the neck.
-			patHand
+			// The hand leaves the rein for the side of the neck, palm flat.
+			target
 				.copy(pat.target)
-				.sub(RIDER_SEAT)
-				.add(new THREE.Vector3(0, 0.09 * pat.lift, 0));
-			target.lerp(patHand, lean);
+				.sub(origin)
+				.add(pole.set(0, 0.09 * pat.lift + 0.04, 0));
+			wrist.lerp(target, lean);
+			direction.lerp(pole.set(-side * 0.15, -0.55, 0.8), lean).normalize();
+			hint.lerp(pole.set(side * 0.9, 0.4, 0), lean);
+			curl = THREE.MathUtils.lerp(curl, 0.08, lean);
 		}
 		figure.reach(
 			limb('arm', side),
 			limb('forearm', side),
-			target,
+			wrist,
 			reaching
-				? new THREE.Vector3(side * 0.9, -0.3, -0.4)
-				: new THREE.Vector3(side * 0.45, -0.5, -1),
-			new THREE.Vector3(0, 0.3, 1),
+				? pole.set(side * 0.9, -0.4, -0.4)
+				: pole.set(side * 0.35, -0.6, -1),
 		);
-		figure.aim(
-			limb('hand', side),
-			reaching
-				? new THREE.Vector3(
-						-side * 0.3 * (1 - lean),
-						-0.25 - 0.55 * lean,
-						1 - 0.4 * lean,
-					)
-				: new THREE.Vector3(-side * 0.3, -0.25, 1),
-			up,
-		);
+		figure.aim(limb('hand', side), direction, hint, figure.thumbward[letter]);
+		figure.grip(side, curl, curl * 0.5);
 	}
 }
 
 /** The mounted rider, seated in the saddle and animated as one group. */
-export function createRider(parent: THREE.Group, patTarget: THREE.Vector3) {
+export function createRider(
+	parent: THREE.Group,
+	patTarget: THREE.Vector3,
+	model?: RiderModelId,
+) {
 	const rider = new THREE.Group();
 	rider.name = 'rider';
 	parent.add(rider);
-	const figure = createFigure();
-	figure.root.position.copy(RIDER_SEAT);
+	const figure = createFigure(model);
+	seatOrigin(figure, figure.root.position);
 	rider.add(figure.root);
 	seatedPose(figure);
 	const pat: Pat = { lean: 0, lift: 0, side: -1, target: patTarget };
 	let posed = false;
 	return {
 		rider,
+		figure,
 		/** Leans over to pat the neck; zero returns to the plain seat. */
 		gesture: (lean: number, lift: number, side: number) => {
 			if (lean <= 0.001) {

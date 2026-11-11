@@ -25,11 +25,14 @@ try {
 		const { loadHorseAsset } = (await import(
 			String('/src/horse/asset.ts')
 		)) as typeof HorseAssetModule;
-		const { loadRiderAsset } = (await import(
+		const { loadRiderAsset, riderFiles } = (await import(
 			String('/src/horse/rider-asset.ts')
 		)) as typeof RiderAssetModule;
 		await loadHorseAsset('/src/assets/horse.glb');
-		await loadRiderAsset('/src/assets/rider.glb');
+		await loadRiderAsset(
+			'adult-female',
+			riderFiles('/src/assets/riders', 'adult-female'),
+		);
 		const { createWalkingRider, stepTiming } = (await import(
 			String('/src/horse/walking-rider.ts')
 		)) as typeof WalkerModule;

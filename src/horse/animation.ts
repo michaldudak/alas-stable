@@ -148,6 +148,7 @@ export function createHorseAnimation(horse: HorseModel) {
 				2.7 * (1 - Math.cos(pose.riderPitch)) + pose.riderY,
 				-2.7 * Math.sin(pose.riderPitch),
 			);
+			if (horse.rider.visible) horse.swingRiderHair(dt);
 			// Standing horses swish at flies in bursts; moving, the tail swings with
 			// the hind legs and lifts at the trot and canter.
 			const swish =
