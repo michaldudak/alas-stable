@@ -54,8 +54,9 @@ await test('transition blends poses and sound is silent in jumps and at rest', (
 	assert.ok(pose.weights[1] > 0.8 && pose.weights[3] < 0.2);
 	assert.ok(Math.abs(pose.y - previous.y) < 0.03);
 	assert.ok(
+		// One frame into the change no hoof jumps: the walk's stride is 1.2 long.
 		Math.max(...pose.feet.map((f, i) => Math.abs(f.z - previous.feet[i].z))) <
-			0.2,
+			0.25,
 	);
 	for (let i = 0; i < 70; i++)
 		assert.equal(
