@@ -7,10 +7,10 @@ export const GAIT_CYCLES = [
 	null,
 	{
 		offsets: [0, 0.25, 0.5, 0.75],
-		stance: 0.7,
-		frequency: 1.35,
-		reach: 0.43,
-		lift: 0.15,
+		stance: 0.62,
+		frequency: 1.1,
+		reach: 0.6,
+		lift: 0.19,
 	},
 	{
 		offsets: [0, 0.5, 0.5, 0],

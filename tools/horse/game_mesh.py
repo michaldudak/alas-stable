@@ -144,9 +144,9 @@ def skin_weights(points):
             # behind the flank follows the leg, except the midline under the tail.
             px, py, pz = p.T
             thigh = (
-                smoothstep(-0.3, -0.58, pz)
+                smoothstep(-0.92, -1.08, pz)
                 * smoothstep(2.02, 1.58, py)
-                * smoothstep(0.02, 0.15, np.abs(px))
+                * smoothstep(0.06, 0.18, np.abs(px))
             )
             limb = np.where(along < knee - 0.1, thigh, 1.0)
         to_knee = smoothstep(knee - 0.08, knee + 0.05, along)
